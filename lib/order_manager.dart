@@ -1,21 +1,5 @@
 import 'package:flutter/material.dart';
-import 'cart_manager.dart';
-
-class Order {
-  final String id;
-  final List<CartItem> items;
-  final double total;
-  final DateTime date;
-  final String status; // 'Placed', 'Preparing', 'Shipped', 'Delivered'
-
-  Order({
-    required this.id,
-    required this.items,
-    required this.total,
-    required this.date,
-    required this.status,
-  });
-}
+import 'models.dart';
 
 class OrderManager extends ChangeNotifier {
   static final OrderManager _instance = OrderManager._internal();

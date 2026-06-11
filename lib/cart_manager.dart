@@ -1,14 +1,6 @@
 import 'package:flutter/material.dart';
 import 'models.dart';
 
-class CartItem {
-  final Product product;
-  int quantity;
-  String weight;
-
-  CartItem({required this.product, this.quantity = 1, this.weight = '500g'});
-}
-
 class CartManager extends ChangeNotifier {
   static final CartManager _instance = CartManager._internal();
   factory CartManager() => _instance;
@@ -44,7 +36,6 @@ class CartManager extends ChangeNotifier {
   }
 
   void addToCart(Product product, {int quantity = 1, String weight = '500g'}) {
-    // Check if item already exists with same weight
     int index = _items.indexWhere((item) => item.product.name == product.name && item.weight == weight);
     
     if (index != -1) {
@@ -52,7 +43,7 @@ class CartManager extends ChangeNotifier {
     } else {
       _items.add(CartItem(product: product, quantity: quantity, weight: weight));
     }
-    if (_appliedPromoCode.isNotEmpty) applyPromoCode(_appliedPromoCode); // Recalculate discount
+    if (_appliedPromoCode.isNotEmpty) applyPromoCode(_appliedPromoCode);
     notifyListeners();
   }
 

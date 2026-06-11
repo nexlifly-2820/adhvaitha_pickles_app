@@ -43,3 +43,27 @@ class Product {
     this.isBestSeller = false,
   });
 }
+
+class CartItem {
+  final Product product;
+  int quantity;
+  String weight;
+
+  CartItem({required this.product, this.quantity = 1, this.weight = '500g'});
+}
+
+class Order {
+  final String id;
+  final List<CartItem> items;
+  final double total;
+  final DateTime date;
+  final String status;
+
+  Order({
+    required this.id,
+    required this.items,
+    required this.total,
+    required this.date,
+    required this.status,
+  });
+}

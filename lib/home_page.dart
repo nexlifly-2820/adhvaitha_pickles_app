@@ -1,28 +1,9 @@
 import 'package:flutter/material.dart';
 import 'product_detail_page.dart';
 import 'cart_manager.dart';
+import 'wishlist_manager.dart';
 import 'models.dart';
-import 'main.dart'; // Import to access MainScreen
-
-class WishlistManager extends ChangeNotifier {
-  static final WishlistManager _instance = WishlistManager._internal();
-  factory WishlistManager() => _instance;
-  WishlistManager._internal();
-
-  final List<Product> _wishlist = [];
-  List<Product> get items => _wishlist;
-
-  void toggleFavorite(Product product) {
-    if (_wishlist.contains(product)) {
-      _wishlist.remove(product);
-    } else {
-      _wishlist.add(product);
-    }
-    notifyListeners();
-  }
-
-  bool isFavorite(Product product) => _wishlist.contains(product);
-}
+import 'main.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -100,6 +81,7 @@ class _HomePageState extends State<HomePage> {
   String searchQuery = "";
   String selectedCategory = "All";
   String currentSort = "Popularity";
+  bool _isFullMenuVisible = false;
 
   @override
   void initState() {
@@ -135,7 +117,6 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.white,
       body: CustomScrollView(
         slivers: [
-          // CLEAN BRANDING HEADER
           SliverAppBar(
             floating: true,
             pinned: false,
@@ -183,7 +164,6 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // SEARCH BAR (Swiggy Style)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   child: Container(
@@ -213,13 +193,11 @@ class _HomePageState extends State<HomePage> {
                 ),
 
                 if (searchQuery.isEmpty && selectedCategory == "All") ...[
-                  // BANNERS (Full Width like Swiggy)
                   const SizedBox(height: 10),
                   SliverBannerSection(pickleBanners: pickleBanners),
                   
                   const SizedBox(height: 24),
                   
-                  // CIRCULAR CATEGORIES (Swiggy Style)
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Text('What\'s on your mind?', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
@@ -231,18 +209,17 @@ class _HomePageState extends State<HomePage> {
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       children: [
-                        _CircularCategory(title: 'Pickles', icon: 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', isSelected: selectedCategory == 'Pickles', onTap: () { selectedCategory = 'Pickles'; _filterAndSort(); }),
-                        _CircularCategory(title: 'Snacks', icon: 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg', isSelected: selectedCategory == 'Snacks', onTap: () { selectedCategory = 'Snacks'; _filterAndSort(); }),
-                        _CircularCategory(title: 'Spices', icon: 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg', isSelected: selectedCategory == 'Spices', onTap: () { selectedCategory = 'Spices'; _filterAndSort(); }),
-                        _CircularCategory(title: 'Sweets', icon: 'assets/images/gondh_laddu_edible_gum_laddu.jpg', isSelected: selectedCategory == 'Sweets', onTap: () { selectedCategory = 'Sweets'; _filterAndSort(); }),
-                        _CircularCategory(title: 'All', icon: 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg', isSelected: selectedCategory == 'All', onTap: () { selectedCategory = 'All'; _filterAndSort(); }),
+                        _CircularCategory(title: 'Pickles', icon: 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', isSelected: selectedCategory == 'Pickles', onTap: () { selectedCategory = 'Pickles'; _isFullMenuVisible = true; _filterAndSort(); }),
+                        _CircularCategory(title: 'Snacks', icon: 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg', isSelected: selectedCategory == 'Snacks', onTap: () { selectedCategory = 'Snacks'; _isFullMenuVisible = true; _filterAndSort(); }),
+                        _CircularCategory(title: 'Spices', icon: 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg', isSelected: selectedCategory == 'Spices', onTap: () { selectedCategory = 'Spices'; _isFullMenuVisible = true; _filterAndSort(); }),
+                        _CircularCategory(title: 'Sweets', icon: 'assets/images/gondh_laddu_edible_gum_laddu.jpg', isSelected: selectedCategory == 'Sweets', onTap: () { selectedCategory = 'Sweets'; _isFullMenuVisible = true; _filterAndSort(); }),
+                        _CircularCategory(title: 'All', icon: 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg', isSelected: selectedCategory == 'All', onTap: () { selectedCategory = 'All'; _isFullMenuVisible = true; _filterAndSort(); }),
                       ],
                     ),
                   ),
 
                   const SizedBox(height: 32),
 
-                  // TOP RATED (Like Zomato's "Top brands")
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -255,14 +232,14 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
-                    height: 280, // Increased from 240 to prevent overflow
+                    height: 280, 
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: 5,
                       itemBuilder: (context, index) {
                         return Container(
-                          width: 170, // Slightly wider for better proportion
+                          width: 170, 
                           margin: const EdgeInsets.only(right: 16),
                           child: AdvanceProductCard(product: allProducts[index]),
                         );
@@ -280,7 +257,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // MAIN PRODUCT GRID (Zomato Style)
           SliverPadding(
             padding: const EdgeInsets.all(16),
             sliver: SliverGrid(
@@ -294,12 +270,12 @@ class _HomePageState extends State<HomePage> {
                 (context, index) {
                   return AdvanceProductCard(product: displayedProducts[index]);
                 },
-                childCount: (searchQuery.isEmpty && selectedCategory == "All") ? 6 : displayedProducts.length,
+                childCount: (searchQuery.isEmpty && selectedCategory == "All" && !_isFullMenuVisible) ? 6 : displayedProducts.length,
               ),
             ),
           ),
           
-          if (searchQuery.isEmpty && selectedCategory == "All")
+          if (searchQuery.isEmpty && selectedCategory == "All" && !_isFullMenuVisible)
             SliverToBoxAdapter(
               child: Center(
                 child: Padding(
@@ -307,9 +283,7 @@ class _HomePageState extends State<HomePage> {
                   child: OutlinedButton(
                     onPressed: () {
                       setState(() {
-                        selectedCategory = "All";
-                        searchQuery = "";
-                        _filterAndSort();
+                        _isFullMenuVisible = true;
                       });
                     },
                     style: OutlinedButton.styleFrom(
@@ -322,6 +296,8 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
+          
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
     );
@@ -363,46 +339,40 @@ class SliverBannerSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        // Example: Navigate to Pickles category
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Viewing Monsoon Specials!')));
-      },
-      child: SizedBox(
-        height: 180,
-        child: PageView.builder(
-          controller: PageController(viewportFraction: 0.88),
-          itemCount: pickleBanners.length,
-          itemBuilder: (context, index) {
-            final banner = pickleBanners[index];
-            return Container(
-              margin: const EdgeInsets.only(right: 12),
+    return SizedBox(
+      height: 180,
+      child: PageView.builder(
+        controller: PageController(viewportFraction: 0.88),
+        itemCount: pickleBanners.length,
+        itemBuilder: (context, index) {
+          final banner = pickleBanners[index];
+          return Container(
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              image: DecorationImage(image: AssetImage(banner['image']!), fit: BoxFit.cover),
+            ),
+            child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                image: DecorationImage(image: AssetImage(banner['image']!), fit: BoxFit.cover),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Colors.black.withOpacity(0.7), Colors.transparent],
-                  ),
-                ),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(banner['title']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
-                    Text(banner['subtitle']!, style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13)),
-                  ],
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Colors.black.withOpacity(0.7), Colors.transparent],
                 ),
               ),
-            );
-          },
-        ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(banner['title']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
+                  Text(banner['subtitle']!, style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13)),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -460,7 +430,11 @@ class AdvanceProductCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => ProductDetailPage(product: product)));
+        // Use root navigator to ensure it covers the bottom bar if desired, 
+        // or just standard push. Navigator.push is standard.
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(builder: (context) => ProductDetailPage(product: product))
+        );
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

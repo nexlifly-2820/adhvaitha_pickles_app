@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'cart_manager.dart';
 import 'checkout_page.dart';
 import 'main.dart';
+import 'models.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});

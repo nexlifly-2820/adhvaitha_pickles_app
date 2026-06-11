@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'cart_manager.dart';
 import 'order_manager.dart';
 import 'main.dart';
+import 'models.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
