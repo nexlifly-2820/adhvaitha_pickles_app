@@ -17,8 +17,7 @@ class Review {
 class Product {
   final String name;
   final String description;
-  final String price;
-  final String weight;
+  final Map<String, double> weightPriceMap;
   final double rating;
   final String image;
   final Color color;
@@ -27,12 +26,15 @@ class Product {
   final List<String> pairings;
   final List<Review> reviews;
   final bool isBestSeller;
+  final String origin;
+  final List<String> ingredients;
+  final String preparationMethod;
+  final String shelfLife;
 
   Product({
     required this.name,
     required this.description,
-    required this.price,
-    required this.weight,
+    required this.weightPriceMap,
     required this.rating,
     required this.image,
     required this.color,
@@ -41,7 +43,26 @@ class Product {
     this.pairings = const ['Rice', 'Idli', 'Dosa'],
     this.reviews = const [],
     this.isBestSeller = false,
+    this.origin = 'Coastal Andhra, India',
+    this.ingredients = const ['Fresh Produce', 'Cold Pressed Oil', 'Sea Salt', 'Traditional Spices'],
+    this.preparationMethod = 'Handmade in small batches using traditional sun-drying and stone-grinding techniques.',
+    this.shelfLife = '6 Months from date of manufacture',
   });
+
+  // Helper to get formatted price for a specific weight
+  String getPriceForWeight(String weight) {
+    double price = weightPriceMap[weight] ?? 0;
+    return '₹${price.toStringAsFixed(0)}';
+  }
+
+  // Helper to get raw price for calculations
+  double getRawPriceForWeight(String weight) {
+    return weightPriceMap[weight] ?? 0;
+  }
+
+  // Get default price (usually first weight in map)
+  String get defaultPrice => getPriceForWeight(weightPriceMap.keys.first);
+  String get defaultWeight => weightPriceMap.keys.first;
 }
 
 class CartItem {

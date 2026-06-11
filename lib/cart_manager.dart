@@ -73,7 +73,7 @@ class CartManager extends ChangeNotifier {
   double get subtotal {
     double total = 0;
     for (var item in _items) {
-      double price = double.parse(item.product.price.replaceAll('₹', ''));
+      double price = item.product.getRawPriceForWeight(item.weight);
       total += price * item.quantity;
     }
     return total;

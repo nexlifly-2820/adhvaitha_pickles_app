@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'home_page.dart';
-import 'cart_page.dart';
 import 'wishlist_page.dart';
 import 'profile_page.dart';
 import 'splash_screen.dart';
+import 'categories_page.dart';
+import 'order_history_page.dart';
 
 void main() {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -25,31 +26,38 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFFDFDFD),
-        textTheme: GoogleFonts.poppinsTextTheme(
-          const TextTheme(
-            displayLarge: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF2C3E50)),
-            headlineLarge: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF2C3E50)),
-            titleLarge: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2C3E50)),
-            bodyMedium: TextStyle(color: Color(0xFF5D6D7E)),
-          ),
-        ),
+        scaffoldBackgroundColor: const Color(0xFFFFF8E8),
+        primaryColor: const Color(0xFF18453B),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFD35400),
-          primary: const Color(0xFFD35400),
-          secondary: const Color(0xFF2C3E50),
-          surface: Colors.white,
+          seedColor: const Color(0xFF18453B),
+          primary: const Color(0xFF18453B),
+          secondary: const Color(0xFFD4AF37),
+          surface: const Color(0xFFFFF8E8),
+          onPrimary: Colors.white,
+          onSurface: const Color(0xFF2D1B12),
+        ),
+        textTheme: GoogleFonts.philosopherTextTheme(
+          const TextTheme(
+            displayLarge: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B)),
+            headlineLarge: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B)),
+            titleLarge: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D1B12)),
+            bodyMedium: TextStyle(color: Color(0xFF2D1B12)),
+          ),
+        ).copyWith(
+          bodyLarge: GoogleFonts.poppins(color: const Color(0xFF2D1B12)),
+          bodyMedium: GoogleFonts.poppins(color: const Color(0xFF2D1B12)),
         ),
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.white,
+          backgroundColor: const Color(0xFFFFF8E8),
           elevation: 0,
           centerTitle: true,
-          titleTextStyle: GoogleFonts.poppins(
-            color: const Color(0xFF2C3E50),
-            fontSize: 20,
+          titleTextStyle: GoogleFonts.philosopher(
+            color: const Color(0xFF18453B),
+            fontSize: 24,
             fontWeight: FontWeight.w900,
-            letterSpacing: 1.2,
+            letterSpacing: 1.5,
           ),
+          iconTheme: const IconThemeData(color: Color(0xFF18453B)),
         ),
       ),
       home: const SplashScreen(),
@@ -70,63 +78,83 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
+  final List<GlobalKey<NavigatorState>> _navigatorKeys = [
+    GlobalKey<NavigatorState>(),
+    GlobalKey<NavigatorState>(),
+    GlobalKey<NavigatorState>(),
+    GlobalKey<NavigatorState>(),
+    GlobalKey<NavigatorState>(),
+  ];
+
   void setIndex(int index) {
-    setState(() => _selectedIndex = index);
+    if (_selectedIndex == index) {
+      // If tapping same tab, pop to first route
+      _navigatorKeys[index].currentState?.popUntil((route) => route.isFirst);
+    } else {
+      setState(() => _selectedIndex = index);
+    }
   }
 
-  final List<Widget> _pages = [
-    const HomePage(),
-    const WishlistPage(),
-    const CartPage(),
-    const ProfilePage(),
-  ];
+  Widget _buildTab(int index, Widget child) {
+    return Offstage(
+      offstage: _selectedIndex != index,
+      child: Navigator(
+        key: _navigatorKeys[index],
+        onGenerateRoute: (settings) => MaterialPageRoute(
+          builder: (context) => child,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _selectedIndex == 0,
-      onPopInvoked: (didPop) {
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        setState(() => _selectedIndex = 0);
+        
+        final NavigatorState? currentNavigator = _navigatorKeys[_selectedIndex].currentState;
+        
+        if (currentNavigator != null && currentNavigator.canPop()) {
+          currentNavigator.pop();
+        } else {
+          if (_selectedIndex != 0) {
+            setState(() => _selectedIndex = 0);
+          } else {
+            // Exit app
+            SystemNavigator.pop();
+          }
+        }
       },
       child: Scaffold(
-        body: IndexedStack(
-          index: _selectedIndex,
-          children: _pages,
+        body: Stack(
+          children: [
+            _buildTab(0, const HomePage()),
+            _buildTab(1, const CategoriesPage()),
+            _buildTab(2, const WishlistPage()),
+            _buildTab(3, const OrderHistoryPage()),
+            _buildTab(4, const ProfilePage()),
+          ],
         ),
         bottomNavigationBar: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
-              ),
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5)),
             ],
           ),
           child: SafeArea(
-            child: Container(
+            child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2C3E50),
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2C3E50).withOpacity(0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildNavItem(0, Icons.home_rounded, 'Home'),
-                  _buildNavItem(1, Icons.favorite_rounded, 'Wishlist'),
-                  _buildNavItem(2, Icons.shopping_bag_rounded, 'Cart'),
-                  _buildNavItem(3, Icons.person_rounded, 'Profile'),
+                  _buildNavItem(1, Icons.grid_view_rounded, 'Shop'),
+                  _buildNavItem(2, Icons.favorite_rounded, 'Wishlist'),
+                  _buildNavItem(3, Icons.local_shipping_rounded, 'Orders'),
+                  _buildNavItem(4, Icons.person_rounded, 'Profile'),
                 ],
               ),
             ),
@@ -139,32 +167,32 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildNavItem(int index, IconData icon, String label) {
     bool isSelected = _selectedIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _selectedIndex = index),
+      onTap: () => setIndex(index),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutBack,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFD35400) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? const Color(0xFF18453B) : Colors.transparent,
+          borderRadius: BorderRadius.circular(15),
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.white : Colors.white.withOpacity(0.5),
-              size: 24,
+              color: isSelected ? const Color(0xFFD4AF37) : const Color(0xFF18453B).withOpacity(0.4),
+              size: isSelected ? 26 : 24,
             ),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
+            if (isSelected)
               Text(
                 label,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFFD4AF37),
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontSize: 10,
                 ),
               ),
-            ],
           ],
         ),
       ),

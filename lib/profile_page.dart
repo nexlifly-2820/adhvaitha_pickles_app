@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'main.dart';
 import 'order_history_page.dart';
 import 'shipping_address_page.dart';
+import 'coupons_page.dart';
+import 'contact_us_page.dart';
+import 'navigation_util.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -9,113 +12,73 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFDFD),
-      appBar: AppBar(title: const Text('MY ACCOUNT')),
+      backgroundColor: const Color(0xFFFFF8E8),
+      appBar: AppBar(title: const Text('MY PROFILE')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
         child: Column(
           children: [
-            // Advanced User Profile Header
+            // PROFILE HEADER
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(25),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10)),
-                ],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 5))],
               ),
               child: Column(
                 children: [
-                  Stack(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFD35400), width: 3),
-                        ),
-                        child: const CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Color(0xFFF1F2F3),
-                          backgroundImage: NetworkImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200'),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(color: Color(0xFFD35400), shape: BoxShape.circle),
-                          child: const Icon(Icons.edit, color: Colors.white, size: 18),
-                        ),
-                      ),
-                    ],
+                  const CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Color(0xFF18453B),
+                    child: Icon(Icons.person_rounded, size: 50, color: Color(0xFFD4AF37)),
                   ),
+                  const SizedBox(height: 15),
+                  const Text('HEMANTH SILLA', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
+                  Text('hemanth.s@example.com', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                   const SizedBox(height: 20),
-                  const Text('Hemanth Silla', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF2C3E50))),
-                  const Text('hemanthsilla555@gmail.com', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildStatItem('12', 'Orders'),
-                      _buildStatLine(),
-                      _buildStatItem('5', 'Reviews'),
-                      _buildStatLine(),
-                      _buildStatItem('₹450', 'Wallet'),
+                      _Stat(label: 'Orders', val: '12', onTap: () => AppNavigator.push(context, const OrderHistoryPage())),
+                      _Stat(label: 'Wishlist', val: '5', onTap: () => MainScreen.of(context)?.setIndex(2)),
+                      _Stat(label: 'Rewards', val: '450', onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rewards Page coming soon!')));
+                      }),
                     ],
                   ),
                 ],
               ),
             ),
+
+            const SizedBox(height: 35),
             
-            const SizedBox(height: 40),
-            
-            // Modern Menu Grid
-            _buildSectionTitle('Order Management'),
-            const SizedBox(height: 16),
-            _ProfileMenuTile(
-              icon: Icons.list_alt_rounded, 
-              title: 'My Orders',
-              subtitle: 'Check order status & history',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const OrderHistoryPage())),
-            ),
-            _ProfileMenuTile(
-              icon: Icons.favorite_border_rounded, 
-              title: 'Wishlist',
-              subtitle: 'View your favorite flavors',
-              onTap: () => MainScreen.of(context)?.setIndex(1),
-            ),
-            _ProfileMenuTile(
-              icon: Icons.location_on_outlined, 
-              title: 'Shipping Address',
-              subtitle: 'Manage your delivery locations',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ShippingAddressPage())),
-            ),
-            
-            const SizedBox(height: 32),
-            _buildSectionTitle('Settings & Support'),
-            const SizedBox(height: 16),
-            _ProfileMenuTile(
-              icon: Icons.payment_rounded, 
-              title: 'Payment Methods', 
-              subtitle: 'Saved cards & UPI', 
-              onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment feature coming soon!')))
-            ),
-            _ProfileMenuTile(
-              icon: Icons.notifications_none_rounded, 
-              title: 'Notifications', 
-              subtitle: 'Customize alerts', 
-              onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Notifications settings coming soon!')))
-            ),
-            _ProfileMenuTile(
-              icon: Icons.help_outline_rounded, 
-              title: 'Help & Support', 
-              subtitle: 'Get expert assistance', 
-              onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Our support team will contact you soon!')))
-            ),
-            
+            // MENU ITEMS
+            _MenuSection(title: 'ACCOUNT SETTINGS', items: [
+              _MenuItem(icon: Icons.person_outline_rounded, label: 'Edit Profile', onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Edit Profile coming soon!')));
+              }),
+              _MenuItem(icon: Icons.location_on_outlined, label: 'Saved Addresses', onTap: () => AppNavigator.push(context, const ShippingAddressPage())),
+              _MenuItem(icon: Icons.local_offer_outlined, label: 'Coupons & Offers', onTap: () => AppNavigator.push(context, const CouponsPage())),
+              _MenuItem(icon: Icons.payment_rounded, label: 'Payment Methods', onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment Methods coming soon!')));
+              }),
+            ]),
+
+            const SizedBox(height: 25),
+            _MenuSection(title: 'SUPPORT', items: [
+              _MenuItem(icon: Icons.chat_bubble_outline_rounded, label: 'Contact Us', onTap: () => AppNavigator.push(context, const ContactUsPage())),
+              _MenuItem(icon: Icons.info_outline_rounded, label: 'About Adhvaitha', onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('About Us coming soon!')));
+              }),
+              _MenuItem(icon: Icons.notifications_none_rounded, label: 'Notifications', onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Notification Settings coming soon!')));
+              }),
+              _MenuItem(icon: Icons.privacy_tip_outlined, label: 'Privacy Policy', onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Privacy Policy coming soon!')));
+              }),
+            ]),
+
             const SizedBox(height: 40),
             ElevatedButton.icon(
               onPressed: () {
@@ -140,82 +103,79 @@ class ProfilePage extends StatelessWidget {
               icon: const Icon(Icons.logout_rounded),
               label: const Text('LOGOUT'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2C3E50),
+                backgroundColor: const Color(0xFF18453B),
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 60),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildSectionTitle(String title) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w900,
-          color: Colors.grey.shade400,
-          letterSpacing: 1.5,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String value, String label) {
-    return Column(
-      children: [
-        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFFD35400))),
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-      ],
-    );
-  }
-
-  Widget _buildStatLine() {
-    return Container(height: 30, width: 1, color: Colors.grey.shade200);
-  }
 }
 
-class _ProfileMenuTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
+class _Stat extends StatelessWidget {
+  final String label, val;
   final VoidCallback onTap;
-
-  const _ProfileMenuTile({required this.icon, required this.title, required this.subtitle, required this.onTap});
+  const _Stat({required this.label, required this.val, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 5)),
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Text(val, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
         ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFD35400).withOpacity(0.08),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Icon(icon, color: const Color(0xFFD35400), size: 24),
+    );
+  }
+}
+
+class _MenuSection extends StatelessWidget {
+  final String title;
+  final List<Widget> items;
+  const _MenuSection({required this.title, required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 10, bottom: 12),
+          child: Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF2C3E50))),
-        subtitle: Text(subtitle, style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
-        trailing: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade300),
-        onTap: onTap,
+        Container(
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
+          child: Column(children: items),
+        ),
+      ],
+    );
+  }
+}
+
+class _MenuItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _MenuItem({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(color: const Color(0xFF18453B).withOpacity(0.05), borderRadius: BorderRadius.circular(10)),
+        child: Icon(icon, color: const Color(0xFF18453B), size: 20),
       ),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+      onTap: onTap,
     );
   }
 }

@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'main.dart';
 
@@ -12,57 +10,37 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  late AnimationController _masterController;
-  late Animation<double> _energyPulse;
-  late Animation<double> _particleConvergence;
-  late Animation<double> _logoReveal;
-  late Animation<double> _textBlur;
-  late Animation<double> _finalZoom;
+  late AnimationController _logoController;
+  late Animation<double> _logoScale;
+  late Animation<double> _logoOpacity;
 
   @override
   void initState() {
     super.initState();
 
-    _masterController = AnimationController(
+    _logoController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 4000),
+      duration: const Duration(seconds: 2),
     );
 
-    // 1. Energy "Core" Pulse
-    _energyPulse = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _masterController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
+    _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
     );
 
-    // 2. Particles converge into the logo
-    _particleConvergence = Tween<double>(begin: 1.5, end: 0.0).animate(
-      CurvedAnimation(parent: _masterController, curve: const Interval(0.2, 0.6, curve: Curves.elasticOut)),
+    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: const Interval(0.0, 0.5, curve: Curves.easeIn)),
     );
 
-    // 3. Logo pops and glows
-    _logoReveal = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _masterController, curve: const Interval(0.4, 0.7, curve: Curves.bounceOut)),
-    );
+    _logoController.forward();
 
-    // 4. Text focus reveal
-    _textBlur = Tween<double>(begin: 20.0, end: 0.0).animate(
-      CurvedAnimation(parent: _masterController, curve: const Interval(0.6, 0.9, curve: Curves.easeOut)),
-    );
-
-    // 5. Final zoom out into the app
-    _finalZoom = Tween<double>(begin: 1.0, end: 5.0).animate(
-      CurvedAnimation(parent: _masterController, curve: const Interval(0.9, 1.0, curve: Curves.fastOutSlowIn)),
-    );
-
-    _masterController.forward();
-
-    Timer(const Duration(milliseconds: 4800), () {
+    Timer(const Duration(seconds: 3), () {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => const MainScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
-          transitionDuration: const Duration(milliseconds: 800),
+          transitionDuration: const Duration(milliseconds: 1000),
         ),
       );
     });
@@ -70,181 +48,92 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   @override
   void dispose() {
-    _masterController.dispose();
+    _logoController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        backgroundColor: const Color(0xFF0A0E12), // Deep black-blue for maximum contrast
-        body: AnimatedBuilder(
-          animation: _masterController,
-          builder: (context, child) {
-            return Stack(
-              children: [
-                // LAYER 1: CINEMATIC DYNAMIC GRID
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _TechGridPainter(progress: _energyPulse.value),
-                  ),
-                ),
-
-                // LAYER 2: THE SPICE CONVERGENCE (PARTICLES)
-                Center(
-                  child: CustomPaint(
-                    size: const Size(400, 400),
-                    painter: _ConvergencePainter(
-                      convergence: _particleConvergence.value,
-                      opacity: 1.0 - _logoReveal.value,
-                    ),
-                  ),
-                ),
-
-                // LAYER 3: LOGO REVEAL WITH GLASS MORPHISM
-                Center(
-                  child: Transform.scale(
-                    scale: _logoReveal.value,
-                    child: Container(
-                      height: 140,
-                      width: 140,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFD35400).withOpacity(0.6 * _logoReveal.value),
-                            blurRadius: 40,
-                            spreadRadius: 10,
+    return Scaffold(
+      backgroundColor: const Color(0xFF18453B), // Luxury Green
+      body: Stack(
+        children: [
+          // Elegant Background Pattern (Abstract dots/lines)
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.05,
+              child: Image.asset('assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg', fit: BoxFit.cover),
+            ),
+          ),
+          Center(
+            child: AnimatedBuilder(
+              animation: _logoController,
+              builder: (context, child) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Transform.scale(
+                      scale: _logoScale.value,
+                      child: Opacity(
+                        opacity: _logoOpacity.value,
+                        child: Container(
+                          padding: const EdgeInsets.all(30),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFFFF8E8),
+                            shape: BoxShape.circle,
                           ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: BackdropFilter(
-                          filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(
-                            color: Colors.white.withOpacity(0.9),
-                            child: const Icon(
-                              Icons.local_fire_department_rounded,
-                              size: 70,
-                              color: Color(0xFFD35400),
-                            ),
+                          child: const Icon(
+                            Icons.local_fire_department_rounded, // Using a flame icon as a placeholder for a spice/tradition logo
+                            size: 80,
+                            color: Color(0xFFD4AF37),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-
-                // LAYER 4: BRAND NAME (BLUR TO FOCUS)
-                Align(
-                  alignment: const Alignment(0, 0.6),
-                  child: Opacity(
-                    opacity: _masterController.value > 0.6 ? 1.0 : 0.0,
-                    child: ImageFiltered(
-                      imageFilter: ui.ImageFilter.blur(sigmaX: _textBlur.value, sigmaY: _textBlur.value),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'ADHVAITHA',
-                            style: TextStyle(
-                              fontSize: 48,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: 20 * (1 - _masterController.value * 0.1),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'M O D E R N   T R A D I T I O N',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.orange.shade400,
-                              letterSpacing: 4,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: 30),
+                    Opacity(
+                      opacity: _logoOpacity.value,
+                      child: const Text(
+                        'ADHVAITHA',
+                        style: TextStyle(
+                          color: Color(0xFFD4AF37),
+                          fontSize: 36,
+                          fontWeight: FontWeight.w900,
+                          fontFamily: 'Philosopher',
+                          letterSpacing: 8,
+                        ),
                       ),
                     ),
-                  ),
-                ),
-
-                // LAYER 5: FINAL CINEMATIC BLAST
-                if (_finalZoom.value > 1.0)
-                  Positioned.fill(
-                    child: Opacity(
-                      opacity: (_finalZoom.value - 1.0) / 4.0,
-                      child: Container(color: Colors.white),
+                    const SizedBox(height: 10),
+                    Opacity(
+                      opacity: _logoOpacity.value,
+                      child: Text(
+                        'FLAVORS OF ROYALTY',
+                        style: TextStyle(
+                          color: const Color(0xFFFFF8E8).withOpacity(0.6),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 3,
+                        ),
+                      ),
                     ),
-                  ),
-              ],
-            );
-          },
-        ),
+                  ],
+                );
+              },
+            ),
+          ),
+          const Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: 50),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4AF37)),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-}
-
-class _ConvergencePainter extends CustomPainter {
-  final double convergence;
-  final double opacity;
-
-  _ConvergencePainter({required this.convergence, required this.opacity});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (opacity <= 0) return;
-    
-    final paint = Paint()..style = PaintingStyle.fill;
-    final center = Offset(size.width / 2, size.height / 2);
-    final random = math.Random(555);
-
-    for (int i = 0; i < 150; i++) {
-      double angle = random.nextDouble() * 2 * math.pi;
-      double dist = (100 + random.nextDouble() * 200) * convergence;
-      
-      Offset pos = Offset(
-        center.dx + math.cos(angle) * dist,
-        center.dy + math.sin(angle) * dist,
-      );
-
-      paint.color = [
-        const Color(0xFFD35400),
-        const Color(0xFFFFAB40),
-        const Color(0xFFF1C40F),
-      ][random.nextInt(3)].withOpacity(opacity);
-
-      canvas.drawCircle(pos, 2 + random.nextDouble() * 3, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-class _TechGridPainter extends CustomPainter {
-  final double progress;
-  _TechGridPainter({required this.progress});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.orange.withOpacity(0.05 * progress)
-      ..strokeWidth = 0.5;
-
-    double step = 40;
-    for (double i = 0; i < size.width; i += step) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
-    }
-    for (double i = 0; i < size.height; i += step) {
-      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
