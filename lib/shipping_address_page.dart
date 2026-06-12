@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'checkout_page.dart';
 import 'navigation_util.dart';
 
@@ -18,9 +20,12 @@ class ShippingAddressPage extends StatelessWidget {
             _AddressCard(title: 'Office', address: 'Madhapur Road, Jubilee Hills, Hyderabad, Telangana - 500033', isDefault: false),
             const SizedBox(height: 30),
             ElevatedButton.icon(
-              onPressed: () => AppNavigator.push(context, const CheckoutPage()),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                AppNavigator.push(context, const CheckoutPage());
+              },
               icon: const Icon(Icons.add_rounded),
-              label: const Text('ADD NEW ADDRESS'),
+              label: const Text('ADD NEW ADDRESS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF18453B),
                 foregroundColor: Colors.white,
@@ -44,10 +49,11 @@ class _AddressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))],
         border: Border.all(color: isDefault ? const Color(0xFFD4AF37) : Colors.transparent, width: 2),
       ),
       child: Column(
@@ -56,27 +62,34 @@ class _AddressCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B), letterSpacing: 1.5, fontSize: 12)),
-              if (isDefault) Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFD4AF37), borderRadius: BorderRadius.circular(8)), child: const Text('DEFAULT', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.bold, fontSize: 10))),
+              Text(title.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B), letterSpacing: 2, fontSize: 12)),
+              if (isDefault) 
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), 
+                  decoration: BoxDecoration(color: const Color(0xFFD4AF37).withOpacity(0.2), borderRadius: BorderRadius.circular(10)), 
+                  child: const Text('DEFAULT', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.bold, fontSize: 10))
+                ),
             ],
           ),
           const SizedBox(height: 15),
-          Text(address, style: TextStyle(color: Colors.grey.shade600, height: 1.5)),
+          Text(address, style: TextStyle(color: Colors.grey.shade700, height: 1.6, fontSize: 14)),
           const Divider(height: 40),
           Row(
             children: [
-              _ActionBtn(icon: Icons.edit_rounded, label: 'Edit', onTap: () {
+              _ActionBtn(icon: Icons.edit_outlined, label: 'Edit', onTap: () {
+                HapticFeedback.lightImpact();
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Edit feature coming soon!')));
               }),
-              const SizedBox(width: 25),
+              const SizedBox(width: 30),
               _ActionBtn(icon: Icons.delete_outline_rounded, label: 'Delete', onTap: () {
+                HapticFeedback.mediumImpact();
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Delete feature coming soon!')));
               }),
             ],
           )
         ],
       ),
-    );
+    ).animate().fadeIn().slideX(begin: 0.1, end: 0);
   }
 }
 
@@ -92,9 +105,9 @@ class _ActionBtn extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Icon(icon, size: 16, color: const Color(0xFF18453B)),
-          const SizedBox(width: 6),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF18453B))),
+          Icon(icon, size: 18, color: const Color(0xFF18453B)),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF18453B))),
         ],
       ),
     );

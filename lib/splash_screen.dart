@@ -1,6 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'main.dart';
+
+// ----------------------------------------------------------------
+// Adhvaitha Foods — Premium Splash Screen
+// Sequence: Brand Mark drops & wobbles -> Liquid fill ->
+// Wordmark stagger reveal -> Tagline -> Circular wipe transition
+// ----------------------------------------------------------------
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -9,131 +17,319 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  late AnimationController _logoController;
-  late Animation<double> _logoScale;
-  late Animation<double> _logoOpacity;
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  // Brand Colors
+  static const Color luxuryGreen = Color(0xFF18453B);
+  static const Color premiumCream = Color(0xFFFFF8E8);
+  static const Color brandGold = Color(0xFFD4AF37);
+  static const Color darkText = Color(0xFF2D1B12);
+
+  late AnimationController _entranceController; // 0.0 - 1.2s : logo drop + bounce
+  late AnimationController _fillController;     // 1.2 - 2.2s : gold fill effect
+  late AnimationController _textController;     // 2.2 - 3.2s : wordmark + tagline
+  late AnimationController _wipeController;     // 3.5 - 4.2s : circular wipe
 
   @override
   void initState() {
     super.initState();
 
-    _logoController = AnimationController(
+    _entranceController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(milliseconds: 1200),
     );
 
-    _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
+    _fillController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
     );
 
-    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: const Interval(0.0, 0.5, curve: Curves.easeIn)),
+    _textController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
     );
 
-    _logoController.forward();
+    _wipeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
 
-    Timer(const Duration(seconds: 3), () {
+    _runSequence();
+  }
+
+  Future<void> _runSequence() async {
+    // 1. Logo drops and bounces
+    await _entranceController.forward();
+
+    // 2. Gold fill animation
+    await _fillController.forward();
+
+    // 3. Text reveal
+    await _textController.forward();
+
+    // Hold for impact
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    // 4. Circular wipe transition
+    await _wipeController.forward();
+
+    if (mounted) {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => const MainScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          transitionDuration: const Duration(milliseconds: 1000),
+          transitionDuration: Duration.zero,
+          pageBuilder: (_, __, ___) => const MainScreen(),
         ),
       );
-    });
+    }
   }
 
   @override
   void dispose() {
-    _logoController.dispose();
+    _entranceController.dispose();
+    _fillController.dispose();
+    _textController.dispose();
+    _wipeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF18453B), // Luxury Green
+      backgroundColor: premiumCream,
       body: Stack(
+        alignment: Alignment.center,
         children: [
-          // Elegant Background Pattern (Abstract dots/lines)
+          // Background Branding (Subtle)
           Positioned.fill(
             child: Opacity(
-              opacity: 0.05,
-              child: Image.asset('assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg', fit: BoxFit.cover),
-            ),
-          ),
-          Center(
-            child: AnimatedBuilder(
-              animation: _logoController,
-              builder: (context, child) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Transform.scale(
-                      scale: _logoScale.value,
-                      child: Opacity(
-                        opacity: _logoOpacity.value,
-                        child: Container(
-                          padding: const EdgeInsets.all(30),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFFF8E8),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.local_fire_department_rounded, // Using a flame icon as a placeholder for a spice/tradition logo
-                            size: 80,
-                            color: Color(0xFFD4AF37),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    Opacity(
-                      opacity: _logoOpacity.value,
-                      child: const Text(
-                        'ADHVAITHA',
-                        style: TextStyle(
-                          color: Color(0xFFD4AF37),
-                          fontSize: 36,
-                          fontWeight: FontWeight.w900,
-                          fontFamily: 'Philosopher',
-                          letterSpacing: 8,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Opacity(
-                      opacity: _logoOpacity.value,
-                      child: Text(
-                        'FLAVORS OF ROYALTY',
-                        style: TextStyle(
-                          color: const Color(0xFFFFF8E8).withOpacity(0.6),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 3,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          const Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 50),
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4AF37)),
+              opacity: 0.03,
+              child: Image.asset(
+                'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
+                fit: BoxFit.cover,
               ),
             ),
+          ),
+
+          // Main Animation Core
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildAnimatedLogo(),
+                const SizedBox(height: 40),
+                _buildWordmark(),
+                const SizedBox(height: 12),
+                _buildTagline(),
+              ],
+            ),
+          ),
+
+          // Circular Wipe Overlay
+          AnimatedBuilder(
+            animation: _wipeController,
+            builder: (context, child) {
+              if (_wipeController.value == 0) return const SizedBox.shrink();
+              return ClipPath(
+                clipper: _CircleRevealClipper(_wipeController.value, size),
+                child: Container(
+                  color: luxuryGreen,
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 100,
+                      height: 100,
+                      errorBuilder: (c, e, s) => const Icon(Icons.restaurant, color: brandGold, size: 50),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
+
+  Widget _buildAnimatedLogo() {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_entranceController, _fillController]),
+      builder: (context, child) {
+        final entrance = _entranceController.value;
+        final fill = _fillController.value;
+
+        double scale;
+        double translateY;
+        double rotation;
+
+        // Entrance Logic
+        if (entrance < 0.5) {
+          final t = entrance / 0.5;
+          scale = 0.2 + 0.8 * Curves.easeOutBack.transform(t);
+          translateY = -100 * (1 - Curves.bounceOut.transform(t));
+          rotation = 0;
+        } else {
+          final t = (entrance - 0.5) / 0.5;
+          final elastic = Curves.elasticOut.transform(t);
+          scale = 1.0 + (elastic - 1.0) * 0.05;
+          translateY = (1 - elastic) * 10;
+          rotation = (1 - elastic) * 0.05;
+        }
+
+        return Transform.translate(
+          offset: Offset(0, translateY),
+          child: Transform.rotate(
+            angle: rotation,
+            child: Transform.scale(
+              scale: scale,
+              child: Container(
+                width: 220,
+                height: 220,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: brandGold.withOpacity(0.15 * fill),
+                      blurRadius: 30 * fill,
+                      spreadRadius: 5 * fill,
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    )
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    // Liquid Fill Mask
+                    ClipOval(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          height: 220 * fill,
+                          width: 220,
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [brandGold, Color(0xFFFFE5B4)],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Logo Image
+                    ClipOval(
+                      child: Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          fit: BoxFit.cover,
+                          errorBuilder: (c, e, s) => const Icon(Icons.restaurant, size: 80, color: luxuryGreen),
+                        ),
+                      ),
+                    ),
+                    // Outer Ring
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: brandGold.withOpacity(0.5 + (0.5 * fill)),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildWordmark() {
+    const text = "ADHVAITHA FOODS";
+    return AnimatedBuilder(
+      animation: _textController,
+      builder: (context, child) {
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(text.length, (i) {
+                final start = (i * 0.03).clamp(0.0, 1.0);
+                final end = (start + 0.4).clamp(0.0, 1.0);
+                final t = Interval(start, end, curve: Curves.easeOutQuart)
+                    .transform(_textController.value);
+    
+                return Transform.translate(
+                  offset: Offset(0, 12 * (1 - t)),
+                  child: Opacity(
+                    opacity: t,
+                    child: Text(
+                      text[i],
+                      style: GoogleFonts.philosopher(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: luxuryGreen,
+                        letterSpacing: i == text.length - 1 ? 0 : 2,
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTagline() {
+    return AnimatedBuilder(
+      animation: _textController,
+      builder: (context, child) {
+        final t = Interval(0.7, 1.0, curve: Curves.easeIn)
+            .transform(_textController.value);
+        return Opacity(
+          opacity: t,
+          child: Text(
+            "AUTHENTIC TASTE • HOMEMADE WITH LOVE",
+            style: GoogleFonts.poppins(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: brandGold,
+              letterSpacing: 2,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CircleRevealClipper extends CustomClipper<Path> {
+  final double progress;
+  final Size screenSize;
+
+  _CircleRevealClipper(this.progress, this.screenSize);
+
+  @override
+  Path getClip(Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final maxRadius = screenSize.longestSide * 1.2;
+    final radius = maxRadius * progress;
+
+    return Path()..addOval(Rect.fromCircle(center: center, radius: radius));
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => true;
 }

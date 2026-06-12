@@ -30,7 +30,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final bool isFav = wishlist.isFavorite(widget.product);
 
     // Filter products for recommendations
-    final recommendations = ProductRepository.allProducts.where((p) => 
+    final recommendations = ProductRepository.allProducts.where((p) =>
       widget.product.pairings.contains(p.name)).toList();
 
     return Scaffold(
@@ -71,8 +71,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       wishlist.toggleFavorite(widget.product);
                       setState(() {});
                     },
-                    icon: Icon(isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded, 
-                      color: isFav ? Colors.red : const Color(0xFF18453B), 
+                    icon: Icon(isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                      color: isFav ? Colors.red : const Color(0xFF18453B),
                       size: 20),
                   ),
                 ),

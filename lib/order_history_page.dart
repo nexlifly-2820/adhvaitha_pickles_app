@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'order_manager.dart';
 import 'cart_manager.dart';
 import 'models.dart';
@@ -11,7 +14,7 @@ class OrderHistoryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
-      appBar: AppBar(title: const Text('MY ORDERS')),
+      appBar: AppBar(title: Text('MY ORDERS', style: GoogleFonts.philosopher(fontWeight: FontWeight.w900))),
       body: ListenableBuilder(
         listenable: OrderManager(),
         builder: (context, _) {
@@ -21,19 +24,19 @@ class OrderHistoryPage extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.local_shipping_outlined, size: 100, color: const Color(0xFF18453B).withOpacity(0.1)),
+                  Icon(Icons.local_shipping_outlined, size: 120, color: const Color(0xFF18453B).withOpacity(0.1)),
                   const SizedBox(height: 24),
-                  const Text('No orders yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('No orders yet', style: GoogleFonts.philosopher(fontSize: 22, color: const Color(0xFF2D1B12), fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   const Text('Your delicious journey starts here.', style: TextStyle(color: Colors.grey)),
                 ],
-              ),
+              ).animate().fadeIn().scale(),
             );
           }
           return ListView.builder(
             padding: const EdgeInsets.all(20),
             itemCount: orders.length,
-            itemBuilder: (context, index) => _OrderCard(order: orders[index]),
+            itemBuilder: (context, index) => _OrderCard(order: orders[index]).animate().fadeIn(delay: (index * 100).ms).slideY(begin: 0.1, end: 0),
           );
         },
       ),
@@ -51,61 +54,74 @@ class _OrderCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 5))],
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))],
       ),
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(order.id, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
+                    Text(order.id, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B), fontSize: 16)),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: const Color(0xFFD4AF37).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                      child: Text(order.status.toUpperCase(), style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(color: const Color(0xFFD4AF37).withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+                      child: Text(order.status.toUpperCase(), style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1)),
                     ),
                   ],
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 20),
                 ...order.items.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: Row(
                     children: [
-                      ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset(item.product.image, width: 40, height: 40, fit: BoxFit.cover)),
-                      const SizedBox(width: 12),
-                      Expanded(child: Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                      Text('x${item.quantity}', style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.asset(item.product.image, width: 45, height: 45, fit: BoxFit.cover)),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            Text(item.weight, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                      Text('x${item.quantity}', style: const TextStyle(color: Color(0xFF18453B), fontSize: 14, fontWeight: FontWeight.w900)),
                     ],
                   ),
                 )),
-                const Divider(height: 30),
+                const Divider(height: 40),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(DateFormat('dd MMM, yyyy').format(order.date), style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(DateFormat('dd MMM, yyyy').format(order.date), style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text('₹${order.total.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF18453B))),
+                      ],
+                    ),
                     ElevatedButton(
                       onPressed: () {
+                        HapticFeedback.mediumImpact();
                         for (var item in order.items) {
                           CartManager().addToCart(item.product, quantity: item.quantity, weight: item.weight);
                         }
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Items added to cart!')));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Items added to cart!'), behavior: SnackBarBehavior.floating));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF18453B),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
-                      child: const Text('REORDER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                      child: const Text('REORDER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
                     ),
-                    Text('Total: ₹${order.total.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
                   ],
                 ),
               ],
@@ -113,8 +129,8 @@ class _OrderCard extends StatelessWidget {
           ),
           // TRACKING TIMELINE
           Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: const Color(0xFF18453B).withOpacity(0.03), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(25))),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            decoration: BoxDecoration(color: const Color(0xFF18453B).withOpacity(0.03), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30))),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -136,14 +152,14 @@ class _OrderCard extends StatelessWidget {
   Widget _timelineDot(String label, bool isDone) {
     return Column(
       children: [
-        Icon(isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, size: 16, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade300),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: isDone ? const Color(0xFF18453B) : Colors.grey)),
+        Icon(isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, size: 18, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade300),
+        const SizedBox(height: 6),
+        Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isDone ? const Color(0xFF18453B) : Colors.grey, letterSpacing: 0.5)),
       ],
     );
   }
 
   Widget _timelineLine(bool isDone) {
-    return Expanded(child: Container(height: 2, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade200, margin: const EdgeInsets.only(bottom: 15)));
+    return Expanded(child: Container(height: 2, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade200, margin: const EdgeInsets.only(bottom: 20)));
   }
 }

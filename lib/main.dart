@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'home_page.dart';
 import 'wishlist_page.dart';
 import 'profile_page.dart';
@@ -88,9 +89,9 @@ class _MainScreenState extends State<MainScreen> {
 
   void setIndex(int index) {
     if (_selectedIndex == index) {
-      // If tapping same tab, pop to first route
       _navigatorKeys[index].currentState?.popUntil((route) => route.isFirst);
     } else {
+      HapticFeedback.lightImpact();
       setState(() => _selectedIndex = index);
     }
   }
@@ -100,8 +101,11 @@ class _MainScreenState extends State<MainScreen> {
       offstage: _selectedIndex != index,
       child: Navigator(
         key: _navigatorKeys[index],
-        onGenerateRoute: (settings) => MaterialPageRoute(
-          builder: (context) => child,
+        onGenerateRoute: (settings) => PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => child,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
         ),
       ),
     );
@@ -113,16 +117,13 @@ class _MainScreenState extends State<MainScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        
         final NavigatorState? currentNavigator = _navigatorKeys[_selectedIndex].currentState;
-        
         if (currentNavigator != null && currentNavigator.canPop()) {
           currentNavigator.pop();
         } else {
           if (_selectedIndex != 0) {
             setState(() => _selectedIndex = 0);
           } else {
-            // Exit app
             SystemNavigator.pop();
           }
         }
@@ -141,12 +142,12 @@ class _MainScreenState extends State<MainScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -5)),
+              BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 30, offset: const Offset(0, -10)),
             ],
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -169,12 +170,12 @@ class _MainScreenState extends State<MainScreen> {
     return GestureDetector(
       onTap: () => setIndex(index),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOutBack,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        duration: 300.ms,
+        curve: Curves.easeOutBack,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF18453B) : Colors.transparent,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -191,8 +192,9 @@ class _MainScreenState extends State<MainScreen> {
                   color: Color(0xFFD4AF37),
                   fontWeight: FontWeight.bold,
                   fontSize: 10,
+                  letterSpacing: 0.5
                 ),
-              ),
+              ).animate().fadeIn().scale(begin: const Offset(0.8, 0.8)),
           ],
         ),
       ),

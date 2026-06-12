@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'product_listing_page.dart';
 import 'navigation_util.dart';
 
@@ -7,73 +8,192 @@ class CategoriesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> categories = [
-      {'title': 'Pickles', 'icon': '🥭', 'color': const Color(0xFFE67E22)},
-      {'title': 'Snacks', 'icon': '🍘', 'color': const Color(0xFFF1C40F)},
-      {'title': 'Spices', 'icon': '🌶️', 'color': const Color(0xFFC0392B)},
-      {'title': 'Sweets', 'icon': '🍬', 'color': const Color(0xFF9B59B6)},
-      {'title': 'Combos', 'icon': '🎁', 'color': const Color(0xFF27AE60)},
+    final List<Map<String, String>> categories = [
+      {
+        'title': 'Pickles',
+        'sub': 'Traditional Sun-Dried Jars',
+        'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+      },
+      {
+        'title': 'Snacks',
+        'sub': 'Crispy Traditional Cravings',
+        'img': 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg',
+      },
+      {
+        'title': 'Spices',
+        'sub': 'Hand-Ground Aromatic Blends',
+        'img': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg',
+      },
+      {
+        'title': 'Sweets',
+        'sub': 'Pure Jaggery Confections',
+        'img': 'assets/images/gondh_laddu_edible_gum_laddu.jpg',
+      },
+      {
+        'title': 'Combos',
+        'sub': 'Curated Royal Collections',
+        'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+      },
     ];
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
-      appBar: AppBar(
-        title: const Text('CATEGORIES'),
-      ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(20),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 20,
-          mainAxisSpacing: 20,
-          childAspectRatio: 1.1,
-        ),
-        itemCount: categories.length,
-        itemBuilder: (context, index) {
-          final cat = categories[index];
-          return GestureDetector(
-            onTap: () {
-              AppNavigator.push(context, ProductListingPage(category: cat['title']));
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    height: 70,
-                    width: 70,
-                    decoration: BoxDecoration(
-                      color: cat['color'].withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(cat['icon'], style: const TextStyle(fontSize: 32)),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    cat['title'],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                      color: Color(0xFF18453B),
-                    ),
-                  ),
-                ],
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 120,
+            pinned: true,
+            elevation: 0,
+            backgroundColor: const Color(0xFFFFF8E8),
+            surfaceTintColor: Colors.transparent,
+            flexibleSpace: FlexibleSpaceBar(
+              centerTitle: false,
+              titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+              title: const Text(
+                'ROYAL COLLECTIONS',
+                style: TextStyle(
+                  fontFamily: 'Philosopher',
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                  color: Color(0xFF18453B),
+                  letterSpacing: 1.5,
+                ),
               ),
             ),
-          );
-        },
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final cat = categories[index];
+                  return _PremiumCategoryCard(
+                    title: cat['title']!,
+                    sub: cat['sub']!,
+                    img: cat['img']!,
+                    onTap: () {
+                      HapticFeedback.mediumImpact();
+                      AppNavigator.push(context, ProductListingPage(category: cat['title']!));
+                    },
+                  );
+                },
+                childCount: categories.length,
+              ),
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumCategoryCard extends StatefulWidget {
+  final String title, sub, img;
+  final VoidCallback onTap;
+  const _PremiumCategoryCard({required this.title, required this.sub, required this.img, required this.onTap});
+
+  @override
+  State<_PremiumCategoryCard> createState() => _PremiumCategoryCardState();
+}
+
+class _PremiumCategoryCardState extends State<_PremiumCategoryCard> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        child: Container(
+          height: 160,
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF18453B).withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: Stack(
+              children: [
+                Image.asset(
+                  widget.img,
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF18453B).withOpacity(0.9),
+                        const Color(0xFF18453B).withOpacity(0.1),
+                      ],
+                      begin: Alignment.bottomLeft,
+                      end: Alignment.topRight,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(25),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title.toUpperCase(),
+                        style: const TextStyle(
+                          color: Color(0xFFD4AF37),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.sub,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  right: 20,
+                  bottom: 20,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

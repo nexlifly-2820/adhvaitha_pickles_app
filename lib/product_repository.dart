@@ -56,7 +56,7 @@ class ProductRepository {
       name: 'Bundhi', 
       description: 'Crispy gram flour droplets', 
       weightPriceMap: {'250g': 45, '500g': 80, '1kg': 150},
-      rating: 4.6, image: 'assets/images/bundhi_crisp_spiced_gram_flour_droplets.jpg', 
+      rating: 4.6, image: 'assets/images/bundhi_crispy_spiced_gram_flour_droplets.jpg',
       color: const Color(0xFF18453B), category: 'Snacks', spiceLevel: 3, reviews: _mockReviews,
       pairings: ['Allam Velluli Pickle', 'Gondh Laddu'],
     ),

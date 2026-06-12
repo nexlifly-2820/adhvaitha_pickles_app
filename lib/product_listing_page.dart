@@ -86,7 +86,7 @@ class _ProductListingPageState extends State<ProductListingPage> {
             ),
           ),
           Expanded(
-            child: filteredProducts.isEmpty 
+            child: filteredProducts.isEmpty
               ? const Center(child: Text('No products found in this category.'))
               : GridView.builder(
                   padding: const EdgeInsets.all(20),
