@@ -13,7 +13,12 @@ import 'rewards_page.dart';
 import 'payment_methods_page.dart';
 import 'notification_settings_page.dart';
 import 'privacy_policy_page.dart';
+import 'terms_of_service_page.dart';
+import 'refund_policy_page.dart';
+import 'faq_page.dart';
 import 'kitchen_story_page.dart';
+import 'account_deletion_page.dart';
+import 'app_update_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -45,13 +50,20 @@ class ProfilePage extends StatelessWidget {
 
                   _buildMenuSection(context, 'SUPPORT & LEGAL', [
                     _MenuTile(icon: Icons.chat_bubble_outline_rounded, label: 'Contact Us', onTap: () => AppNavigator.push(context, const ContactUsPage())),
+                    _MenuTile(icon: Icons.help_outline_rounded, label: 'Help Center (FAQ)', onTap: () => AppNavigator.push(context, const FaqPage())),
                     _MenuTile(icon: Icons.auto_awesome_outlined, label: 'Our Story', onTap: () => AppNavigator.push(context, const KitchenStoryPage())),
                     _MenuTile(icon: Icons.notifications_none_rounded, label: 'Notifications', onTap: () => AppNavigator.push(context, const NotificationSettingsPage())),
                     _MenuTile(icon: Icons.privacy_tip_outlined, label: 'Privacy Policy', onTap: () => AppNavigator.push(context, const PrivacyPolicyPage())),
+                    _MenuTile(icon: Icons.gavel_rounded, label: 'Terms of Service', onTap: () => AppNavigator.push(context, const TermsOfServicePage())),
+                    _MenuTile(icon: Icons.assignment_return_outlined, label: 'Refund & Returns', onTap: () => AppNavigator.push(context, const RefundPolicyPage())),
+                    _MenuTile(icon: Icons.update_rounded, label: 'Check for Updates', onTap: () => AppNavigator.push(context, const AppUpdatePage())),
+                    _MenuTile(icon: Icons.no_accounts_rounded, label: 'Delete Account', onTap: () => AppNavigator.push(context, const AccountDeletionPage())),
                   ]),
 
                   const SizedBox(height: 50),
                   _buildLogoutButton(context),
+                  const SizedBox(height: 40),
+                  _buildNexliflyBranding(),
                   const SizedBox(height: 120),
                 ],
               ),
@@ -62,12 +74,54 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
+  Widget _buildNexliflyBranding() {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 1, width: 30,
+              color: const Color(0xFFD4AF37).withOpacity(0.2),
+            ),
+            const SizedBox(width: 15),
+            Text(
+              'POWERED BY',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                color: Colors.grey.withOpacity(0.6),
+                letterSpacing: 3,
+              ),
+            ),
+            const SizedBox(width: 15),
+            Container(
+              height: 1, width: 30,
+              color: const Color(0xFFD4AF37).withOpacity(0.2),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'NEXLIFLY',
+          style: GoogleFonts.philosopher(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: const Color(0xFF18453B).withOpacity(0.4),
+            letterSpacing: 4,
+          ),
+        ),
+      ],
+    ).animate().fadeIn(delay: 600.ms);
+  }
+
   Widget _buildSliverHeader(BuildContext context) {
     return SliverAppBar(
       expandedHeight: 300,
       pinned: true,
       backgroundColor: const Color(0xFF18453B),
       elevation: 0,
+      actions: [GlobalCartBadge()],
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
           fit: StackFit.expand,

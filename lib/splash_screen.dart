@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'main.dart';
+import 'onboarding_page.dart';
 
 // ----------------------------------------------------------------
 // Adhvaitha Foods — Premium Splash Screen
@@ -77,7 +78,7 @@ class _SplashScreenState extends State<SplashScreen>
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           transitionDuration: Duration.zero,
-          pageBuilder: (_, __, ___) => const MainScreen(),
+          pageBuilder: (_, __, ___) => const OnboardingPage(),
         ),
       );
     }

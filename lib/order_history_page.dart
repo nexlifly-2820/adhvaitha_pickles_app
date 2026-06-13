@@ -6,6 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'order_manager.dart';
 import 'cart_manager.dart';
 import 'models.dart';
+import 'main.dart';
+import 'order_details_page.dart';
+import 'navigation_util.dart';
 
 class OrderHistoryPage extends StatelessWidget {
   const OrderHistoryPage({super.key});
@@ -14,7 +17,13 @@ class OrderHistoryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
-      appBar: AppBar(title: Text('MY ORDERS', style: GoogleFonts.philosopher(fontWeight: FontWeight.w900))),
+      appBar: AppBar(
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text('MY ORDERS', style: GoogleFonts.philosopher(fontWeight: FontWeight.w900)),
+        ),
+        actions: [GlobalCartBadge()],
+      ),
       body: ListenableBuilder(
         listenable: OrderManager(),
         builder: (context, _) {
@@ -35,6 +44,7 @@ class OrderHistoryPage extends StatelessWidget {
           }
           return ListView.builder(
             padding: const EdgeInsets.all(20),
+            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
             itemCount: orders.length,
             itemBuilder: (context, index) => _OrderCard(order: orders[index]).animate().fadeIn(delay: (index * 100).ms).slideY(begin: 0.1, end: 0),
           );
@@ -50,112 +60,192 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))],
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(order.id, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B), fontSize: 16)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: const Color(0xFFD4AF37).withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
-                      child: Text(order.status.toUpperCase(), style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                ...order.items.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        AppNavigator.push(context, OrderDetailsPage(order: order));
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))],
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.asset(item.product.image, width: 45, height: 45, fit: BoxFit.cover)),
-                      const SizedBox(width: 15),
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(order.id, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B), fontSize: 16)),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(color: const Color(0xFFD4AF37).withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+                        child: Text(order.status.toUpperCase(), style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  ...order.items.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.asset(item.product.image, width: 45, height: 45, fit: BoxFit.cover)),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              Text(item.weight, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                        Text('x${item.quantity}', style: const TextStyle(color: Color(0xFF18453B), fontSize: 14, fontWeight: FontWeight.w900)),
+                      ],
+                    ),
+                  )),
+                  const Divider(height: 40),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                            Text(item.weight, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                            Text(DateFormat('dd MMM, yyyy').format(order.date), style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('₹${order.total.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF18453B))),
+                            ),
                           ],
                         ),
                       ),
-                      Text('x${item.quantity}', style: const TextStyle(color: Color(0xFF18453B), fontSize: 14, fontWeight: FontWeight.w900)),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          for (var item in order.items) {
+                            CartManager().addToCart(item.product, quantity: item.quantity, weight: item.weight);
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Items added to cart!'), behavior: SnackBarBehavior.floating));
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF18453B),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        ),
+                        child: const Text('REORDER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      ),
                     ],
                   ),
-                )),
-                const Divider(height: 40),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
                       children: [
-                        Text(DateFormat('dd MMM, yyyy').format(order.date), style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text('₹${order.total.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF18453B))),
+                        const Icon(Icons.timer_outlined, size: 16, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Estimated Delivery: ${DateFormat('dd MMM').format(order.estimatedDelivery)}',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'NON-RETURNABLE',
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.black26, letterSpacing: 0.5),
+                        ),
                       ],
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        HapticFeedback.mediumImpact();
-                        for (var item in order.items) {
-                          CartManager().addToCart(item.product, quantity: item.quantity, weight: item.weight);
-                        }
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Items added to cart!'), behavior: SnackBarBehavior.floating));
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF18453B),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      ),
-                      child: const Text('REORDER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  ),
+                  const SizedBox(height: 15),
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opening Support...')));
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.chat_bubble_outline_rounded, size: 14, color: const Color(0xFF18453B).withOpacity(0.4)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Need help with this order? Chat with us',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF18453B).withOpacity(0.4)),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          // TRACKING TIMELINE
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            decoration: BoxDecoration(color: const Color(0xFF18453B).withOpacity(0.03), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30))),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _timelineDot('Placed', true),
-                _timelineLine(true),
-                _timelineDot('Packed', true),
-                _timelineLine(false),
-                _timelineDot('Shipped', false),
-                _timelineLine(false),
-                _timelineDot('Delivered', false),
-              ],
-            ),
-          )
-        ],
+            // TRACKING TIMELINE
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              decoration: BoxDecoration(color: const Color(0xFF18453B).withOpacity(0.03), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30))),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _timelineDot('Placed', _isStatusReached(order.status, 'Placed')),
+                  _timelineLine(_isStatusReached(order.status, 'Packed')),
+                  _timelineDot('Packed', _isStatusReached(order.status, 'Packed')),
+                  _timelineLine(_isStatusReached(order.status, 'Shipped')),
+                  _timelineDot('Shipped', _isStatusReached(order.status, 'Shipped')),
+                  _timelineLine(_isStatusReached(order.status, 'Delivered')),
+                  _timelineDot('Delivered', _isStatusReached(order.status, 'Delivered')),
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
 
+  bool _isStatusReached(String currentStatus, String targetStatus) {
+    const statuses = ['Placed', 'Packed', 'Shipped', 'Delivered'];
+    int currentIndex = statuses.indexOf(currentStatus);
+    int targetIndex = statuses.indexOf(targetStatus);
+    return currentIndex >= targetIndex;
+  }
+
   Widget _timelineDot(String label, bool isDone) {
-    return Column(
-      children: [
-        Icon(isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, size: 18, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade300),
-        const SizedBox(height: 6),
-        Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isDone ? const Color(0xFF18453B) : Colors.grey, letterSpacing: 0.5)),
-      ],
+    return SizedBox(
+      width: 50,
+      child: Column(
+        children: [
+          Icon(isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, size: 18, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade300),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(label, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: isDone ? const Color(0xFF18453B) : Colors.grey, letterSpacing: 0.5)),
+          ),
+        ],
+      ),
     );
   }
 

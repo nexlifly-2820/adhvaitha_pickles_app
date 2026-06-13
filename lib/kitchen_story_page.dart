@@ -158,10 +158,9 @@ class _KitchenStoryPageState extends State<KitchenStoryPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _statBox('42+', 'YEARS OF HERITAGE'),
-              _statBox('1M+', 'HAND-PACKED JARS'),
+              Expanded(child: _statBox('42+', 'YEARS OF HERITAGE')),
+              Expanded(child: _statBox('1M+', 'HAND-PACKED JARS')),
             ],
           ),
           const SizedBox(height: 60),
@@ -179,9 +178,15 @@ class _KitchenStoryPageState extends State<KitchenStoryPage> {
   Widget _statBox(String val, String label) {
     return Column(
       children: [
-        Text(val, style: GoogleFonts.philosopher(color: const Color(0xFFD4AF37), fontSize: 48, fontWeight: FontWeight.w900)),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(val, style: GoogleFonts.philosopher(color: const Color(0xFFD4AF37), fontSize: 48, fontWeight: FontWeight.w900)),
+        ),
         const SizedBox(height: 12),
-        Text(label, textAlign: TextAlign.center, style: GoogleFonts.poppins(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 4)),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label, textAlign: TextAlign.center, style: GoogleFonts.poppins(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 4)),
+        ),
       ],
     );
   }
@@ -237,23 +242,31 @@ class _AdvancedStoryBlock extends StatelessWidget {
         Row(
           mainAxisAlignment: isReversed ? MainAxisAlignment.end : MainAxisAlignment.start,
           children: [
-            Text(
-              index,
-              style: GoogleFonts.philosopher(
-                color: const Color(0xFFD4AF37).withOpacity(0.3),
-                fontSize: 80,
-                fontWeight: FontWeight.w900,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                index,
+                style: GoogleFonts.philosopher(
+                  color: const Color(0xFFD4AF37).withOpacity(0.3),
+                  fontSize: 80,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ).animate(onPlay: (c) => c.repeat(reverse: true))
              .shimmer(duration: 4.seconds, color: const Color(0xFFD4AF37).withOpacity(0.4)),
             const SizedBox(width: 25),
-            Text(
-              year,
-              style: GoogleFonts.philosopher(
-                color: const Color(0xFFD4AF37),
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 4,
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  year,
+                  style: GoogleFonts.philosopher(
+                    color: const Color(0xFFD4AF37),
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 4,
+                  ),
+                ),
               ),
             ).animate().blurXY(begin: 10, end: 0, duration: 1.seconds),
           ],

@@ -36,7 +36,10 @@ class _WishlistPageState extends State<WishlistPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
       appBar: AppBar(
-        title: const Text('MY WISHLIST'),
+        title: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text('MY WISHLIST'),
+        ),
         actions: [
           if (wishlist.items.isNotEmpty)
             TextButton(
@@ -50,6 +53,7 @@ class _WishlistPageState extends State<WishlistPage> {
               },
               child: const Text('ADD ALL', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.bold)),
             ),
+          GlobalCartBadge(),
         ],
       ),
       body: wishlist.items.isEmpty 
@@ -75,7 +79,7 @@ class _WishlistPageState extends State<WishlistPage> {
             padding: const EdgeInsets.all(20),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.65,
+              childAspectRatio: 0.60,
               crossAxisSpacing: 15,
               mainAxisSpacing: 20,
             ),
@@ -102,7 +106,8 @@ class _WishlistCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Expanded(
+            AspectRatio(
+              aspectRatio: 1.0,
               child: Stack(
                 children: [
                   ClipRRect(
@@ -139,10 +144,14 @@ class _WishlistCard extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF18453B), foregroundColor: Colors.white,
-                        padding: EdgeInsets.zero, textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                        padding: const EdgeInsets.symmetric(vertical: 6), 
+                        textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      child: const Text('ADD TO CART'),
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('ADD TO CART'),
+                      ),
                     ),
                   )
                 ],

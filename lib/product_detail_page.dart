@@ -8,6 +8,7 @@ import 'checkout_page.dart';
 import 'navigation_util.dart';
 import 'product_repository.dart';
 import 'cart_page.dart';
+import 'main.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Product product;
@@ -55,7 +56,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(15, 10, 15, 10),
+                padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
                 child: Hero(
                   tag: widget.product.name,
                   child: Container(
@@ -63,15 +64,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(25),
                       border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.05), width: 1.0),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 4))
-                      ],
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(25),
                       child: Image.asset(
                         widget.product.image, 
-                        fit: BoxFit.contain, 
+                        fit: BoxFit.cover,
                         errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, size: 80, color: Colors.grey))
                       ),
                     ),
@@ -89,12 +87,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ),
               ),
             ),
+            toolbarHeight: 70, // Buffer to eliminate 14px overflow
             actions: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
+              Center(
                 child: CircleAvatar(
                   backgroundColor: Colors.white.withOpacity(0.9),
+                  radius: 18,
                   child: IconButton(
+                    padding: EdgeInsets.zero,
                     onPressed: () {
                       HapticFeedback.lightImpact();
                       wishlist.toggleFavorite(widget.product);
@@ -103,12 +103,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     icon: Icon(
                       isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                       color: isFav ? Colors.red : const Color(0xFF18453B),
-                      size: 20,
+                      size: 18,
                     ),
                   ),
                 ),
               ),
-              _buildCartAction(),
+              GlobalCartBadge(),
             ],
           ),
           SliverToBoxAdapter(
@@ -139,7 +139,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ],
                   ),
                   const SizedBox(height: 15),
-                  Text(widget.product.name, style: GoogleFonts.philosopher(fontSize: 32, fontWeight: FontWeight.w900, color: const Color(0xFF18453B))),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(widget.product.name, style: GoogleFonts.philosopher(fontSize: 32, fontWeight: FontWeight.w900, color: const Color(0xFF18453B))),
+                  ),
                   const SizedBox(height: 10),
                   Text(widget.product.getPriceForWeight(selectedWeight), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFFD4AF37))),
                   const SizedBox(height: 25),
@@ -230,14 +234,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             ));
                           },
                           child: Container(
-                            height: 56,
+                            height: 50,
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(colors: [Color(0xFF18453B), Color(0xFF276357)]),
-                              borderRadius: BorderRadius.circular(18),
-                              boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+                              borderRadius: BorderRadius.circular(15),
+                              boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
                             ),
                             alignment: Alignment.center,
-                            child: const Text('ADD TO CART', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                            child: const Text('ADD TO CART', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 13)),
                           ),
                         ),
                       ),
@@ -367,14 +371,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             AppNavigator.push(context, const CheckoutPage());
           },
           child: Container(
-            height: 60,
+            height: 54,
             decoration: BoxDecoration(
               gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFE5C76B)]),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 8))],
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 6))],
             ),
             alignment: Alignment.center,
-            child: const Text('BUY NOW', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 16)),
+            child: const Text('BUY NOW', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 14)),
           ),
         ),
       ),
@@ -637,42 +641,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-  Widget _buildCartAction() {
-    return ListenableBuilder(
-      listenable: CartManager(),
-      builder: (context, _) {
-        int totalItems = CartManager().items.length;
-        return Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              CircleAvatar(
-                backgroundColor: Colors.white.withOpacity(0.9),
-                child: IconButton(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    AppNavigator.push(context, const CartPage());
-                  },
-                  icon: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF18453B), size: 20),
-                ),
-              ),
-              if (totalItems > 0)
-                Positioned(
-                  right: -2, top: -2,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                    child: Text('$totalItems', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }
 
 class _WeightOption extends StatelessWidget {

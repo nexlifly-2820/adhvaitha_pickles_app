@@ -223,14 +223,14 @@ class _CartSummary extends StatelessWidget {
           GestureDetector(
             onTap: () => AppNavigator.push(context, const CheckoutPage()),
             child: Container(
-              height: 60,
+              height: 54,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [Color(0xFF18453B), Color(0xFF276357)]),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6))],
               ),
               alignment: Alignment.center,
-              child: const Text('PROCEED TO CHECKOUT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              child: const Text('PROCEED TO CHECKOUT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1, fontSize: 14)),
             ),
           ),
         ],

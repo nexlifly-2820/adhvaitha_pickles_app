@@ -5,6 +5,8 @@ import 'product_detail_page.dart';
 import 'cart_manager.dart';
 import 'navigation_util.dart';
 import 'product_repository.dart';
+import 'main.dart';
+import 'cart_page.dart';
 
 class ProductListingPage extends StatefulWidget {
   final String category;
@@ -58,13 +60,17 @@ class _ProductListingPageState extends State<ProductListingPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
       appBar: AppBar(
-        title: Text(widget.category.toUpperCase()),
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(widget.category.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900)),
+        ),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_ios_new, size: 18),
         ),
         actions: [
           _buildSortDropdown(),
+          GlobalCartBadge(),
         ],
       ),
       body: Column(

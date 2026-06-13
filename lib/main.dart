@@ -8,6 +8,9 @@ import 'profile_page.dart';
 import 'splash_screen.dart';
 import 'categories_page.dart';
 import 'order_history_page.dart';
+import 'cart_manager.dart';
+import 'cart_page.dart';
+import 'navigation_util.dart';
 
 void main() {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -142,12 +145,17 @@ class _MainScreenState extends State<MainScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 30, offset: const Offset(0, -10)),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 30,
+                offset: const Offset(0, -10),
+              ),
             ],
           ),
           child: SafeArea(
+            top: false,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -170,34 +178,89 @@ class _MainScreenState extends State<MainScreen> {
     return GestureDetector(
       onTap: () => setIndex(index),
       child: AnimatedContainer(
-        duration: 300.ms,
-        curve: Curves.easeOutBack,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        duration: 350.ms,
+        curve: Curves.easeInOut,
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 16 : 10, 
+          vertical: 10
+        ),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF18453B) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Column(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              color: isSelected ? const Color(0xFFD4AF37) : const Color(0xFF18453B).withOpacity(0.4),
-              size: isSelected ? 26 : 24,
+              color: isSelected ? const Color(0xFFD4AF37) : const Color(0xFF18453B).withOpacity(0.3),
+              size: 24,
             ),
-            if (isSelected)
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Color(0xFFD4AF37),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 10,
-                  letterSpacing: 0.5
+            if (isSelected) ...[
+              const SizedBox(width: 6),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Color(0xFFD4AF37),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                    letterSpacing: 0.5
+                  ),
                 ),
-              ).animate().fadeIn().scale(begin: const Offset(0.8, 0.8)),
+              ),
+            ],
           ],
         ),
       ),
+    );
+  }
+}
+
+class GlobalCartBadge extends StatelessWidget {
+  const GlobalCartBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: CartManager(),
+      builder: (context, _) {
+        int count = CartManager().items.length;
+        return Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  AppNavigator.push(context, CartPage());
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(6), // Reduced for safety buffer
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                  ),
+                  child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF18453B), size: 20),
+                ),
+              ),
+              if (count > 0)
+                Positioned(
+                  right: -2, top: 2, // Adjusted for smaller container
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                  ),
+                ).animate().scale(curve: Curves.elasticOut),
+            ],
+          ),
+        );
+      },
     );
   }
 }

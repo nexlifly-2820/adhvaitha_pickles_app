@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'product_listing_page.dart';
 import 'navigation_util.dart';
+import 'main.dart';
+import 'cart_page.dart';
 
 class CategoriesPage extends StatelessWidget {
   const CategoriesPage({super.key});
@@ -43,10 +45,12 @@ class CategoriesPage extends StatelessWidget {
         slivers: [
           SliverAppBar(
             expandedHeight: 120,
+            toolbarHeight: 70, // Buffer to eliminate 14px overflow
             pinned: true,
             elevation: 0,
             backgroundColor: const Color(0xFFFFF8E8),
             surfaceTintColor: Colors.transparent,
+            actions: [GlobalCartBadge()],
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
               titlePadding: const EdgeInsets.only(left: 20, bottom: 16),

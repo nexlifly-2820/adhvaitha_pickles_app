@@ -108,15 +108,33 @@ class CartItem {
 class Order {
   final String id;
   final List<CartItem> items;
+  final double subtotal;
+  final double deliveryFee;
+  final double discountAmount;
   final double total;
   final DateTime date;
   final String status;
+  final DateTime estimatedDelivery;
+  final String shippingAddress;
+  final String paymentMethod;
+  final String batchId;
+  final DateTime preparationDate;
+  final String spiceOrigin;
 
   Order({
     required this.id,
     required this.items,
+    required this.subtotal,
+    required this.deliveryFee,
+    required this.discountAmount,
     required this.total,
     required this.date,
     required this.status,
+    required this.estimatedDelivery,
+    required this.shippingAddress,
+    required this.paymentMethod,
+    required this.batchId,
+    required this.preparationDate,
+    required this.spiceOrigin,
   });
 }

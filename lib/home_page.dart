@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'kitchen_story_page.dart';
 import 'product_detail_page.dart';
 import 'product_listing_page.dart';
-import 'cart_manager.dart';
-import 'cart_page.dart';
-import 'wishlist_manager.dart';
 import 'models.dart';
+import 'cart_manager.dart';
 import 'main.dart';
 import 'search_page.dart';
 import 'navigation_util.dart';
@@ -23,12 +22,94 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final List<Product> allProducts = ProductRepository.allProducts;
+  final PageController _pageController = PageController();
+  final PageController _adPageController = PageController();
+  int _currentPage = 0;
+  int _currentAdPage = 0;
+  Timer? _carouselTimer;
+  Timer? _adCarouselTimer;
 
   final List<Map<String, String>> banners = [
     {'title': 'LUXURY HANDMADE', 'sub': 'The Purest Flavors of Tradition', 'img': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'},
     {'title': 'FESTIVAL OF GOLD', 'sub': 'Flat ₹100 Off on All Sweets', 'img': 'assets/images/gondh_laddu_edible_gum_laddu.jpg'},
     {'title': 'ROYAL COMBOS', 'sub': 'Curated Packs for Your Family', 'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'},
   ];
+
+  final List<Map<String, String>> adBanners = [
+    {
+      'tag': 'CHEF\'S SPECIAL',
+      'title': 'Ancient Garlic Fusion',
+      'sub': 'Limited Batch • Aged 120 Days',
+      'img': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'
+    },
+    {
+      'tag': 'NEW LAUNCH',
+      'title': 'Velvet Jaggery Mango',
+      'sub': 'Sweetness of tradition refined.',
+      'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'
+    },
+    {
+      'tag': 'LIMITED EDITION',
+      'title': 'Heritage Spice Blend',
+      'sub': 'Hand-pounded stone ground aroma.',
+      'img': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg'
+    },
+    {
+      'tag': 'VINTAGE RESERVE',
+      'title': 'Sun-Kissed Lemon',
+      'sub': 'Citrus Zest from Konaseema Groves.',
+      'img': 'assets/images/gondh_laddu_edible_gum_laddu.jpg'
+    },
+    {
+      'tag': 'ROYAL TRIBUTE',
+      'title': 'The Red Emperor',
+      'sub': 'Fiery Guntur Chilli • Royal Heat.',
+      'img': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg'
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _carouselTimer = Timer.periodic(const Duration(seconds: 4), (Timer timer) {
+      if (_pageController.hasClients) {
+        if (_currentPage < banners.length - 1) {
+          _currentPage++;
+        } else {
+          _currentPage = 0;
+        }
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
+    
+    _adCarouselTimer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
+      if (_adPageController.hasClients) {
+        if (_currentAdPage < adBanners.length - 1) {
+          _currentAdPage++;
+        } else {
+          _currentAdPage = 0;
+        }
+        _adPageController.animateToPage(
+          _currentAdPage,
+          duration: const Duration(milliseconds: 900),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _carouselTimer?.cancel();
+    _adCarouselTimer?.cancel();
+    _pageController.dispose();
+    _adPageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +124,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildAdBanner(),
                 _buildStoriesSection(),
                 _buildBentoSection(),
                 const SizedBox(height: 30),
-                _buildAnimatedHeroBanners(),
+                _buildCarouselBanners(),
                 _buildCategoryScroll(),
                 _buildQuickDiscovery(),
                 _buildSection('Most Loved Pickles', 'Pickles'),
@@ -62,26 +144,53 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 _buildHeritageStory(),
                 _buildSection('Fresh Ground Spices', 'Spices'),
                 _buildMakingProcessSection(),
-                _buildComboSection(),
-                _buildGiftCollections(),
-                _buildAppRewardsBanner(),
-                _buildTrustPromise(),
-                _buildFarmToJarVideo(),
+                _buildPackagingGallery(),
                 _buildTestimonials(),
                 _buildStaticBanner(
                   title: 'AUTHENTIC RECIPES', 
                   sub: 'Crafted with Love Since 1982', 
                   img: 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg'
                 ),
-                _buildJoinInnerCircle(),
-                _buildFooterBranding(),
-                const SizedBox(height: 100),
+                const SizedBox(height: 60),
+                _buildNexliflyFooter(),
+                const SizedBox(height: 120),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildNexliflyFooter() {
+    return Column(
+      children: [
+        Text(
+          'POWERED BY',
+          style: TextStyle(
+            fontSize: 8,
+            fontWeight: FontWeight.w900,
+            color: Colors.grey.withOpacity(0.5),
+            letterSpacing: 4,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'NEXLIFLY',
+          style: GoogleFonts.philosopher(
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+            color: const Color(0xFF18453B).withOpacity(0.3),
+            letterSpacing: 6,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          height: 1, width: 40,
+          color: const Color(0xFFD4AF37).withOpacity(0.15),
+        ),
+      ],
+    ).animate().fadeIn(delay: 1.seconds);
   }
 
   Widget _buildWhatsAppFAB() {
@@ -109,7 +218,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildStickyHeader() {
     return SliverAppBar(
-      expandedHeight: 140,
+      expandedHeight: 200,
+      toolbarHeight: 70, // Increased to match 70px content and prevent 14px overflow
       floating: false,
       pinned: true,
       elevation: 0,
@@ -129,24 +239,32 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('ADHVAITHA', style: TextStyle(fontFamily: 'Philosopher', fontWeight: FontWeight.w900, fontSize: 22, color: Color(0xFF18453B), letterSpacing: 2)),
-              Row(
-                children: [
-                  const Icon(Icons.location_on, size: 14, color: Color(0xFFD4AF37)),
-                  const SizedBox(width: 4),
-                  Text('Madhapur, Hyderabad', style: TextStyle(fontSize: 10, color: const Color(0xFF2D1B12).withOpacity(0.6), fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min, // Added safety
+              children: [
+                const Text('ADHVAITHA', style: TextStyle(fontFamily: 'Philosopher', fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF18453B), letterSpacing: 1)),
+                Row(
+                  mainAxisSize: MainAxisSize.min, // Added safety
+                  children: [
+                    const Icon(Icons.location_on, size: 14, color: Color(0xFFD4AF37)),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text('Madhapur, Hyderabad', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 10, color: const Color(0xFF2D1B12).withOpacity(0.6), fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               _HeaderIconButton(icon: Icons.notifications_none_rounded, onTap: () => HapticFeedback.lightImpact()),
-              const SizedBox(width: 12),
-              _buildCartBadge(),
+              const SizedBox(width: 8),
+              GlobalCartBadge(),
             ],
           ),
         ],
@@ -154,37 +272,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildCartBadge() {
-    return ListenableBuilder(
-      listenable: CartManager(),
-      builder: (context, _) {
-        int count = CartManager().items.length;
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            _HeaderIconButton(icon: Icons.shopping_bag_outlined, onTap: () {
-              HapticFeedback.lightImpact();
-              AppNavigator.push(context, const CartPage());
-            }),
-            if (count > 0)
-              Positioned(
-                right: -4, top: -4,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                  constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                  child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                ),
-              ).animate().scale(curve: Curves.elasticOut),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _buildAnimatedSearchBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       child: GestureDetector(
         onTap: () {
           HapticFeedback.selectionClick();
@@ -207,7 +297,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               Text('Search royal flavors...', style: TextStyle(fontSize: 14, color: const Color(0xFF2D1B12).withOpacity(0.4), fontWeight: FontWeight.w500)),
               const Spacer(),
               const VerticalDivider(indent: 15, endIndent: 15, width: 30),
-              const Icon(Icons.mic_none_rounded, color: Color(0xFFD4AF37), size: 22),
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  AppNavigator.push(context, const SearchPage(autoListen: true));
+                },
+                child: const Icon(Icons.mic_none_rounded, color: Color(0xFFD4AF37), size: 22),
+              ),
             ],
           ),
         ),
@@ -215,13 +311,133 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildAdBanner() {
+    return Column(
+      children: [
+        SizedBox(
+          height: 320, // Increased for safe clearance
+          child: PageView.builder(
+            controller: _adPageController,
+            onPageChanged: (int page) => setState(() => _currentAdPage = page),
+            itemCount: adBanners.length,
+            itemBuilder: (context, index) {
+              final ad = adBanners[index];
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF18453B),
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFF18453B).withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD4AF37).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
+                            ),
+                            child: Text(
+                              ad['tag']!,
+                              style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
+                            ),
+                          ),
+                          const Spacer(flex: 2),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              ad['title']!,
+                              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, fontFamily: 'Philosopher'),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              ad['sub']!,
+                              style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          const Spacer(flex: 3),
+                          ElevatedButton(
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFD4AF37),
+                              foregroundColor: const Color(0xFF18453B),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                              minimumSize: Size.zero,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text('SHOP NOW', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          height: 100, width: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        Image.asset(
+                          ad['img']!,
+                          height: 110,
+                          width: 110,
+                          fit: BoxFit.contain,
+                        ).animate(onPlay: (c) => c.repeat(reverse: true))
+                         .moveY(begin: -5, end: 5, duration: 2.seconds, curve: Curves.easeInOut),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(adBanners.length, (index) {
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              height: 4,
+              width: _currentAdPage == index ? 16 : 4,
+              decoration: BoxDecoration(
+                color: _currentAdPage == index ? const Color(0xFFD4AF37) : const Color(0xFFD4AF37).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 10),
+      ],
+    ).animate().fadeIn().slideY(begin: 0.1, end: 0);
+  }
+
   Widget _buildStoriesSection() {
     final stories = [
-      {'label': 'Making', 'icon': Icons.play_circle_fill_rounded},
-      {'label': 'Farms', 'icon': Icons.eco_rounded},
-      {'label': 'Reviews', 'icon': Icons.stars_rounded},
-      {'label': 'Kitchen', 'icon': Icons.soup_kitchen_rounded},
-      {'label': 'Heritage', 'icon': Icons.castle_rounded},
+      {'label': 'Packaging', 'icon': Icons.inventory_2_rounded, 'tag': 'PACKAGING'},
+      {'label': 'The Origin', 'icon': Icons.auto_stories_rounded, 'tag': 'ORIGIN'},
+      {'label': 'Hand-Made', 'icon': Icons.pan_tool_rounded, 'tag': 'HANDMADE'},
+      {'label': 'Purity', 'icon': Icons.verified_user_rounded, 'tag': 'PURITY'},
+      {'label': 'Gift Boxes', 'icon': Icons.card_giftcard_rounded, 'tag': 'GIFTS'},
     ];
     return Container(
       height: 110,
@@ -233,7 +449,194 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         itemBuilder: (context, index) => _StoryItem(
           label: stories[index]['label'] as String,
           icon: stories[index]['icon'] as IconData,
+          onTap: () {
+            HapticFeedback.mediumImpact();
+            _handleStoryTap(stories[index]['tag'] as String);
+          },
         ).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.5, end: 0),
+      ),
+    );
+  }
+
+  void _handleStoryTap(String tag) {
+    switch (tag) {
+      case 'ORIGIN':
+        _showLuxuryStory(
+          title: 'HERITAGE 1982',
+          subtitle: 'The Ancestral Roots',
+          desc: 'Born in the coastal heart of Andhra, our recipes are silent witnesses to four decades of flavor evolution. We don\'t just make pickles; we preserve time.',
+          img: 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'
+        );
+        break;
+      case 'PACKAGING':
+        _showLuxuryStory(
+          title: 'ROYAL VESSELS',
+          subtitle: 'Lead-Free Purity',
+          desc: 'Every batch is housed in medical-grade glass jars. Vacuum-sealed to ensure that the aroma of stone-ground spices reaches you exactly as it left our kitchen.',
+          img: 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'
+        );
+        break;
+      case 'HANDMADE':
+        _showLuxuryStory(
+          title: 'ARTISAN SOUL',
+          subtitle: 'Zero Machines.',
+          desc: 'Hand-sorted chillies, sun-dried ingredients, and traditional stone-pounding. Slow preparation ensures zero heat-friction, keeping natural oils intact.',
+          img: 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg'
+        );
+        break;
+      case 'PURITY':
+        _showLuxuryStory(
+          title: 'ZERO COMPROMISE',
+          subtitle: 'Bio-Preserved',
+          desc: 'We use zero chemical preservatives. Our pickles are naturally preserved using cold-pressed oils and sun-dried sea salt, just as nature intended.',
+          img: 'assets/images/gondh_laddu_edible_gum_laddu.jpg'
+        );
+        break;
+      case 'GIFTS':
+        AppNavigator.push(context, const ProductListingPage(category: 'Sweets'));
+        break;
+    }
+  }
+
+  void _showLuxuryStory({required String title, required String subtitle, required String desc, required String img}) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Story',
+      transitionDuration: 600.ms,
+      pageBuilder: (context, anim1, anim2) => Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            // Background Image with Slow Zoom
+            Positioned.fill(
+              child: Image.asset(img, fit: BoxFit.cover)
+                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.2, 1.2), duration: 10.seconds, curve: Curves.linear),
+            ),
+            
+            // Luxury Cinematic Gradient
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.8),
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.4),
+                      Colors.black.withOpacity(0.9),
+                    ],
+                    stops: const [0.0, 0.3, 0.6, 1.0],
+                  ),
+                ),
+              ),
+            ),
+
+            // Content
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Modern Progress Bar
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 3,
+                            decoration: BoxDecoration(
+                              color: Colors.white24,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                height: 3,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD4AF37),
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.5), blurRadius: 10)],
+                                ),
+                              ).animate().scaleX(begin: 0, end: 1, duration: 6.seconds, curve: Curves.linear),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 25),
+                    
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(title, style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, letterSpacing: 4, fontSize: 10)),
+                              ),
+                              const SizedBox(height: 4),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(subtitle, style: GoogleFonts.philosopher(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, height: 1)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+                        ),
+                      ],
+                    ).animate().fadeIn(duration: 800.ms).slideY(begin: -0.2, end: 0),
+
+                    const Spacer(),
+
+                    // Glassmorphic Content Card
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            desc,
+                            style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.7, fontWeight: FontWeight.w400, letterSpacing: 0.3),
+                          ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
+                          const SizedBox(height: 30),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFD4AF37),
+                              foregroundColor: const Color(0xFF18453B),
+                              minimumSize: const Size(double.infinity, 56),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                              elevation: 0,
+                            ),
+                            child: const Text('EXPERIENCE THE TRADITION', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1, end: 0),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -247,7 +650,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           const Text('Today\'s Selection', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
           const SizedBox(height: 15),
           SizedBox(
-            height: 240,
+            height: 280, // Increased for cross-device safety
             child: Row(
               children: [
                 Expanded(
@@ -266,24 +669,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     children: [
                       Expanded(
                         child: _BentoCard(
-                          title: 'New',
-                          sub: 'Combos',
+                          title: 'Royal',
+                          sub: 'Spices',
                           icon: Icons.auto_awesome,
                           iconSize: 24,
                           color: const Color(0xFFD4AF37),
                           isDarkText: true,
-                          onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'All')),
+                          onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Spices')),
                         ),
                       ),
                       const SizedBox(height: 12),
                       Expanded(
                         child: _BentoCard(
-                          title: 'Offers',
-                          sub: '30% OFF',
-                          icon: Icons.local_offer_rounded,
+                          title: 'Crunchy',
+                          sub: 'Snacks',
+                          icon: Icons.restaurant_menu_rounded,
                           iconSize: 24,
                           color: const Color(0xFF2D1B12),
-                          onTap: () => MainScreen.of(context)?.setIndex(1),
+                          onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Snacks')),
                         ),
                       ),
                     ],
@@ -297,12 +700,42 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     ).animate().fadeIn().slideY(begin: 0.1, end: 0);
   }
 
-  Widget _buildAnimatedHeroBanners() {
-    return _buildStaticBanner(
-      title: banners[0]['title']!,
-      sub: banners[0]['sub']!,
-      img: banners[0]['img']!,
-      isHero: true,
+  Widget _buildCarouselBanners() {
+    return Column(
+      children: [
+        SizedBox(
+          height: 240,
+          child: PageView.builder(
+            controller: _pageController,
+            onPageChanged: (int page) => setState(() => _currentPage = page),
+            itemCount: banners.length,
+            itemBuilder: (context, index) {
+              return _buildStaticBanner(
+                title: banners[index]['title']!,
+                sub: banners[index]['sub']!,
+                img: banners[index]['img']!,
+                isHero: true,
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(banners.length, (index) {
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              height: 6,
+              width: _currentPage == index ? 24 : 6,
+              decoration: BoxDecoration(
+                color: _currentPage == index ? const Color(0xFF18453B) : const Color(0xFF18453B).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 
@@ -467,7 +900,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       children: [
         _SectionTitle(title: title, onSeeAll: () => AppNavigator.push(context, ProductListingPage(category: category))),
         SizedBox(
-          height: 330,
+          height: 360, // Slightly increased to prevent 1px rounding overflow
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -478,6 +911,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             },
           ),
         ),
+        const SizedBox(height: 20),
       ],
     );
   }
@@ -485,25 +919,32 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget _buildDealsOfTheDay() {
     return Container(
       margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF2D1B12),
         borderRadius: BorderRadius.circular(30),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20)],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('DEALS OF THE DAY', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12)),
-                  SizedBox(height: 4),
-                  Text('Ending in 04:23:12', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
-                ],
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('DEALS OF THE DAY', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12)),
+                    ),
+                    SizedBox(height: 4),
+                    Text('Ending in 04:23:12', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
+              const SizedBox(width: 10),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10)),
@@ -511,7 +952,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               )
             ],
           ),
-          const SizedBox(height: 25),
+          const SizedBox(height: 20),
           Row(
             children: [
               _DealItem(product: allProducts[2]),
@@ -533,7 +974,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           child: Text('New Arrivals', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
         ),
         SizedBox(
-          height: 140,
+          height: 180, // Increased for safety buffer
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -543,7 +984,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               return GestureDetector(
                 onTap: () => AppNavigator.push(context, ProductDetailPage(product: product)),
                 child: Container(
-                  width: 110,
+                  width: 120,
                   margin: const EdgeInsets.only(right: 15),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -555,11 +996,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: Image.asset(product.image, width: 60, height: 60, fit: BoxFit.cover),
+                        child: Image.asset(product.image, width: 70, height: 70, fit: BoxFit.cover),
                       ),
-                      const SizedBox(height: 10),
-                      Text(product.name, maxLines: 1, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                      Text(product.defaultPrice, style: const TextStyle(fontSize: 12, color: Color(0xFF18453B), fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(product.name, maxLines: 1, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis)),
+                      ),
+                      Text(product.defaultPrice, style: const TextStyle(fontSize: 13, color: Color(0xFF18453B), fontWeight: FontWeight.w900)),
                     ],
                   ),
                 ),
@@ -657,179 +1101,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildComboSection() {
-    return Column(
-      children: [
-        _SectionTitle(title: 'Elite Combo Packs', onSeeAll: () => AppNavigator.push(context, const ProductListingPage(category: 'All'))),
-        _ComboHeroCard(
-          title: 'ANDHRA SPECIAL COMBO',
-          subtitle: 'Pickle + Snack + Sweet + Spice',
-          price: '₹499',
-          img: 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-          onTap: () {
-            HapticFeedback.heavyImpact();
-            CartManager().addToCart(allProducts[0]);
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Royal Combo added to cart!')));
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGiftCollections() {
-    return Column(
-      children: [
-        _SectionTitle(title: 'Royal Gift Boxes', onSeeAll: () {}),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          height: 220,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            image: const DecorationImage(
-              image: AssetImage('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-              ),
-            ),
-            padding: const EdgeInsets.all(25),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('FESTIVE HAMPER', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12)),
-                const SizedBox(height: 5),
-                const Text('The Ultimate Andhra Celebration Box', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
-                const SizedBox(height: 15),
-                Row(
-                  children: [
-                    const Text('₹1,499', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      decoration: BoxDecoration(color: const Color(0xFFD4AF37), borderRadius: BorderRadius.circular(12)),
-                      child: const Text('GIFT NOW', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                    ),
-                  ],
-                )
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAppRewardsBanner() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(
-        color: const Color(0xFF18453B),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10))],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
-            child: const Icon(Icons.stars_rounded, color: Color(0xFFD4AF37), size: 32),
-          ),
-          const SizedBox(width: 20),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('ADHVAITHA PRIVILEGE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
-                SizedBox(height: 4),
-                Text('Earn royal coins on every purchase.', style: TextStyle(color: Colors.white60, fontSize: 11)),
-              ],
-            ),
-          ),
-          const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTrustPromise() {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 60),
-      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF18453B),
-        boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.3), blurRadius: 40)],
-      ),
-      child: Column(
-        children: [
-          const Text('THE ADHVAITHA PROMISE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 4, color: Color(0xFFD4AF37), fontSize: 14)),
-          const SizedBox(height: 40),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _PromiseItem(icon: Icons.home_filled, label: 'HOMEMADE'),
-              _PromiseItem(icon: Icons.eco, label: 'PURE'),
-              _PromiseItem(icon: Icons.no_food, label: 'NO CHEMICALS'),
-              _PromiseItem(icon: Icons.flash_on, label: 'FAST'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFarmToJarVideo() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 50, 20, 20),
-      height: 250,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        image: const DecorationImage(
-          image: AssetImage('assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'),
-          fit: BoxFit.cover,
-        ),
-      ),
-      child: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-              color: Colors.black26,
-            ),
-          ),
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  height: 70, width: 70,
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), shape: BoxShape.circle),
-                  child: const Icon(Icons.play_arrow_rounded, color: Color(0xFF18453B), size: 40),
-                ),
-                const SizedBox(height: 15),
-                const Text('FARM TO JAR STORY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTestimonials() {
     return Column(
       children: [
         _SectionTitle(title: 'What Royalty Says', onSeeAll: () {}),
         SizedBox(
-          height: 200,
+          height: 230,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -841,79 +1118,59 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildJoinInnerCircle() {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(35),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
-        border: Border.all(color: const Color(0xFF18453B).withOpacity(0.05)),
-      ),
-      child: Column(
-        children: [
-          const Text('JOIN THE INNER CIRCLE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 3, color: Color(0xFF18453B), fontSize: 12)),
-          const SizedBox(height: 15),
-          const Text('Be the first to taste our limited batch seasonal pickles.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12, height: 1.5)),
-          const SizedBox(height: 30),
-          Container(
-            height: 60,
-            decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200)),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                const Expanded(child: Text('your@email.com', style: TextStyle(color: Colors.black26, fontSize: 13))),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  decoration: BoxDecoration(color: const Color(0xFF18453B), borderRadius: BorderRadius.circular(10)),
-                  child: const Text('JOIN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                ),
-              ],
+  Widget _buildPackagingGallery() {
+    final packagings = [
+      {'title': 'Glass Jars', 'desc': 'Premium leak-proof sealing', 'img': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'},
+      {'title': 'Eco-Friendly', 'desc': 'Sustainable outer boxing', 'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'},
+      {'title': 'Gift Ready', 'desc': 'Royal golden finishing', 'img': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg'},
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 50, 20, 15),
+          child: Text('Royal Packaging', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
+        ),
+        SizedBox(
+          height: 220,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            itemCount: packagings.length,
+            itemBuilder: (context, index) => Container(
+              width: 180,
+              margin: const EdgeInsets.only(right: 15),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                      child: Image.asset(packagings[index]['img']!, fit: BoxFit.cover, width: double.infinity),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(packagings[index]['title']!, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF18453B))),
+                        const SizedBox(height: 4),
+                        Text(packagings[index]['desc']!, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFooterBranding() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 60),
-      child: Column(
-        children: [
-          const Text('ADHVAITHA', style: TextStyle(fontFamily: 'Philosopher', fontWeight: FontWeight.w900, fontSize: 28, color: Color(0xFF18453B), letterSpacing: 5)),
-          const SizedBox(height: 10),
-          Text('PREMIUM HANDMADE TRADITION', style: TextStyle(color: const Color(0xFF18453B).withOpacity(0.3), fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 10)),
-          const SizedBox(height: 40),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _SocialIconButton(icon: Icons.facebook),
-              const SizedBox(width: 20),
-              _SocialIconButton(icon: Icons.camera_alt_rounded),
-              const SizedBox(width: 20),
-              _SocialIconButton(icon: Icons.language_rounded),
-            ],
-          ),
-          const SizedBox(height: 40),
-          Text('© 2024 Adhvaitha Foods. All Rights Reserved.', style: TextStyle(color: Colors.grey.shade400, fontSize: 10)),
-        ],
-      ),
-    );
-  }
-}
-
-class _SocialIconButton extends StatelessWidget {
-  final IconData icon;
-  const _SocialIconButton({required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(border: Border.all(color: const Color(0xFF18453B).withOpacity(0.1)), shape: BoxShape.circle),
-      child: Icon(icon, color: const Color(0xFF18453B), size: 18),
+        ),
+      ],
     );
   }
 }
@@ -927,14 +1184,16 @@ class _HeaderIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 8))],
+      child: Center(
+        child: Container(
+          height: 36, width: 36, // Fixed height to prevent 14px overflow
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 8))],
+          ),
+          child: Icon(icon, color: const Color(0xFF18453B), size: 18),
         ),
-        child: Icon(icon, color: const Color(0xFF18453B), size: 22),
       ),
     );
   }
@@ -943,46 +1202,50 @@ class _HeaderIconButton extends StatelessWidget {
 class _StoryItem extends StatelessWidget {
   final String label;
   final IconData icon;
-  const _StoryItem({required this.label, required this.icon});
+  final VoidCallback onTap;
+  const _StoryItem({required this.label, required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                height: 64, width: 64,
-                padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFE5C76B)], begin: Alignment.topLeft),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  height: 64, width: 64,
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFE5C76B)], begin: Alignment.topLeft),
+                  ),
+                  child: Container(
+                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    child: Icon(icon, color: const Color(0xFF18453B), size: 24),
+                  ),
                 ),
-                child: Container(
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                  child: Icon(icon, color: const Color(0xFF18453B), size: 24),
-                ),
-              ),
-              Positioned(
-                top: 0, right: 0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white, width: 2)),
-                  child: const Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 6, fontWeight: FontWeight.bold)),
-                ).animate(onPlay: (c) => c.repeat(reverse: true)).fadeOut(),
-              )
-            ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: 70,
-            child: Text(label, textAlign: TextAlign.center, maxLines: 1, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF2D1B12), overflow: TextOverflow.ellipsis)),
-          ),
-        ],
+                Positioned(
+                  top: 0, right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white, width: 2)),
+                    child: const Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 6, fontWeight: FontWeight.bold)),
+                  ).animate(onPlay: (c) => c.repeat(reverse: true)).fadeOut(),
+                )
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: 70,
+              child: Text(label, textAlign: TextAlign.center, maxLines: 1, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF2D1B12), overflow: TextOverflow.ellipsis)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1104,7 +1367,14 @@ class _SectionTitle extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
+            ),
+          ),
+          const SizedBox(width: 15),
           GestureDetector(
             onTap: onSeeAll,
             child: Container(
@@ -1172,19 +1442,19 @@ class _PremiumProductCardState extends State<_PremiumProductCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
+              AspectRatio(
+                aspectRatio: 1.0,
                 child: Stack(
                   children: [
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
                       child: Container(
                         color: Colors.white,
-                        padding: const EdgeInsets.all(15),
                         child: Hero(
                           tag: widget.product.name,
                           child: Image.asset(
                             widget.product.image, 
-                            fit: BoxFit.contain, 
+                            fit: BoxFit.cover,
                             width: double.infinity,
                             height: double.infinity,
                             errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)),
@@ -1214,34 +1484,39 @@ class _PremiumProductCardState extends State<_PremiumProductCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(widget.product.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF2D1B12)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 4),
                     Row(
                       children: List.generate(5, (idx) => Icon(
                         idx < widget.product.rating.floor() ? Icons.star_rounded : Icons.star_outline_rounded,
-                        size: 14, color: const Color(0xFFD4AF37),
+                        size: 12, color: const Color(0xFFD4AF37),
                       )),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     Container(
                       height: 34,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade200)),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _selectedWeight,
                           isExpanded: true,
-                          icon: const Icon(Icons.keyboard_arrow_down, size: 16),
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
+                          icon: const Icon(Icons.keyboard_arrow_down, size: 14),
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
                           items: widget.product.weightPriceMap.keys.map((String v) => DropdownMenuItem<String>(value: v, child: Text(v))).toList(),
                           onChanged: (v) => setState(() => _selectedWeight = v!),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 15),
+                    const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Flexible(child: Text(widget.product.getPriceForWeight(_selectedWeight), maxLines: 1, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF18453B), overflow: TextOverflow.ellipsis))),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(widget.product.getPriceForWeight(_selectedWeight), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF18453B))),
+                          ),
+                        ),
                         const SizedBox(width: 4),
                         ListenableBuilder(
                           listenable: CartManager(),
@@ -1251,31 +1526,20 @@ class _PremiumProductCardState extends State<_PremiumProductCard> {
                               onTap: () {
                                 HapticFeedback.mediumImpact();
                                 CartManager().addToCart(widget.product, weight: _selectedWeight);
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                  content: Text('${widget.product.name} added!'), 
-                                  behavior: SnackBarBehavior.floating,
-                                  duration: const Duration(seconds: 1),
-                                ));
                               },
                               child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: qty > 0 ? 10 : 8, vertical: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                                 decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF18453B), Color(0xFF276357)],
-                                    begin: Alignment.topLeft, end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
+                                  gradient: const LinearGradient(colors: [Color(0xFF18453B), Color(0xFF276357)]),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                                    const Icon(Icons.add_rounded, color: Colors.white, size: 16),
                                     if (qty > 0) ...[
                                       const SizedBox(width: 4),
-                                      const Text('•', style: TextStyle(color: Colors.white70, fontSize: 16)),
-                                      const SizedBox(width: 4),
-                                      Text('$qty', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                      Text('$qty', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
                                     ],
                                   ],
                                 ),
@@ -1324,19 +1588,41 @@ class _BentoCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(25),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8))],
-          image: img != null ? DecorationImage(image: AssetImage(img!), fit: BoxFit.cover, opacity: 0.4) : null,
+          boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 5))],
+          image: img != null ? DecorationImage(image: AssetImage(img!), fit: BoxFit.cover, opacity: 0.2) : null,
         ),
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: img != null ? CrossAxisAlignment.start : CrossAxisAlignment.center,
           children: [
-            if (icon != null) Icon(icon!, color: isDarkText ? const Color(0xFF18453B) : Colors.white, size: iconSize),
-            if (icon != null) const SizedBox(height: 8),
-            Text(title.toUpperCase(), maxLines: 1, style: TextStyle(color: isDarkText ? const Color(0xFF18453B) : Colors.white70, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 2, overflow: TextOverflow.ellipsis)),
-            const SizedBox(height: 4),
-            Text(sub, maxLines: 1, textAlign: img != null ? TextAlign.left : TextAlign.center, style: TextStyle(color: isDarkText ? const Color(0xFF18453B) : Colors.white, fontWeight: FontWeight.w900, fontSize: 14, overflow: TextOverflow.ellipsis)),
+            if (icon != null) ...[
+              Icon(icon!, color: isDarkText ? const Color(0xFF18453B) : Colors.white, size: iconSize),
+              const SizedBox(height: 6),
+            ],
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                title.toUpperCase(), 
+                style: TextStyle(
+                  color: isDarkText ? const Color(0xFF18453B).withOpacity(0.6) : Colors.white60, 
+                  fontWeight: FontWeight.w900, 
+                  fontSize: 10, 
+                  letterSpacing: 2
+                )
+              ),
+            ),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                sub, 
+                style: TextStyle(
+                  color: isDarkText ? const Color(0xFF18453B) : Colors.white, 
+                  fontWeight: FontWeight.w900, 
+                  fontSize: 15
+                )
+              ),
+            ),
           ],
         ),
       ),
@@ -1344,94 +1630,7 @@ class _BentoCard extends StatelessWidget {
   }
 }
 
-class _ComboHeroCard extends StatefulWidget {
-  final String title, subtitle, price, img;
-  final VoidCallback onTap;
-  const _ComboHeroCard({required this.title, required this.subtitle, required this.price, required this.img, required this.onTap});
 
-  @override
-  State<_ComboHeroCard> createState() => _ComboHeroCardState();
-}
-
-class _ComboHeroCardState extends State<_ComboHeroCard> {
-  bool _isPressed = false;
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) => setState(() => _isPressed = false),
-      onTapCancel: () => setState(() => _isPressed = false),
-      onTap: widget.onTap,
-      child: AnimatedScale(
-        scale: _isPressed ? 0.98 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        child: Container(
-          height: 160, margin: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            image: DecorationImage(image: AssetImage(widget.img), fit: BoxFit.cover),
-            boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 10))],
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-              gradient: const LinearGradient(colors: [Color(0xFF2D1B12), Colors.transparent], begin: Alignment.centerLeft),
-            ),
-            padding: const EdgeInsets.all(25),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(widget.title, style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5)),
-                      Text(widget.subtitle, style: const TextStyle(color: Colors.white70, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 15),
-                      Text(widget.price, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24)),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFE5C76B)]),
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
-                  ),
-                  child: const Text('ADD TO CART', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.w900, fontSize: 10)),
-                )
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PromiseItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _PromiseItem({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
-          child: Icon(icon, color: const Color(0xFFD4AF37), size: 28),
-        ),
-        const SizedBox(height: 12),
-        Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFFD4AF37), letterSpacing: 1.5)),
-      ],
-    );
-  }
-}
 
 class _ReviewCard extends StatelessWidget {
   final Review review;

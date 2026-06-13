@@ -32,12 +32,15 @@ subprojects {
     }
 }
 
-// Safely override compileSdkVersion for all plugins
+// Safely override compileSdkVersion and targetSdkVersion for all plugins
 gradle.afterProject {
     if (project.hasProperty("android")) {
         val android = project.extensions.findByName("android")
         if (android is com.android.build.gradle.BaseExtension) {
-            android.compileSdkVersion(34)
+            android.compileSdkVersion(35)
+            android.defaultConfig {
+                targetSdkVersion(35)
+            }
         }
     }
 }

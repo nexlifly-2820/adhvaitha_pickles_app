@@ -53,8 +53,13 @@ class _AddressCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))],
-        border: Border.all(color: isDefault ? const Color(0xFFD4AF37) : Colors.transparent, width: 2),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10)),
+        ],
+        border: Border.all(
+          color: isDefault ? const Color(0xFFD4AF37) : Colors.grey.shade100, 
+          width: 2
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,7 +67,17 @@ class _AddressCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B), letterSpacing: 2, fontSize: 12)),
+              Row(
+                children: [
+                  Icon(
+                    title.toLowerCase() == 'home' ? Icons.home_rounded : (title.toLowerCase() == 'office' ? Icons.work_rounded : Icons.location_on_rounded),
+                    size: 18, 
+                    color: const Color(0xFF18453B)
+                  ),
+                  const SizedBox(width: 10),
+                  Text(title.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B), letterSpacing: 2, fontSize: 12)),
+                ],
+              ),
               if (isDefault) 
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), 

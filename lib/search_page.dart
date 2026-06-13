@@ -3,9 +3,12 @@ import 'models.dart';
 import 'product_detail_page.dart';
 import 'product_repository.dart';
 import 'navigation_util.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key});
+  final bool autoListen;
+  const SearchPage({super.key, this.autoListen = false});
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -18,6 +21,42 @@ class _SearchPageState extends State<SearchPage> {
   List<Product> searchResults = [];
   bool isSearching = false;
 
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _speech = stt.SpeechToText();
+    if (widget.autoListen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _listen());
+    }
+  }
+
+  void _listen() async {
+    if (!_isListening) {
+      bool available = await _speech.initialize(
+        onStatus: (val) => print('onStatus: $val'),
+        onError: (val) => print('onError: $val'),
+      );
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          onResult: (val) => setState(() {
+            _searchController.text = val.recognizedWords;
+            _performSearch(val.recognizedWords);
+            if (val.hasConfidenceRating && val.confidence > 0) {
+              // Optionally handle confidence
+            }
+          }),
+        );
+      }
+    } else {
+      setState(() => _isListening = false);
+      _speech.stop();
+    }
+  }
+
   void _performSearch(String query) {
     if (query.isEmpty) {
       setState(() {
@@ -27,12 +66,32 @@ class _SearchPageState extends State<SearchPage> {
       return;
     }
 
+    final String lowerQuery = query.toLowerCase();
+
     setState(() {
       isSearching = true;
       searchResults = ProductRepository.allProducts.where((product) {
-        return product.name.toLowerCase().contains(query.toLowerCase()) ||
-               product.category.toLowerCase().contains(query.toLowerCase()) ||
-               product.description.toLowerCase().contains(query.toLowerCase());
+        final bool matchesName = product.name.toLowerCase().contains(lowerQuery);
+        final bool matchesCategory = product.category.toLowerCase().contains(lowerQuery);
+        final bool matchesDescription = product.description.toLowerCase().contains(lowerQuery);
+        final bool matchesIngredient = product.ingredients.any((i) => i.toLowerCase().contains(lowerQuery));
+        final bool matchesSpice = product.secretIngredient.name.toLowerCase().contains(lowerQuery);
+        
+        // Mood-based mappings
+        bool matchesMood = false;
+        if (lowerQuery.contains('spicy') || lowerQuery.contains('hot')) {
+          matchesMood = product.description.toLowerCase().contains('spicy') || 
+                        product.name.toLowerCase().contains('karam') ||
+                        product.name.toLowerCase().contains('chilli');
+        } else if (lowerQuery.contains('sweet')) {
+          matchesMood = product.description.toLowerCase().contains('sweet') || 
+                        product.name.toLowerCase().contains('bellam') ||
+                        product.name.toLowerCase().contains('jaggery');
+        } else if (lowerQuery.contains('andhra')) {
+          matchesMood = product.origin.toLowerCase().contains('andhra');
+        }
+
+        return matchesName || matchesCategory || matchesDescription || matchesIngredient || matchesSpice || matchesMood;
       }).toList();
     });
   }
@@ -61,6 +120,13 @@ class _SearchPageState extends State<SearchPage> {
           },
         ),
         actions: [
+          IconButton(
+            onPressed: _listen,
+            icon: Icon(
+              _isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+              color: _isListening ? Colors.red : const Color(0xFF18453B),
+            ),
+          ).animate(target: _isListening ? 1 : 0).scale(begin: const Offset(1, 1), end: const Offset(1.2, 1.2)).then().shimmer(),
           IconButton(
             onPressed: () {
               _searchController.clear();
@@ -121,13 +187,37 @@ class _SearchPageState extends State<SearchPage> {
           const SizedBox(height: 15),
           Row(
             children: [
-              _MoodChip(label: 'Feeling Spicy?', color: Colors.red.shade700, icon: Icons.whatshot, onTap: () => _performSearch('Spicy')),
+              _MoodChip(
+                label: 'Feeling Spicy?', 
+                color: Colors.red.shade700, 
+                icon: Icons.whatshot, 
+                onTap: () {
+                  _searchController.text = 'Spicy';
+                  _performSearch('Spicy');
+                }
+              ),
               const SizedBox(width: 12),
-              _MoodChip(label: 'Sweet Cravings', color: Colors.orange.shade800, icon: Icons.cookie, onTap: () => _performSearch('Sweet')),
+              _MoodChip(
+                label: 'Sweet Cravings', 
+                color: Colors.orange.shade800, 
+                icon: Icons.cookie, 
+                onTap: () {
+                  _searchController.text = 'Sweet';
+                  _performSearch('Sweet');
+                }
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          _MoodChip(label: 'The Andhra Special', color: const Color(0xFF18453B), icon: Icons.auto_awesome, onTap: () => _performSearch('Andhra')),
+          _MoodChip(
+            label: 'The Andhra Special', 
+            color: const Color(0xFF18453B), 
+            icon: Icons.auto_awesome, 
+            onTap: () {
+              _searchController.text = 'Andhra';
+              _performSearch('Andhra');
+            }
+          ),
           
           const SizedBox(height: 40),
           Container(
@@ -178,19 +268,23 @@ class _SearchPageState extends State<SearchPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
           ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(10),
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(product.image, width: 60, height: 60, fit: BoxFit.cover),
+          child: Material(
+            color: Colors.transparent,
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(10),
+              leading: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(product.image, width: 60, height: 60, fit: BoxFit.cover),
+              ),
+              title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              subtitle: Text(product.category, style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 11, fontWeight: FontWeight.bold)),
+              trailing: Text(product.defaultPrice, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
+              onTap: () => AppNavigator.push(context, ProductDetailPage(product: product)),
             ),
-            title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-            subtitle: Text(product.category, style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 11, fontWeight: FontWeight.bold)),
-            trailing: Text(product.defaultPrice, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
-            onTap: () => AppNavigator.push(context, ProductDetailPage(product: product)),
           ),
-        );
+        ).animate().fadeIn(delay: (index * 50).ms).slideX(begin: 0.1, end: 0);
       },
     );
   }
