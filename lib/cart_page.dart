@@ -27,6 +27,28 @@ class _CartPageState extends State<CartPage> {
 
   void _update() => setState(() {});
 
+  Widget _buildAddMoreButton() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, bottom: 30),
+      child: OutlinedButton.icon(
+        onPressed: () {
+          MainScreen.of(context)?.setIndex(1); // Go to Shop tab
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+        },
+        icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+        label: const Text('ADD MORE FLAVORS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF18453B),
+          side: const BorderSide(color: Color(0xFF18453B), width: 1.5),
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cart = CartManager();
@@ -63,10 +85,13 @@ class _CartPageState extends State<CartPage> {
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(20),
-                  itemCount: cart.items.length,
+                  itemCount: cart.items.length + 1,
                   itemBuilder: (context, index) {
-                    final item = cart.items[index];
-                    return _CartItemTile(item: item);
+                    if (index < cart.items.length) {
+                      final item = cart.items[index];
+                      return _CartItemTile(item: item);
+                    }
+                    return _buildAddMoreButton();
                   },
                 ),
               ),
@@ -84,7 +109,7 @@ class _CartItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dismissible(
-      key: Key(item.product.name + item.weight),
+      key: Key(item.product.name + item.weight + (item.isTemperingRequested ? '_temp' : '') + (item.chefNote ?? '')),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -116,6 +141,20 @@ class _CartItemTile extends StatelessWidget {
                 children: [
                   Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   Text(item.weight, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  if (item.isTemperingRequested) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.soup_kitchen_rounded, size: 10, color: Color(0xFFE65100)),
+                        const SizedBox(width: 4),
+                        const Text('Tempering Requested', style: TextStyle(fontSize: 10, color: Color(0xFFE65100), fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ],
+                  if (item.chefNote != null && item.chefNote!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text('Note: ${item.chefNote}', style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
                   const SizedBox(height: 10),
                   Text(item.product.getPriceForWeight(item.weight), style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
                 ],

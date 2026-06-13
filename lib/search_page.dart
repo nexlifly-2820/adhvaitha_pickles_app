@@ -117,6 +117,19 @@ class _SearchPageState extends State<SearchPage> {
             ),
           ),
           const SizedBox(height: 40),
+          const Text('DISCOVER BY MOOD', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11, color: Colors.grey)),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              _MoodChip(label: 'Feeling Spicy?', color: Colors.red.shade700, icon: Icons.whatshot, onTap: () => _performSearch('Spicy')),
+              const SizedBox(width: 12),
+              _MoodChip(label: 'Sweet Cravings', color: Colors.orange.shade800, icon: Icons.cookie, onTap: () => _performSearch('Sweet')),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _MoodChip(label: 'The Andhra Special', color: const Color(0xFF18453B), icon: Icons.auto_awesome, onTap: () => _performSearch('Andhra')),
+          
+          const SizedBox(height: 40),
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -179,6 +192,38 @@ class _SearchPageState extends State<SearchPage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _MoodChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final IconData icon;
+  final VoidCallback onTap;
+  const _MoodChip({required this.label, required this.color, required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: color.withOpacity(0.2)),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(height: 8),
+              Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

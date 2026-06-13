@@ -14,6 +14,22 @@ class Review {
   });
 }
 
+class IngredientDetail {
+  final String name;
+  final String description;
+  final String image;
+
+  IngredientDetail({required this.name, required this.description, required this.image});
+}
+
+class SommelierPairing {
+  final String title;
+  final String description;
+  final IconData icon;
+
+  SommelierPairing({required this.title, required this.description, required this.icon});
+}
+
 class Product {
   final String name;
   final String description;
@@ -22,7 +38,6 @@ class Product {
   final String image;
   final Color color;
   final String category;
-  final int spiceLevel; // 1 to 5
   final List<String> pairings;
   final List<Review> reviews;
   final bool isBestSeller;
@@ -30,6 +45,11 @@ class Product {
   final List<String> ingredients;
   final String preparationMethod;
   final String shelfLife;
+  final String storageInstructions;
+  final String servingSuggestion;
+  final IngredientDetail secretIngredient;
+  final bool canRequestTempering;
+  final List<SommelierPairing> sommelierPairings;
 
   Product({
     required this.name,
@@ -39,14 +59,18 @@ class Product {
     required this.image,
     required this.color,
     required this.category,
-    this.spiceLevel = 3,
     this.pairings = const ['Rice', 'Idli', 'Dosa'],
     this.reviews = const [],
     this.isBestSeller = false,
     this.origin = 'Coastal Andhra, India',
     this.ingredients = const ['Fresh Produce', 'Cold Pressed Oil', 'Sea Salt', 'Traditional Spices'],
-    this.preparationMethod = 'Handmade in small batches using traditional sun-drying and stone-grinding techniques.',
+    this.preparationMethod = 'Handmade in small batches using traditional sun-drying and stone-grinding techniques. No heat is used in the spice grinding process to preserve essential oils.',
     this.shelfLife = '6 Months from date of manufacture',
+    this.storageInstructions = 'Store in a cool, dry place. Use a dry spoon only. Ensure the oil layer covers the pickle for longevity.',
+    this.servingSuggestion = 'Pairs best with steaming hot rice and a dollop of ghee. Also complements breakfast items like Idli and Dosa.',
+    required this.secretIngredient,
+    this.canRequestTempering = false,
+    this.sommelierPairings = const [],
   });
 
   // Helper to get formatted price for a specific weight
@@ -69,8 +93,16 @@ class CartItem {
   final Product product;
   int quantity;
   String weight;
+  bool isTemperingRequested;
+  String? chefNote;
 
-  CartItem({required this.product, this.quantity = 1, this.weight = '500g'});
+  CartItem({
+    required this.product, 
+    this.quantity = 1, 
+    this.weight = '500g',
+    this.isTemperingRequested = false,
+    this.chefNote,
+  });
 }
 
 class Order {

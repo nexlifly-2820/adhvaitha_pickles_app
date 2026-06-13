@@ -1177,14 +1177,18 @@ class _PremiumProductCardState extends State<_PremiumProductCard> {
                   children: [
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-                      child: Hero(
-                        tag: widget.product.name,
-                        child: Image.asset(
-                          widget.product.image, 
-                          fit: BoxFit.cover, 
-                          width: double.infinity,
-                          height: double.infinity,
-                          errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)),
+                      child: Container(
+                        color: Colors.white,
+                        padding: const EdgeInsets.all(15),
+                        child: Hero(
+                          tag: widget.product.name,
+                          child: Image.asset(
+                            widget.product.image, 
+                            fit: BoxFit.contain, 
+                            width: double.infinity,
+                            height: double.infinity,
+                            errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)),
+                          ),
                         ),
                       ),
                     ),
@@ -1211,14 +1215,11 @@ class _PremiumProductCardState extends State<_PremiumProductCard> {
                   children: [
                     Text(widget.product.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF2D1B12)), maxLines: 1, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 5),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: List.generate(5, (idx) => Icon(
-                          idx < widget.product.rating.floor() ? Icons.star_rounded : Icons.star_outline_rounded,
-                          size: 14, color: const Color(0xFFD4AF37),
-                        )),
-                      ),
+                    Row(
+                      children: List.generate(5, (idx) => Icon(
+                        idx < widget.product.rating.floor() ? Icons.star_rounded : Icons.star_outline_rounded,
+                        size: 14, color: const Color(0xFFD4AF37),
+                      )),
                     ),
                     const SizedBox(height: 10),
                     Container(
@@ -1242,24 +1243,45 @@ class _PremiumProductCardState extends State<_PremiumProductCard> {
                       children: [
                         Flexible(child: Text(widget.product.getPriceForWeight(_selectedWeight), maxLines: 1, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF18453B), overflow: TextOverflow.ellipsis))),
                         const SizedBox(width: 4),
-                        GestureDetector(
-                          onTap: () {
-                            HapticFeedback.mediumImpact();
-                            CartManager().addToCart(widget.product, weight: _selectedWeight);
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${widget.product.name} added!'), behavior: SnackBarBehavior.floating));
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF18453B), Color(0xFF276357)],
-                                begin: Alignment.topLeft, end: Alignment.bottomRight,
+                        ListenableBuilder(
+                          listenable: CartManager(),
+                          builder: (context, _) {
+                            int qty = CartManager().getProductQuantity(widget.product.name, _selectedWeight);
+                            return GestureDetector(
+                              onTap: () {
+                                HapticFeedback.mediumImpact();
+                                CartManager().addToCart(widget.product, weight: _selectedWeight);
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                  content: Text('${widget.product.name} added!'), 
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 1),
+                                ));
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: qty > 0 ? 10 : 8, vertical: 8),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF18453B), Color(0xFF276357)],
+                                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                                    if (qty > 0) ...[
+                                      const SizedBox(width: 4),
+                                      const Text('•', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                                      const SizedBox(width: 4),
+                                      Text('$qty', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                    ],
+                                  ],
+                                ),
                               ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
-                            ),
-                            child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                          ),
+                            );
+                          }
                         ),
                       ],
                     ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'models.dart';
 import 'product_detail_page.dart';
 import 'cart_manager.dart';
@@ -185,7 +186,17 @@ class _ProductCardState extends State<_ProductCard> {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-                    child: Image.asset(widget.product.image, width: double.infinity, height: double.infinity, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))),
+                    child: Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.all(15),
+                      child: Image.asset(
+                        widget.product.image, 
+                        width: double.infinity, 
+                        height: double.infinity, 
+                        fit: BoxFit.contain, 
+                        errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
+                      ),
+                    ),
                   ),
                   if (widget.product.isBestSeller)
                     Positioned(
@@ -256,23 +267,45 @@ class _ProductCardState extends State<_ProductCard> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(widget.product.getPriceForWeight(_selectedWeight), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF18453B))),
-                      GestureDetector(
-                        onTap: () {
-                          CartManager().addToCart(widget.product, weight: _selectedWeight);
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${widget.product.name} added!'), behavior: SnackBarBehavior.floating));
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF18453B), Color(0xFF276357)],
-                              begin: Alignment.topLeft, end: Alignment.bottomRight,
+                      ListenableBuilder(
+                        listenable: CartManager(),
+                        builder: (context, _) {
+                          int qty = CartManager().getProductQuantity(widget.product.name, _selectedWeight);
+                          return GestureDetector(
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              CartManager().addToCart(widget.product, weight: _selectedWeight);
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text('${widget.product.name} added!'), 
+                                behavior: SnackBarBehavior.floating,
+                                duration: const Duration(seconds: 1),
+                              ));
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: qty > 0 ? 10 : 8, vertical: 8),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF18453B), Color(0xFF276357)],
+                                  begin: Alignment.topLeft, end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.add, color: Colors.white, size: 14),
+                                  if (qty > 0) ...[
+                                    const SizedBox(width: 4),
+                                    const Text('•', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                    const SizedBox(width: 4),
+                                    Text('$qty', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                  ],
+                                ],
+                              ),
                             ),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
-                          ),
-                          child: const Icon(Icons.add, color: Colors.white, size: 14),
-                        ),
+                          );
+                        }
                       ),
                     ],
                   ),

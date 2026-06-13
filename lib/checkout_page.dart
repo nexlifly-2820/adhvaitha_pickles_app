@@ -355,9 +355,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context); // Dialog
-                    Navigator.pop(context); // Checkout
-                    MainScreen.of(context)?.setIndex(3); // Go to Orders
+                    HapticFeedback.lightImpact();
+                    // 1. Get the MainScreen state while context is still valid
+                    final mainScreen = MainScreen.of(context);
+                    
+                    // 2. Pop the success dialog
+                    Navigator.pop(context);
+                    
+                    // 3. Pop the checkout page
+                    Navigator.pop(context);
+                    
+                    // 4. Switch to the Orders tab (index 3)
+                    mainScreen?.setIndex(3);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFFF8E8),

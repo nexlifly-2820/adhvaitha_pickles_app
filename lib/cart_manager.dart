@@ -35,13 +35,24 @@ class CartManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addToCart(Product product, {int quantity = 1, String weight = '500g'}) {
-    int index = _items.indexWhere((item) => item.product.name == product.name && item.weight == weight);
+  void addToCart(Product product, {int quantity = 1, String weight = '500g', bool isTemperingRequested = false, String? chefNote}) {
+    int index = _items.indexWhere((item) => 
+      item.product.name == product.name && 
+      item.weight == weight &&
+      item.isTemperingRequested == isTemperingRequested &&
+      item.chefNote == chefNote
+    );
     
     if (index != -1) {
       _items[index].quantity += quantity;
     } else {
-      _items.add(CartItem(product: product, quantity: quantity, weight: weight));
+      _items.add(CartItem(
+        product: product, 
+        quantity: quantity, 
+        weight: weight,
+        isTemperingRequested: isTemperingRequested,
+        chefNote: chefNote,
+      ));
     }
     if (_appliedPromoCode.isNotEmpty) applyPromoCode(_appliedPromoCode);
     notifyListeners();
@@ -68,6 +79,11 @@ class CartManager extends ChangeNotifier {
     _items.clear();
     removePromoCode();
     notifyListeners();
+  }
+
+  int getProductQuantity(String name, String weight) {
+    int index = _items.indexWhere((item) => item.product.name == name && item.weight == weight);
+    return index != -1 ? _items[index].quantity : 0;
   }
 
   double get subtotal {
