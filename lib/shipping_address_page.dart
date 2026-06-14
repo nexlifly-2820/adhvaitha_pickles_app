@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'checkout_page.dart';
-import 'navigation_util.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'address_manager.dart';
 
 class ShippingAddressPage extends StatelessWidget {
   const ShippingAddressPage({super.key});
@@ -11,39 +11,114 @@ class ShippingAddressPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
-      appBar: AppBar(title: const Text('SAVED ADDRESSES')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            _AddressCard(title: 'Home', address: 'Plot 42, Hitech City, Hyderabad, Telangana - 500081', isDefault: true),
-            _AddressCard(title: 'Office', address: 'Madhapur Road, Jubilee Hills, Hyderabad, Telangana - 500033', isDefault: false),
-            const SizedBox(height: 30),
-            ElevatedButton.icon(
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                AppNavigator.push(context, const CheckoutPage());
-              },
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('ADD NEW ADDRESS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF18453B),
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 60),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      appBar: AppBar(
+        title: Text('ADDRESS BOOK', style: GoogleFonts.philosopher(fontWeight: FontWeight.w900)),
+      ),
+      body: ListenableBuilder(
+        listenable: AddressManager(),
+        builder: (context, _) {
+          final addresses = AddressManager().addresses;
+          return Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(24),
+                  itemCount: addresses.length,
+                  itemBuilder: (context, index) => _AddressCard(address: addresses[index]),
+                ),
               ),
+              _buildAddButton(context),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAddButton(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+      child: ElevatedButton.icon(
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          _showAddAddressDialog(context);
+        },
+        icon: const Icon(Icons.add_location_alt_rounded),
+        label: const Text('ADD NEW DESTINATION', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF18453B),
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 64),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 8,
+          shadowColor: const Color(0xFF18453B).withOpacity(0.3),
+        ),
+      ),
+    );
+  }
+
+  void _showAddAddressDialog(BuildContext context) {
+    final titleController = TextEditingController();
+    final addressController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(color: Color(0xFFFFF8E8), borderRadius: BorderRadius.vertical(top: Radius.circular(40))),
+        padding: const EdgeInsets.all(30),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)))),
+            const SizedBox(height: 30),
+            Text('NEW ADDRESS', style: GoogleFonts.philosopher(fontSize: 28, fontWeight: FontWeight.w900, color: const Color(0xFF18453B))),
+            const SizedBox(height: 30),
+            _buildField('Address Title (e.g. Home, Office)', titleController),
+            const SizedBox(height: 20),
+            _buildField('Full Address Details', addressController, maxLines: 3),
+            const Spacer(),
+            ElevatedButton(
+              onPressed: () {
+                if (titleController.text.isNotEmpty && addressController.text.isNotEmpty) {
+                  AddressManager().addAddress(titleController.text, addressController.text);
+                  Navigator.pop(context);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD4AF37),
+                foregroundColor: const Color(0xFF18453B),
+                minimumSize: const Size(double.infinity, 60),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
+              child: const Text('SAVE ADDRESS', style: TextStyle(fontWeight: FontWeight.w900)),
             ),
+            const SizedBox(height: 10),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildField(String hint, TextEditingController controller, {int maxLines = 1}) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true, fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.all(20),
       ),
     );
   }
 }
 
 class _AddressCard extends StatelessWidget {
-  final String title, address;
-  final bool isDefault;
-  const _AddressCard({required this.title, required this.address, required this.isDefault});
+  final SavedAddress address;
+  const _AddressCard({required this.address});
 
   @override
   Widget build(BuildContext context) {
@@ -53,13 +128,8 @@ class _AddressCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10)),
-        ],
-        border: Border.all(
-          color: isDefault ? const Color(0xFFD4AF37) : Colors.grey.shade100, 
-          width: 2
-        ),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10))],
+        border: Border.all(color: address.isDefault ? const Color(0xFFD4AF37) : Colors.grey.shade100, width: address.isDefault ? 2 : 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,38 +137,29 @@ class _AddressCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    title.toLowerCase() == 'home' ? Icons.home_rounded : (title.toLowerCase() == 'office' ? Icons.work_rounded : Icons.location_on_rounded),
-                    size: 18, 
-                    color: const Color(0xFF18453B)
-                  ),
-                  const SizedBox(width: 10),
-                  Text(title.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B), letterSpacing: 2, fontSize: 12)),
-                ],
-              ),
-              if (isDefault) 
+              Text(address.title.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B), letterSpacing: 2, fontSize: 12)),
+              if (address.isDefault)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), 
-                  decoration: BoxDecoration(color: const Color(0xFFD4AF37).withOpacity(0.2), borderRadius: BorderRadius.circular(10)), 
-                  child: const Text('DEFAULT', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.bold, fontSize: 10))
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: const Color(0xFFD4AF37).withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+                  child: const Text('DEFAULT', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.bold, fontSize: 10)),
                 ),
             ],
           ),
           const SizedBox(height: 15),
-          Text(address, style: TextStyle(color: Colors.grey.shade700, height: 1.6, fontSize: 14)),
+          Text(address.fullAddress, style: TextStyle(color: Colors.grey.shade700, height: 1.6, fontSize: 14)),
           const Divider(height: 40),
           Row(
             children: [
-              _ActionBtn(icon: Icons.edit_outlined, label: 'Edit', onTap: () {
-                HapticFeedback.lightImpact();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Edit feature coming soon!')));
-              }),
-              const SizedBox(width: 30),
-              _ActionBtn(icon: Icons.delete_outline_rounded, label: 'Delete', onTap: () {
+              if (!address.isDefault)
+                _ActionBtn(icon: Icons.check_circle_outline_rounded, label: 'Set Default', onTap: () {
+                  HapticFeedback.lightImpact();
+                  AddressManager().setDefault(address.id);
+                }),
+              if (!address.isDefault) const SizedBox(width: 25),
+              _ActionBtn(icon: Icons.delete_outline_rounded, label: 'Remove', onTap: () {
                 HapticFeedback.mediumImpact();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Delete feature coming soon!')));
+                AddressManager().removeAddress(address.id);
               }),
             ],
           )
@@ -120,7 +181,7 @@ class _ActionBtn extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Icon(icon, size: 18, color: const Color(0xFF18453B)),
+          Icon(icon, size: 18, color: const Color(0xFFD4AF37)),
           const SizedBox(width: 8),
           Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF18453B))),
         ],

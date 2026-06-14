@@ -115,7 +115,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
-      floatingActionButton: _buildWhatsAppFAB(),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -132,7 +131,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 _buildCategoryScroll(),
                 _buildQuickDiscovery(),
                 _buildSection('Most Loved Pickles', 'Pickles'),
-                _buildOfferBanner(),
+                _buildActiveCoupons(),
                 _buildDealsOfTheDay(),
                 _buildSection('Traditional Snacks', 'Snacks'),
                 _buildNewArrivalsRow(),
@@ -151,9 +150,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   sub: 'Crafted with Love Since 1982', 
                   img: 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg'
                 ),
-                const SizedBox(height: 60),
+                const SizedBox(height: 40),
                 _buildNexliflyFooter(),
-                const SizedBox(height: 120),
+                const SizedBox(height: 60),
               ],
             ),
           ),
@@ -165,32 +164,31 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget _buildNexliflyFooter() {
     return Column(
       children: [
-        Text(
-          'POWERED BY',
-          style: TextStyle(
-            fontSize: 8,
-            fontWeight: FontWeight.w900,
-            color: Colors.grey.withOpacity(0.5),
-            letterSpacing: 4,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(height: 1, width: 25, color: const Color(0xFFD4AF37).withOpacity(0.3)),
+            const SizedBox(width: 12),
+            const Text(
+              'POWERED BY',
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF18453B), letterSpacing: 4),
+            ),
+            const SizedBox(width: 12),
+            Container(height: 1, width: 25, color: const Color(0xFFD4AF37).withOpacity(0.3)),
+          ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Text(
           'NEXLIFLY',
           style: GoogleFonts.philosopher(
-            fontSize: 16,
+            fontSize: 22,
             fontWeight: FontWeight.w900,
-            color: const Color(0xFF18453B).withOpacity(0.3),
-            letterSpacing: 6,
+            color: const Color(0xFF18453B).withOpacity(0.8),
+            letterSpacing: 8,
           ),
         ),
-        const SizedBox(height: 10),
-        Container(
-          height: 1, width: 40,
-          color: const Color(0xFFD4AF37).withOpacity(0.15),
-        ),
       ],
-    ).animate().fadeIn(delay: 1.seconds);
+    ).animate().fadeIn();
   }
 
   Widget _buildWhatsAppFAB() {
@@ -244,17 +242,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min, // Added safety
               children: [
-                const Text('ADHVAITHA', style: TextStyle(fontFamily: 'Philosopher', fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF18453B), letterSpacing: 1)),
-                Row(
-                  mainAxisSize: MainAxisSize.min, // Added safety
-                  children: [
-                    const Icon(Icons.location_on, size: 14, color: Color(0xFFD4AF37)),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text('Madhapur, Hyderabad', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 10, color: const Color(0xFF2D1B12).withOpacity(0.6), fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
+                Text('HEMANTH SILLA', style: GoogleFonts.philosopher(fontWeight: FontWeight.w900, fontSize: 20, color: const Color(0xFF18453B), letterSpacing: 0.5)),
+                const Text('What would you like to order today?', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.2)),
               ],
             ),
           ),
@@ -296,14 +285,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               const SizedBox(width: 12),
               Text('Search royal flavors...', style: TextStyle(fontSize: 14, color: const Color(0xFF2D1B12).withOpacity(0.4), fontWeight: FontWeight.w500)),
               const Spacer(),
-              const VerticalDivider(indent: 15, endIndent: 15, width: 30),
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  AppNavigator.push(context, const SearchPage(autoListen: true));
-                },
-                child: const Icon(Icons.mic_none_rounded, color: Color(0xFFD4AF37), size: 22),
-              ),
+              const Icon(Icons.mic_none_rounded, color: Color(0xFFD4AF37), size: 22),
             ],
           ),
         ),
@@ -779,39 +761,113 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildOfferBanner() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-      padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFD4AF37), Color(0xFFE5C76B)],
+  Widget _buildActiveCoupons() {
+    final List<Map<String, String>> coupons = [
+      {'code': 'FIRST30', 'title': '30% OFF', 'sub': 'On your first order', 'min': '₹500', 'color': '0xFF18453B'},
+      {'code': 'PICKLE100', 'title': '₹100 OFF', 'sub': 'Flat discount on pickles', 'min': '₹999', 'color': '0xFFD4AF37'},
+      {'code': 'FESTIVE20', 'title': '20% OFF', 'sub': 'Festive season special', 'min': '₹1500', 'color': '0xFF2D1B12'},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 15),
+          child: Text('Active Coupons', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
         ),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
-      ),
-      child: Row(
-        children: [
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('WEEKEND SPECIAL', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.w900, fontSize: 18)),
-                Text('Get 20% cashback on UPI payments', style: TextStyle(color: Color(0xFF18453B), fontSize: 12, fontWeight: FontWeight.bold)),
-              ],
-            ),
+        SizedBox(
+          height: 140,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: coupons.length,
+            itemBuilder: (context, index) {
+              final c = coupons[index];
+              final Color bgColor = Color(int.parse(c['color']!));
+              final bool isGold = c['color'] == '0xFFD4AF37';
+
+              return Container(
+                width: 300,
+                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(color: bgColor.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            c['title']!, 
+                            style: GoogleFonts.philosopher(
+                              fontSize: 24, 
+                              fontWeight: FontWeight.w900, 
+                              color: isGold ? const Color(0xFF18453B) : const Color(0xFFD4AF37)
+                            ),
+                          ),
+                          Text(
+                            c['sub']!, 
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isGold ? Colors.black54 : Colors.white60, 
+                              fontSize: 11, 
+                              fontWeight: FontWeight.bold
+                            )
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.heavyImpact();
+                        Clipboard.setData(ClipboardData(text: c['code']!));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text('Code ${c['code']} copied to royal clipboard!'),
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: const Color(0xFF18453B),
+                        ));
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isGold ? const Color(0xFF18453B) : const Color(0xFFD4AF37),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              c['code']!, 
+                              style: TextStyle(
+                                color: isGold ? const Color(0xFFD4AF37) : const Color(0xFF18453B), 
+                                fontWeight: FontWeight.w900, 
+                                fontSize: 12, 
+                                letterSpacing: 1
+                              )
+                            ),
+                            Text('COPY', style: TextStyle(color: isGold ? Colors.white60 : Colors.black45, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                          ],
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.2, end: 0);
+            },
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(color: const Color(0xFF18453B), borderRadius: BorderRadius.circular(15)),
-            child: const Text('CLAIM', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-          )
-        ],
-      ),
-    ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 3.seconds, color: Colors.white24);
+        ),
+      ],
+    );
   }
 
   Widget _buildCategoryScroll() {

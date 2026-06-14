@@ -7,7 +7,6 @@ import 'wishlist_manager.dart';
 import 'checkout_page.dart';
 import 'navigation_util.dart';
 import 'product_repository.dart';
-import 'cart_page.dart';
 import 'main.dart';
 
 class ProductDetailPage extends StatefulWidget {
@@ -63,7 +62,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(25),
-                      border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.05), width: 1.0),
+                      border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.05), width: 1.0),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(25),
@@ -195,57 +194,101 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ],
 
                   const SizedBox(height: 40),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200)),
-                        child: Row(
-                          children: [
-                            IconButton(onPressed: () {
-                              HapticFeedback.lightImpact();
-                              setState(() => quantity > 1 ? quantity-- : null);
-                            }, icon: const Icon(Icons.remove, size: 20)),
-                            Text('$quantity', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                            IconButton(onPressed: () {
-                              HapticFeedback.lightImpact();
-                              setState(() => quantity++);
-                            }, icon: const Icon(Icons.add, size: 20)),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            HapticFeedback.mediumImpact();
-                            CartManager().addToCart(
-                              widget.product, 
-                              quantity: quantity, 
-                              weight: selectedWeight,
-                              isTemperingRequested: isTemperingRequested,
-                              chefNote: isTemperingRequested ? _chefNoteController.text : null,
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text('${widget.product.name} added to cart!'),
-                              backgroundColor: const Color(0xFF18453B),
-                              behavior: SnackBarBehavior.floating,
-                              duration: const Duration(seconds: 1),
-                            ));
-                          },
-                          child: Container(
-                            height: 50,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(colors: [Color(0xFF18453B), Color(0xFF276357)]),
-                              borderRadius: BorderRadius.circular(15),
-                              boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
+                  ListenableBuilder(
+                    listenable: CartManager(),
+                    builder: (context, _) {
+                      final cart = CartManager();
+                      final currentQty = cart.getProductQuantity(widget.product.name, selectedWeight);
+                      
+                      return Row(
+                        children: [
+                          // SMALL BUY NOW BUTTON
+                          GestureDetector(
+                            onTap: () {
+                              HapticFeedback.heavyImpact();
+                              if (currentQty == 0) {
+                                cart.addToCart(
+                                  widget.product, 
+                                  quantity: quantity, 
+                                  weight: selectedWeight,
+                                  isTemperingRequested: isTemperingRequested,
+                                  chefNote: isTemperingRequested ? _chefNoteController.text : null,
+                                );
+                              }
+                              AppNavigator.push(context, const CheckoutPage());
+                            },
+                            child: Container(
+                              height: 50,
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF18453B),
+                                borderRadius: BorderRadius.circular(15),
+                                boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))],
+                              ),
+                              alignment: Alignment.center,
+                              child: const Text('BUY NOW', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 11)),
                             ),
-                            alignment: Alignment.center,
-                            child: const Text('ADD TO CART', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 13)),
                           ),
-                        ),
-                      ),
-                    ],
+                          const SizedBox(width: 12),
+                          // DYNAMIC ADD / QUANTITY BUTTON
+                          Expanded(
+                            child: currentQty == 0 ? 
+                              GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.mediumImpact();
+                                  cart.addToCart(
+                                    widget.product, 
+                                    quantity: quantity, 
+                                    weight: selectedWeight,
+                                    isTemperingRequested: isTemperingRequested,
+                                    chefNote: isTemperingRequested ? _chefNoteController.text : null,
+                                  );
+                                },
+                                child: Container(
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFE5C76B)]),
+                                    borderRadius: BorderRadius.circular(15),
+                                    boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Text('ADD TO CART', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 11)),
+                                ),
+                              ) : 
+                              Container(
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(15),
+                                  border: Border.all(color: const Color(0xFF18453B), width: 1.5),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    IconButton(
+                                      onPressed: () {
+                                        HapticFeedback.lightImpact();
+                                        final item = cart.items.firstWhere((i) => i.product.name == widget.product.name && i.weight == selectedWeight);
+                                        cart.updateQuantity(item, -1);
+                                      }, 
+                                      icon: const Icon(Icons.remove, size: 20, color: Color(0xFF18453B))
+                                    ),
+                                    Text('$currentQty', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
+                                    IconButton(
+                                      onPressed: () {
+                                        HapticFeedback.lightImpact();
+                                        final item = cart.items.firstWhere((i) => i.product.name == widget.product.name && i.weight == selectedWeight);
+                                        cart.updateQuantity(item, 1);
+                                      }, 
+                                      icon: const Icon(Icons.add, size: 20, color: Color(0xFF18453B))
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
 
                   if (recommendations.isNotEmpty) ...[
@@ -304,13 +347,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ...widget.product.sommelierPairings.map((pairing) => _buildSommelierCard(pairing)),
                   ],
 
-                  if (widget.product.sommelierPairings.isNotEmpty) ...[
-                    const SizedBox(height: 45),
-                    const Text('THE SOMMELIER GUIDE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12, color: Color(0xFF18453B))),
-                    const SizedBox(height: 20),
-                    ...widget.product.sommelierPairings.map((pairing) => _buildSommelierCard(pairing)),
-                  ],
-
                   const SizedBox(height: 40),
                   const Text('INGREDIENTS', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12, color: Color(0xFF18453B))),
                   const SizedBox(height: 15),
@@ -360,27 +396,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           ),
         ],
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
-        color: const Color(0xFFFFF8E8),
-        child: GestureDetector(
-          onTap: () {
-            HapticFeedback.heavyImpact();
-            CartManager().addToCart(widget.product, quantity: quantity, weight: selectedWeight);
-            AppNavigator.push(context, const CheckoutPage());
-          },
-          child: Container(
-            height: 54,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFE5C76B)]),
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 6))],
-            ),
-            alignment: Alignment.center,
-            child: const Text('BUY NOW', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 14)),
-          ),
-        ),
       ),
     );
   }
@@ -455,7 +470,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     const SizedBox(height: 25),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(30),
-                      child: Image.asset(widget.product.secretIngredient!.image, height: 250, width: double.infinity, fit: BoxFit.cover),
+                      child: Image.asset(widget.product.secretIngredient.image, height: 250, width: double.infinity, fit: BoxFit.cover),
                     ),
                     const SizedBox(height: 30),
                     Text(widget.product.secretIngredient!.name, textAlign: TextAlign.center, style: GoogleFonts.philosopher(fontSize: 32, fontWeight: FontWeight.w900, color: const Color(0xFF18453B))),
@@ -519,7 +534,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     if (!v) _chefNoteController.clear();
                   });
                 },
-                activeColor: const Color(0xFF18453B),
+                activeTrackColor: const Color(0xFF18453B).withValues(alpha: 0.2),
+                activeThumbColor: const Color(0xFF18453B),
               ),
             ],
           ),
