@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "431170665251",
+    "project_id": "adhvaithafoods-7a9a8",
+    "storage_bucket": "adhvaithafoods-7a9a8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:431170665251:android:0d0e38f15b56b85a336a96",
+        "android_client_info": {
+          "package_name": "com.adhvaithafoods.adhvaitha_pickles"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAP11p9r2CxjSn07vD7soBnMtmPyOYBDMk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

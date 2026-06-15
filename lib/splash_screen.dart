@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'main.dart';
 import 'onboarding_page.dart';
 
@@ -75,10 +76,17 @@ class _SplashScreenState extends State<SplashScreen>
     await _wipeController.forward();
 
     if (mounted) {
+      Widget nextScreen;
+      if (FirebaseAuth.instance.currentUser != null) {
+        nextScreen = const MainScreen();
+      } else {
+        nextScreen = const OnboardingPage();
+      }
+
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           transitionDuration: Duration.zero,
-          pageBuilder: (_, __, ___) => const OnboardingPage(),
+          pageBuilder: (_, __, ___) => nextScreen,
         ),
       );
     }

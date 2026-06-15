@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'main.dart';
+import 'login_page.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -245,7 +246,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       onTap: () {
                         HapticFeedback.mediumImpact();
                         Navigator.pop(context);
-                        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
+                        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginPage()));
                       },
                       child: Container(
                         height: 64,

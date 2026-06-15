@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'models.dart';
 
 class ProductRepository {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   static final List<Review> _mockReviews = [
     Review(userName: 'Srinivas R.', comment: 'Authentic Andhra taste! Reminds me of home.', rating: 5.0, date: '2 days ago'),
     Review(userName: 'Lakshmi K.', comment: 'High quality spices. Very aromatic.', rating: 5.0, date: '5 days ago'),
@@ -51,6 +54,7 @@ class ProductRepository {
       ingredients: ['Premium Mango', 'Pure Jaggery', 'Cold-Pressed Peanut Oil', 'Mustard Seeds', 'Fenugreek', 'Red Chilli Powder', 'Sea Salt'],
       preparationMethod: 'Mangoes are hand-cut and sun-dried for 48 hours. Spices are stone-ground to retain aroma. Mixed in small batches and aged for 15 days.',
       storageInstructions: 'Keep in an airtight glass jar. Always use a dry spoon. Ensure mango pieces are submerged in oil to prevent spoilage.',
+      servingSuggestion: 'Pairs best with steaming hot rice and a dollop of ghee. Also complements breakfast items like Idli and Dosa.',
       secretIngredient: IngredientDetail(
         name: 'Organic Palm Jaggery',
         description: 'Our secret sweetness comes from organic palm jaggery sourced from local farmers in Andhra, providing a deep caramel note without being cloying.',
@@ -402,4 +406,113 @@ class ProductRepository {
       secretIngredient: _secretGhee,
     ),
   ];
+
+  Stream<List<Product>> getProductsStream() {
+    return _firestore.collection('products').snapshots().map((snapshot) {
+      if (snapshot.docs.isEmpty) {
+        return allProducts;
+      }
+      return snapshot.docs.map((doc) => _mapToProduct(doc)).toList();
+    });
+  }
+
+  Future<List<Product>> getProducts() async {
+    try {
+      final snapshot = await _firestore.collection('products').get();
+      if (snapshot.docs.isEmpty) {
+        // If Firestore is empty, seed with local data for first run
+        await seedProducts();
+        return allProducts;
+      }
+      return snapshot.docs.map((doc) => _mapToProduct(doc)).toList();
+    } catch (e) {
+      print('Error fetching products: $e');
+      return allProducts; // Fallback to local data
+    }
+  }
+
+  Future<void> seedProducts() async {
+    final batch = _firestore.batch();
+    for (var product in allProducts) {
+      final docRef = _firestore.collection('products').doc(product.name.replaceAll(' ', '_').toLowerCase());
+      batch.set(docRef, _productToMap(product));
+    }
+    await batch.commit();
+  }
+
+  Product _mapToProduct(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Product(
+      name: data['name'] ?? '',
+      description: data['description'] ?? '',
+      weightPriceMap: (data['weightPriceMap'] as Map).map((k, v) => MapEntry(k.toString(), (v as num).toDouble())),
+      rating: (data['rating'] as num?)?.toDouble() ?? 5.0,
+      image: data['image'] ?? 'assets/images/logo.png',
+      color: Color(data['color'] ?? 0xFF18453B),
+      category: data['category'] ?? '',
+      isBestSeller: data['isBestSeller'] ?? false,
+      isOutOfStock: data['isOutOfStock'] ?? false,
+      reviews: _mockReviews, // Mocking reviews for now
+      pairings: List<String>.from(data['pairings'] ?? []),
+      origin: data['origin'] ?? 'Coastal Andhra, India',
+      ingredients: List<String>.from(data['ingredients'] ?? []),
+      preparationMethod: data['preparationMethod'] ?? '',
+      shelfLife: data['shelfLife'] ?? '',
+      storageInstructions: data['storageInstructions'] ?? '',
+      servingSuggestion: data['servingSuggestion'] ?? '',
+      canRequestTempering: data['canRequestTempering'] ?? false,
+      secretIngredient: IngredientDetail(
+        name: data['secretIngredient']?['name'] ?? '',
+        description: data['secretIngredient']?['description'] ?? '',
+        image: data['secretIngredient']?['image'] ?? 'assets/images/logo.png',
+      ),
+      sommelierPairings: (data['sommelierPairings'] as List? ?? []).map((p) => SommelierPairing(
+        title: p['title'] ?? '',
+        description: p['description'] ?? '',
+        icon: _getIconData(p['icon'] ?? 'help_outline'),
+      )).toList(),
+    );
+  }
+
+  IconData _getIconData(String name) {
+    switch (name) {
+      case 'bakery_dining': return Icons.bakery_dining_rounded;
+      case 'lunch_dining': return Icons.lunch_dining_rounded;
+      case 'set_meal': return Icons.set_meal_rounded;
+      case 'breakfast_dining': return Icons.breakfast_dining_rounded;
+      default: return Icons.help_outline_rounded;
+    }
+  }
+
+  Map<String, dynamic> _productToMap(Product p) {
+    return {
+      'name': p.name,
+      'description': p.description,
+      'weightPriceMap': p.weightPriceMap,
+      'rating': p.rating,
+      'image': p.image,
+      'color': p.color.value,
+      'category': p.category,
+      'isBestSeller': p.isBestSeller,
+      'isOutOfStock': p.isOutOfStock,
+      'pairings': p.pairings,
+      'origin': p.origin,
+      'ingredients': p.ingredients,
+      'preparationMethod': p.preparationMethod,
+      'shelfLife': p.shelfLife,
+      'storageInstructions': p.storageInstructions,
+      'servingSuggestion': p.servingSuggestion,
+      'canRequestTempering': p.canRequestTempering,
+      'secretIngredient': {
+        'name': p.secretIngredient.name,
+        'description': p.secretIngredient.description,
+        'image': p.secretIngredient.image,
+      },
+      'sommelierPairings': p.sommelierPairings.map((s) => {
+        'title': s.title,
+        'description': s.description,
+        'icon': s.icon.toString(), // Simplified for seeding, dashboard should use names
+      }).toList(),
+    };
+  }
 }

@@ -3,9 +3,23 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'address_manager.dart';
+import 'cloud_function_manager.dart';
 
-class ShippingAddressPage extends StatelessWidget {
+class ShippingAddressPage extends StatefulWidget {
   const ShippingAddressPage({super.key});
+
+  @override
+  State<ShippingAddressPage> createState() => _ShippingAddressPageState();
+}
+
+class _ShippingAddressPageState extends State<ShippingAddressPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AddressManager().fetchAddresses();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,43 +74,59 @@ class ShippingAddressPage extends StatelessWidget {
   void _showAddAddressDialog(BuildContext context) {
     final titleController = TextEditingController();
     final addressController = TextEditingController();
+    bool isLoading = false;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(color: Color(0xFFFFF8E8), borderRadius: BorderRadius.vertical(top: Radius.circular(40))),
-        padding: const EdgeInsets.all(30),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)))),
-            const SizedBox(height: 30),
-            Text('NEW ADDRESS', style: GoogleFonts.philosopher(fontSize: 28, fontWeight: FontWeight.w900, color: const Color(0xFF18453B))),
-            const SizedBox(height: 30),
-            _buildField('Address Title (e.g. Home, Office)', titleController),
-            const SizedBox(height: 20),
-            _buildField('Full Address Details', addressController, maxLines: 3),
-            const Spacer(),
-            ElevatedButton(
-              onPressed: () {
-                if (titleController.text.isNotEmpty && addressController.text.isNotEmpty) {
-                  AddressManager().addAddress(titleController.text, addressController.text);
-                  Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD4AF37),
-                foregroundColor: const Color(0xFF18453B),
-                minimumSize: const Size(double.infinity, 60),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: const BoxDecoration(color: Color(0xFFFFF8E8), borderRadius: BorderRadius.vertical(top: Radius.circular(40))),
+          padding: const EdgeInsets.all(30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)))),
+              const SizedBox(height: 30),
+              Text('NEW ADDRESS', style: GoogleFonts.philosopher(fontSize: 28, fontWeight: FontWeight.w900, color: const Color(0xFF18453B))),
+              const SizedBox(height: 30),
+              _buildField('Address Title (e.g. Home, Office)', titleController),
+              const SizedBox(height: 20),
+              _buildField('Full Address Details', addressController, maxLines: 3),
+              const Spacer(),
+              ElevatedButton(
+                onPressed: isLoading ? null : () async {
+                  if (titleController.text.isNotEmpty && addressController.text.isNotEmpty) {
+                    setSheetState(() => isLoading = true);
+                    final success = await CloudFunctionManager().saveAddress(
+                      title: titleController.text, 
+                      fullAddress: addressController.text
+                    );
+                    setSheetState(() => isLoading = false);
+                    
+                    if (success) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Address saved to cloud!')));
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to save address. Please try again.'), backgroundColor: Colors.red));
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD4AF37),
+                  foregroundColor: const Color(0xFF18453B),
+                  minimumSize: const Size(double.infinity, 60),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+                child: isLoading 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Color(0xFF18453B), strokeWidth: 2))
+                  : const Text('SAVE ADDRESS', style: TextStyle(fontWeight: FontWeight.w900)),
               ),
-              child: const Text('SAVE ADDRESS', style: TextStyle(fontWeight: FontWeight.w900)),
-            ),
-            const SizedBox(height: 10),
-          ],
+              const SizedBox(height: 10),
+            ],
+          ),
         ),
       ),
     );

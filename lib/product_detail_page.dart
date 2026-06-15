@@ -11,7 +11,8 @@ import 'main.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Product product;
-  const ProductDetailPage({super.key, required this.product});
+  final List<Product> allProducts;
+  const ProductDetailPage({super.key, required this.product, this.allProducts = const []});
 
   @override
   State<ProductDetailPage> createState() => _ProductDetailPageState();
@@ -40,7 +41,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final wishlist = WishlistManager();
     final bool isFav = wishlist.isFavorite(widget.product);
 
-    final recommendations = ProductRepository.allProducts.where((p) =>
+    final productPool = widget.allProducts.isNotEmpty ? widget.allProducts : ProductRepository.allProducts;
+    final recommendations = productPool.where((p) =>
       widget.product.pairings.contains(p.name)).toList();
 
     return Scaffold(
@@ -125,8 +127,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(color: const Color(0xFF18453B).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                        child: Text(widget.product.category.toUpperCase(), style: const TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)),
+                        decoration: BoxDecoration(color: (widget.product.isOutOfStock ? Colors.red : const Color(0xFF18453B)).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                        child: Text(
+                          (widget.product.isOutOfStock ? 'OUT OF STOCK' : widget.product.category).toUpperCase(), 
+                          style: TextStyle(color: widget.product.isOutOfStock ? Colors.red : const Color(0xFF18453B), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)
+                        ),
                       ),
                       Row(
                         children: [
@@ -199,12 +204,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     builder: (context, _) {
                       final cart = CartManager();
                       final currentQty = cart.getProductQuantity(widget.product.name, selectedWeight);
+                      final isOut = widget.product.isOutOfStock;
                       
                       return Row(
                         children: [
                           // SMALL BUY NOW BUTTON
                           GestureDetector(
-                            onTap: () {
+                            onTap: isOut ? null : () {
                               HapticFeedback.heavyImpact();
                               if (currentQty == 0) {
                                 cart.addToCart(
@@ -221,20 +227,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               height: 50,
                               padding: const EdgeInsets.symmetric(horizontal: 20),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF18453B),
+                                color: isOut ? Colors.grey : const Color(0xFF18453B),
                                 borderRadius: BorderRadius.circular(15),
-                                boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))],
+                                boxShadow: isOut ? [] : [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))],
                               ),
                               alignment: Alignment.center,
-                              child: const Text('BUY NOW', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 11)),
+                              child: Text(
+                                isOut ? 'NOT AVAILABLE' : 'BUY NOW', 
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 11)
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           // DYNAMIC ADD / QUANTITY BUTTON
                           Expanded(
-                            child: currentQty == 0 ? 
+                            child: (currentQty == 0 || isOut) ? 
                               GestureDetector(
-                                onTap: () {
+                                onTap: isOut ? null : () {
                                   HapticFeedback.mediumImpact();
                                   cart.addToCart(
                                     widget.product, 
@@ -247,12 +256,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                 child: Container(
                                   height: 50,
                                   decoration: BoxDecoration(
-                                    gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFE5C76B)]),
+                                    gradient: isOut 
+                                      ? LinearGradient(colors: [Colors.grey.shade300, Colors.grey.shade400])
+                                      : const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFE5C76B)]),
                                     borderRadius: BorderRadius.circular(15),
-                                    boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
+                                    boxShadow: isOut ? [] : [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
                                   ),
                                   alignment: Alignment.center,
-                                  child: const Text('ADD TO CART', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 11)),
+                                  child: Text(
+                                    isOut ? 'OUT OF STOCK' : 'ADD TO CART', 
+                                    style: TextStyle(color: isOut ? Colors.grey.shade700 : const Color(0xFF18453B), fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 11)
+                                  ),
                                 ),
                               ) : 
                               Container(

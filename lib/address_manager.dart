@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SavedAddress {
   final String id;
@@ -14,12 +15,36 @@ class AddressManager extends ChangeNotifier {
   factory AddressManager() => _instance;
   AddressManager._internal();
 
-  final List<SavedAddress> _addresses = [
-    SavedAddress(id: '1', title: 'Home', fullAddress: 'Plot 42, Hitech City, Hyderabad, Telangana - 500081', isDefault: true),
-    SavedAddress(id: '2', title: 'Office', fullAddress: 'Madhapur Road, Jubilee Hills, Hyderabad, Telangana - 500033', isDefault: false),
-  ];
-
+  final List<SavedAddress> _addresses = [];
   List<SavedAddress> get addresses => _addresses;
+
+  Future<void> fetchAddresses() async {
+    // In a real app, use auth: const uid = FirebaseAuth.instance.currentUser?.uid;
+    const uid = "demo_user_123";
+    
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('addresses')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      _addresses.clear();
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        _addresses.add(SavedAddress(
+          id: doc.id,
+          title: data['title'] ?? 'Address',
+          fullAddress: data['fullAddress'] ?? '',
+          isDefault: data['isDefault'] ?? false,
+        ));
+      }
+      notifyListeners();
+    } catch (e) {
+      print('Error fetching addresses: $e');
+    }
+  }
 
   void addAddress(String title, String fullAddress) {
     _addresses.add(SavedAddress(

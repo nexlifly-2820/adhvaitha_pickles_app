@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
 import 'cart_manager.dart';
 import 'order_manager.dart';
+import 'cloud_function_manager.dart';
 import 'main.dart';
 import 'models.dart';
 import 'coupons_page.dart';
@@ -31,6 +32,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _phoneController = TextEditingController();
 
   bool _isLoadingLocation = false;
+  bool _isProcessing = false;
   int _currentStep = 0;
   String _selectedPayment = 'UPI (Google Pay / PhonePe)';
   String _addressType = 'Home';
@@ -160,13 +162,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
 
               ElevatedButton(
-                onPressed: () {
+                onPressed: _isProcessing ? null : () async {
                   HapticFeedback.mediumImpact();
                   if (_currentStep < 2) {
                     if (_currentStep == 0 && !_formKey.currentState!.validate()) return;
                     setState(() => _currentStep++);
                   } else {
-                    OrderManager().addOrder(
+                    setState(() => _isProcessing = true);
+                    
+                    final result = await CloudFunctionManager().placeOrder(
                       items: cart.items,
                       subtotal: cart.subtotal,
                       deliveryFee: cart.deliveryFee,
@@ -175,8 +179,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       shippingAddress: '${_addressController.text}, ${_cityController.text}, ${_stateController.text} - ${_pincodeController.text}',
                       paymentMethod: _selectedPayment,
                     );
-                    cart.clearCart();
-                    _showSuccess();
+
+                    setState(() => _isProcessing = false);
+
+                    if (result['success'] == true) {
+                      cart.clearCart();
+                      _showSuccess();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(result['message'] ?? 'Order failed. Please try again.'),
+                        backgroundColor: Colors.red,
+                      ));
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -185,7 +199,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   minimumSize: const Size(double.infinity, 54),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
-                child: Text(_currentStep == 2 ? 'PLACE ROYAL ORDER' : 'CONTINUE', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                child: _isProcessing 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text(_currentStep == 2 ? 'PLACE ROYAL ORDER' : 'CONTINUE', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
               ),
               if (_currentStep > 0)
                 Center(

@@ -50,6 +50,7 @@ class Product {
   final IngredientDetail secretIngredient;
   final bool canRequestTempering;
   final List<SommelierPairing> sommelierPairings;
+  final bool isOutOfStock;
 
   Product({
     required this.name,
@@ -71,6 +72,7 @@ class Product {
     required this.secretIngredient,
     this.canRequestTempering = false,
     this.sommelierPairings = const [],
+    this.isOutOfStock = false,
   });
 
   // Helper to get formatted price for a specific weight
@@ -120,6 +122,8 @@ class Order {
   final String batchId;
   final DateTime preparationDate;
   final String spiceOrigin;
+  final String? trackingId;
+  final String? courierName;
 
   Order({
     required this.id,
@@ -136,5 +140,7 @@ class Order {
     required this.batchId,
     required this.preparationDate,
     required this.spiceOrigin,
+    this.trackingId,
+    this.courierName,
   });
 }

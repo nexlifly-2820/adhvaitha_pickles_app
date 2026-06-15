@@ -10,8 +10,28 @@ import 'main.dart';
 import 'order_details_page.dart';
 import 'navigation_util.dart';
 
-class OrderHistoryPage extends StatelessWidget {
+class OrderHistoryPage extends StatefulWidget {
   const OrderHistoryPage({super.key});
+
+  @override
+  State<OrderHistoryPage> createState() => _OrderHistoryPageState();
+}
+
+class _OrderHistoryPageState extends State<OrderHistoryPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      OrderManager().startOrderListener();
+    });
+  }
+
+  @override
+  void dispose() {
+    // We can keep it listening or stop it here. Usually, keeping it live for the session is fine.
+    // OrderManager().stopOrderListener(); 
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,12 +42,18 @@ class OrderHistoryPage extends StatelessWidget {
           fit: BoxFit.scaleDown,
           child: Text('MY ORDERS', style: GoogleFonts.philosopher(fontWeight: FontWeight.w900)),
         ),
-        actions: [GlobalCartBadge()],
+        actions: [const GlobalCartBadge()],
       ),
       body: ListenableBuilder(
         listenable: OrderManager(),
         builder: (context, _) {
-          final orders = OrderManager().orders;
+          final manager = OrderManager();
+          final orders = manager.orders;
+
+          if (manager.isLoading) {
+            return const Center(child: CircularProgressIndicator(color: Color(0xFF18453B)));
+          }
+
           if (orders.isEmpty) {
             return Center(
               child: Column(
@@ -97,6 +123,33 @@ class _OrderCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 20),
+                  if (order.trackingId != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(15),
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.blue.withOpacity(0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.local_shipping_outlined, color: Colors.blue, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('${order.courierName ?? 'Courier'}: ${order.trackingId}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue)),
+                                const Text('Tap to track your royal package', style: TextStyle(fontSize: 10, color: Colors.blueGrey)),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.open_in_new_rounded, size: 16, color: Colors.blue),
+                        ],
+                      ),
+                    ),
+                  ],
                   ...order.items.map((item) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Row(
