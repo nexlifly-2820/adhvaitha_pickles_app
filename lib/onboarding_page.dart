@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'app_config_repository.dart';
 import 'main.dart';
 import 'login_page.dart';
 
@@ -16,30 +18,59 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
   int _selectedTasteIndex = 1;
+  bool _isLoading = true;
 
-  final List<Map<String, String>> _steps = [
-    {
-      'title': 'ANCIENT\nHERITAGE',
-      'subtitle': 'SINCE 1982',
-      'desc': 'Crafting tradition in every jar. Our recipes are silent witnesses to four decades of flavor evolution.',
-      'img': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'
-    },
-    {
-      'title': 'STONE\nGROUND',
-      'subtitle': 'THE ARTISAN WAY',
-      'desc': 'No machines. Only love. We use ancestral techniques to preserve the essential oils of every spice.',
-      'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'
-    },
-    {
-      'title': 'PURE\nNATURE',
-      'subtitle': 'ZERO CHEMICALS',
-      'desc': 'Naturally preserved using cold-pressed oils and sun-dried sea salt. Pure as the coastal Andhra sun.',
-      'img': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg'
-    },
-  ];
+  List<Map<String, String>> _steps = [];
+  List<Map<String, dynamic>> _tasteOptions = [];
+  StreamSubscription? _onboardingSub;
+  StreamSubscription? _tasteSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _startConfigListeners();
+  }
+
+  void _startConfigListeners() {
+    _onboardingSub = AppConfigRepository().getOnboardingStream().listen((data) {
+      if (mounted) {
+        setState(() {
+          if (data.isNotEmpty) {
+            _steps = data;
+            _isLoading = false;
+          }
+        });
+      }
+    });
+
+    _tasteSub = AppConfigRepository().getTasteOptionsStream().listen((data) {
+      if (mounted) {
+        setState(() {
+          if (data.isNotEmpty) {
+            _tasteOptions = data;
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _onboardingSub?.cancel();
+    _tasteSub?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading || _steps.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -136,7 +167,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return Stack(
       children: [
         Positioned.fill(
-          child: Image.asset(_steps[i]['img']!, fit: BoxFit.cover)
+          child: _buildBannerImage(_steps[i]['img'] ?? '')
             .animate(key: ValueKey(i)).scale(begin: const Offset(1.2, 1.2), end: const Offset(1.0, 1.0), duration: 10.seconds),
         ),
         Positioned.fill(
@@ -164,7 +195,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    _steps[i]['subtitle']!, 
+                    _steps[i]['subtitle'] ?? '', 
                     style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, letterSpacing: 4, fontSize: 10),
                   ),
                 ).animate().fadeIn(delay: 400.ms).slideX(begin: -0.2, end: 0),
@@ -172,7 +203,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    _steps[i]['title']!, 
+                    _steps[i]['title'] ?? '', 
                     style: GoogleFonts.philosopher(color: Colors.white, fontSize: 64, fontWeight: FontWeight.w900, height: 1.0, letterSpacing: 2),
                   ),
                 ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.1, end: 0),
@@ -180,7 +211,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 SizedBox(
                   width: 250,
                   child: Text(
-                    _steps[i]['desc']!, 
+                    _steps[i]['desc'] ?? '', 
                     style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16, height: 1.8, fontWeight: FontWeight.w500),
                   ),
                 ).animate().fadeIn(delay: 900.ms),
@@ -192,8 +223,23 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
+  Widget _buildBannerImage(String path) {
+    if (path.startsWith('http')) {
+      return Image.network(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity);
+    }
+    return Image.asset(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity);
+  }
+
   void _showTastePersonalizer() {
     HapticFeedback.heavyImpact();
+    
+    // Default options if Firestore is empty
+    final options = _tasteOptions.isNotEmpty ? _tasteOptions : [
+      {'title': 'MILD & GENTLE', 'sub': 'Focus on flavor, low heat profile.', 'icon': 'eco', 'color': '0xFF4CAF50'},
+      {'title': 'THE CLASSIC BALANCE', 'sub': 'The perfect traditional Andhra spice.', 'icon': 'balance', 'color': '0xFFFFA000'},
+      {'title': 'EXTRA FIERY', 'sub': 'For the true spice connoisseurs.', 'icon': 'whatshot', 'color': '0xFFD32F2F'},
+    ];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -221,24 +267,27 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     const Text('Select your preferred spice level for a curated experience.', style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 40),
                     Expanded(
-                      child: ListView(
+                      child: ListView.builder(
                         physics: const BouncingScrollPhysics(),
-                        children: [
-                          _tasteOption(0, 'MILD & GENTLE', 'Focus on flavor, low heat profile.', Icons.eco_rounded, const Color(0xFF4CAF50), _selectedTasteIndex == 0, () {
-                            setSheetState(() => _selectedTasteIndex = 0);
-                            setState(() => _selectedTasteIndex = 0);
-                          }),
-                          const SizedBox(height: 16),
-                          _tasteOption(1, 'THE CLASSIC BALANCE', 'The perfect traditional Andhra spice.', Icons.balance_rounded, const Color(0xFFFFA000), _selectedTasteIndex == 1, () {
-                            setSheetState(() => _selectedTasteIndex = 1);
-                            setState(() => _selectedTasteIndex = 1);
-                          }),
-                          const SizedBox(height: 16),
-                          _tasteOption(2, 'EXTRA FIERY', 'For the true spice connoisseurs.', Icons.whatshot_rounded, const Color(0xFFD32F2F), _selectedTasteIndex == 2, () {
-                            setSheetState(() => _selectedTasteIndex = 2);
-                            setState(() => _selectedTasteIndex = 2);
-                          }),
-                        ],
+                        itemCount: options.length,
+                        itemBuilder: (context, index) {
+                          final opt = options[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _tasteOption(
+                              index, 
+                              opt['title'] ?? '', 
+                              opt['sub'] ?? '', 
+                              _getIconData(opt['icon'] ?? ''), 
+                              Color(int.parse(opt['color']?.toString() ?? '0xFF18453B')), 
+                              _selectedTasteIndex == index, 
+                              () {
+                                setSheetState(() => _selectedTasteIndex = index);
+                                setState(() => _selectedTasteIndex = index);
+                              }
+                            ),
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -267,6 +316,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ),
       ),
     );
+  }
+
+  IconData _getIconData(String name) {
+    switch (name) {
+      case 'eco': return Icons.eco_rounded;
+      case 'balance': return Icons.balance_rounded;
+      case 'whatshot': return Icons.whatshot_rounded;
+      default: return Icons.restaurant_menu_rounded;
+    }
   }
 
   Widget _tasteOption(int index, String title, String sub, IconData icon, Color color, bool isSelected, VoidCallback onTap) {

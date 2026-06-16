@@ -127,9 +127,27 @@ exports.onOrderStatusUpdate = onDocumentUpdated("orders/{orderId}", async (event
     console.log(`Rewarded ${rewardCoins} coins to ${uid}`);
   }
 
-  // 2. Notify User of status change (placeholder)
+  // 2. Notify User of status change
   if (newData.status !== oldData.status) {
-    console.log(`ORDER ${newData.orderId} is now ${newData.status}`);
+    const userDoc = await admin.firestore().collection("users").doc(newData.userId).get();
+    const fcmToken = userDoc.data() ? userDoc.data().fcmToken : null;
+
+    if (fcmToken) {
+      const message = {
+        notification: {
+          title: "Royal Order Update",
+          body: `Your order ${newData.orderId} is now ${newData.status}!`,
+        },
+        token: fcmToken,
+      };
+
+      try {
+        await admin.messaging().send(message);
+        console.log(`Sent notification to user ${newData.userId}`);
+      } catch (error) {
+        console.error("Error sending notification:", error);
+      }
+    }
   }
 });
 
@@ -189,6 +207,75 @@ exports.submitContactInquiry = onCall(async (request) => {
             status: "New"
         });
         return { success: true };
+    } catch (error) {
+        throw new HttpsError("internal", error.message);
+    }
+});
+
+/**
+ * Admin: Sends a marketing notification to all users via "marketing" topic.
+ * Supports title, body, and imageUrl for rich notifications.
+ */
+exports.sendMarketingNotification = onCall(async (request) => {
+    // if (!request.auth.token.admin) throw new HttpsError("permission-denied", "Admin only.");
+
+    const { title, body, imageUrl } = request.data;
+    if (!title || !body) throw new HttpsError("invalid-argument", "Title and Body required.");
+
+    const message = {
+        notification: {
+            title,
+            body,
+            imageUrl: imageUrl || "",
+        },
+        android: {
+            notification: {
+                imageUrl: imageUrl || "",
+            },
+        },
+        data: {
+            image: imageUrl || "",
+        },
+        topic: "marketing",
+    };
+
+    try {
+        await admin.messaging().send(message);
+        return { success: true };
+    } catch (error) {
+        console.error("Error sending marketing notification:", error);
+        throw new HttpsError("internal", error.message);
+    }
+});
+
+/**
+ * Admin: Sends a custom notification to a specific user.
+ * Supports custom title, body, and data (for deep linking).
+ */
+exports.sendCustomNotification = onCall(async (request) => {
+    // if (!request.auth.token.admin) throw new HttpsError("permission-denied", "Admin only.");
+
+    const { userId, title, body, data } = request.data;
+    if (!userId || !title || !body) {
+        throw new HttpsError("invalid-argument", "userId, title, and body are required.");
+    }
+
+    try {
+        const userDoc = await admin.firestore().collection("users").doc(userId).get();
+        const fcmToken = userDoc.data() ? userDoc.data().fcmToken : null;
+
+        if (!fcmToken) {
+            throw new HttpsError("not-found", "User does not have a valid notification token.");
+        }
+
+        const message = {
+            notification: { title, body },
+            data: data || {}, // Optional: e.g., { "screen": "product", "id": "mango_pickle" }
+            token: fcmToken,
+        };
+
+        await admin.messaging().send(message);
+        return { success: true, message: "Custom notification sent." };
     } catch (error) {
         throw new HttpsError("internal", error.message);
     }

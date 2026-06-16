@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'main.dart';
 import 'onboarding_page.dart';
+import 'app_config_repository.dart';
+import 'app_update_page.dart';
 
 // ----------------------------------------------------------------
 // Adhvaitha Foods — Premium Splash Screen
@@ -76,6 +79,25 @@ class _SplashScreenState extends State<SplashScreen>
     await _wipeController.forward();
 
     if (mounted) {
+      // 5. Fetch App Status (Maintenance / Update)
+      final config = await AppConfigRepository().getAppStateStream().first;
+      
+      if (config['maintenance_mode'] == true) {
+        _showMaintenanceOverlay();
+        return;
+      }
+
+      const currentVersion = "1.0.0"; // Should match your pubspec.yaml
+      final minVersion = config['min_version'] ?? "1.0.0";
+      
+      if (_isVersionLower(currentVersion, minVersion)) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AppUpdatePage())
+        );
+        return;
+      }
+
+      // 6. Navigate to Auth or Home
       Widget nextScreen;
       if (FirebaseAuth.instance.currentUser != null) {
         nextScreen = const MainScreen();
@@ -90,6 +112,49 @@ class _SplashScreenState extends State<SplashScreen>
         ),
       );
     }
+  }
+
+  bool _isVersionLower(String current, String min) {
+    List<int> c = current.split('.').map(int.parse).toList();
+    List<int> m = min.split('.').map(int.parse).toList();
+    for (int i = 0; i < c.length; i++) {
+      if (c[i] < m[i]) return true;
+      if (c[i] > m[i]) return false;
+    }
+    return false;
+  }
+
+  void _showMaintenanceOverlay() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          backgroundColor: luxuryGreen,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.handyman_rounded, color: brandGold, size: 60),
+              const SizedBox(height: 20),
+              Text('ROYAL KITCHEN\nRESTORATION', textAlign: TextAlign.center, style: GoogleFonts.philosopher(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 15),
+              const Text(
+                'We are currently updating our flavors. Our boutique will be back online shortly. Thank you for your patience.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.5),
+              ),
+              const SizedBox(height: 30),
+              TextButton(
+                onPressed: () => SystemNavigator.pop(),
+                child: const Text('CLOSE APP', style: TextStyle(color: brandGold, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override

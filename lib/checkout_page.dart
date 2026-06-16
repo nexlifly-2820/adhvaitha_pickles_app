@@ -7,9 +7,12 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'cart_manager.dart';
 import 'order_manager.dart';
 import 'cloud_function_manager.dart';
+import 'payment_manager.dart';
 import 'main.dart';
 import 'models.dart';
 import 'coupons_page.dart';
@@ -40,11 +43,66 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   void initState() {
     super.initState();
+    PaymentManager().init(
+      onSuccess: _handlePaymentSuccess,
+      onFailure: _handlePaymentError,
+      onExternalWallet: _handleExternalWallet,
+    );
   }
 
   @override
   void dispose() {
+    PaymentManager().dispose();
+    _pincodeController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
+    _addressController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
     super.dispose();
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    _placeFinalOrder(paymentId: response.paymentId);
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    setState(() => _isProcessing = false);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Payment Failed: ${response.message}'),
+      backgroundColor: Colors.red,
+    ));
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('External Wallet Selected: ${response.walletName}'),
+    ));
+  }
+
+  Future<void> _placeFinalOrder({String? paymentId}) async {
+    final cart = CartManager();
+    final result = await CloudFunctionManager().placeOrder(
+      items: cart.items,
+      subtotal: cart.subtotal,
+      deliveryFee: cart.deliveryFee,
+      discountAmount: cart.discountAmount,
+      total: cart.total,
+      shippingAddress: '${_addressController.text}, ${_cityController.text}, ${_stateController.text} - ${_pincodeController.text}',
+      paymentMethod: _selectedPayment + (paymentId != null ? ' (ID: $paymentId)' : ''),
+    );
+
+    setState(() => _isProcessing = false);
+
+    if (result['success'] == true) {
+      cart.clearCart();
+      _showSuccess();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result['message'] ?? 'Order failed. Please try again.'),
+        backgroundColor: Colors.red,
+      ));
+    }
   }
 
   Future<void> _getCurrentLocation() async {
@@ -170,26 +228,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   } else {
                     setState(() => _isProcessing = true);
                     
-                    final result = await CloudFunctionManager().placeOrder(
-                      items: cart.items,
-                      subtotal: cart.subtotal,
-                      deliveryFee: cart.deliveryFee,
-                      discountAmount: cart.discountAmount,
-                      total: cart.total,
-                      shippingAddress: '${_addressController.text}, ${_cityController.text}, ${_stateController.text} - ${_pincodeController.text}',
-                      paymentMethod: _selectedPayment,
-                    );
-
-                    setState(() => _isProcessing = false);
-
-                    if (result['success'] == true) {
-                      cart.clearCart();
-                      _showSuccess();
+                    if (_selectedPayment == 'Cash on Delivery') {
+                      await _placeFinalOrder();
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(result['message'] ?? 'Order failed. Please try again.'),
-                        backgroundColor: Colors.red,
-                      ));
+                      final user = FirebaseAuth.instance.currentUser;
+                      PaymentManager().openCheckout(
+                        amount: cart.total,
+                        contact: _phoneController.text,
+                        email: user?.email ?? 'customer@adhvaitha.com',
+                        description: 'Payment for Royal Pickles Order',
+                      );
                     }
                   }
                 },

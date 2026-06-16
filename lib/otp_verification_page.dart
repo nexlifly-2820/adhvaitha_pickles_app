@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'notification_manager.dart';
 import 'main.dart';
 
 class OtpVerificationPage extends StatefulWidget {
@@ -160,6 +161,9 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
           'lastLogin': FieldValue.serverTimestamp(),
           'createdAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
+
+        // Update Notification Token after login
+        await NotificationManager().updateToken();
 
         if (mounted) {
           setState(() => _isLoading = false);

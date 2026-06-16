@@ -69,7 +69,25 @@ class AppConfigRepository {
     });
   }
 
-  // 8. App State (Maintenance/Version)
+  // 8. Onboarding Section
+  Stream<List<Map<String, String>>> getOnboardingStream() {
+    return _firestore.collection('app_data').doc('onboarding').snapshots().map((snapshot) {
+      if (!snapshot.exists) return [];
+      final List<dynamic> data = snapshot.data()?['steps'] ?? [];
+      return data.map((item) => Map<String, String>.from(item)).toList();
+    });
+  }
+
+  // 9. Taste Personalizer Options
+  Stream<List<Map<String, dynamic>>> getTasteOptionsStream() {
+    return _firestore.collection('app_data').doc('onboarding').snapshots().map((snapshot) {
+      if (!snapshot.exists) return [];
+      final List<dynamic> data = snapshot.data()?['taste_options'] ?? [];
+      return data.map((item) => Map<String, dynamic>.from(item)).toList();
+    });
+  }
+
+  // 10. App State (Maintenance/Version)
   Stream<Map<String, dynamic>> getAppStateStream() {
     return _firestore.collection('app_data').doc('config').snapshots().map((snapshot) {
       return snapshot.data() ?? {'maintenance_mode': false, 'min_version': '1.0.0'};
