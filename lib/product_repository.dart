@@ -442,17 +442,29 @@ class ProductRepository {
 
   Product _mapToProduct(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    
+    // SAFE PARSING: Ensure we don't crash if data is missing or malformed
+    Map<String, double> safeWeightMap = {};
+    if (data['weightPriceMap'] != null && data['weightPriceMap'] is Map) {
+      (data['weightPriceMap'] as Map).forEach((k, v) {
+        safeWeightMap[k.toString()] = (v as num).toDouble();
+      });
+    } else {
+      // Default fallback if map is missing
+      safeWeightMap = {"250g": 180.0, "500g": 350.0};
+    }
+
     return Product(
-      name: data['name'] ?? '',
+      name: data['name'] ?? 'Royal Pickle',
       description: data['description'] ?? '',
-      weightPriceMap: (data['weightPriceMap'] as Map).map((k, v) => MapEntry(k.toString(), (v as num).toDouble())),
+      weightPriceMap: safeWeightMap,
       rating: (data['rating'] as num?)?.toDouble() ?? 5.0,
       image: data['image'] ?? 'assets/images/logo.png',
-      color: Color(data['color'] ?? 0xFF18453B),
-      category: data['category'] ?? '',
+      color: Color(int.tryParse(data['color']?.toString() ?? '0xFF18453B') ?? 0xFF18453B),
+      category: data['category'] ?? 'Pickles',
       isBestSeller: data['isBestSeller'] ?? false,
       isOutOfStock: data['isOutOfStock'] ?? false,
-      reviews: _mockReviews, // Mocking reviews for now
+      reviews: _mockReviews,
       pairings: List<String>.from(data['pairings'] ?? []),
       origin: data['origin'] ?? 'Coastal Andhra, India',
       ingredients: List<String>.from(data['ingredients'] ?? []),
@@ -462,8 +474,8 @@ class ProductRepository {
       servingSuggestion: data['servingSuggestion'] ?? '',
       canRequestTempering: data['canRequestTempering'] ?? false,
       secretIngredient: IngredientDetail(
-        name: data['secretIngredient']?['name'] ?? '',
-        description: data['secretIngredient']?['description'] ?? '',
+        name: data['secretIngredient']?['name'] ?? 'Royal Spices',
+        description: data['secretIngredient']?['description'] ?? 'Secret blend of heritage spices.',
         image: data['secretIngredient']?['image'] ?? 'assets/images/logo.png',
       ),
       sommelierPairings: (data['sommelierPairings'] as List? ?? []).map((p) => SommelierPairing(

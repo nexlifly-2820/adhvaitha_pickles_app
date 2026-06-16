@@ -93,4 +93,12 @@ class AppConfigRepository {
       return snapshot.data() ?? {'maintenance_mode': false, 'min_version': '1.0.0'};
     });
   }
+
+  // 11. Delivery Configuration
+  Stream<Map<String, dynamic>> getDeliveryConfigStream() {
+    return _firestore.collection('app_data').doc('delivery_config').snapshots().map((snapshot) {
+      if (!snapshot.exists) return {'base_fee': 40.0, 'free_threshold': 500.0};
+      return snapshot.data()!;
+    });
+  }
 }

@@ -4,35 +4,34 @@ import 'package:flutter/material.dart';
 class PaymentManager {
   static final PaymentManager _instance = PaymentManager._internal();
   factory PaymentManager() => _instance;
-  PaymentManager._internal();
-
-  late Razorpay _razorpay;
   
-  // Replace this with your actual Key ID
-  // When you get live keys, just change this string
+  // Persistent Razorpay instance to prevent "Something went wrong" errors
+  final Razorpay _razorpay = Razorpay();
+  bool _isInitialized = false;
+
   static const String _razorpayKeyId = "rzp_test_RsIb2qtwvvKvbV";
 
   Function(PaymentSuccessResponse)? onSuccess;
   Function(PaymentFailureResponse)? onFailure;
   Function(ExternalWalletResponse)? onExternalWallet;
 
-  void init({
+  PaymentManager._internal();
+
+  void setupCallbacks({
     required Function(PaymentSuccessResponse) onSuccess,
     required Function(PaymentFailureResponse) onFailure,
     required Function(ExternalWalletResponse) onExternalWallet,
   }) {
-    _razorpay = Razorpay();
     this.onSuccess = onSuccess;
     this.onFailure = onFailure;
     this.onExternalWallet = onExternalWallet;
 
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
-  }
-
-  void dispose() {
-    _razorpay.clear();
+    if (!_isInitialized) {
+      _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+      _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+      _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+      _isInitialized = true;
+    }
   }
 
   void openCheckout({
@@ -41,9 +40,11 @@ class PaymentManager {
     required String email,
     required String description,
   }) {
+    int amountInPaise = (amount * 100).round();
+
     var options = {
       'key': _razorpayKeyId,
-      'amount': (amount * 100).toInt(), // amount in the smallest currency unit
+      'amount': amountInPaise,
       'name': 'Adhvaitha Foods',
       'description': description,
       'prefill': {
@@ -52,6 +53,10 @@ class PaymentManager {
       },
       'external': {
         'wallets': ['paytm']
+      },
+      'upi': {
+        'enable': true,
+        'app': 'com.google.android.apps.nbu.paisa.user' // Default to GPay if available
       }
     };
 

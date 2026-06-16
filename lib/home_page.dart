@@ -40,6 +40,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   StreamSubscription? _dealsSub;
   StreamSubscription? _packagingSub;
   StreamSubscription? _categoriesSub;
+  StreamSubscription? _deliverySub;
 
   List<Map<String, String>> banners = [];
   List<Map<String, String>> adBanners = [];
@@ -54,6 +55,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _startConfigListeners();
+    
+    // SAFETY TIMEOUT: If nothing loads in 3 seconds, stop showing the spinner
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && _isLoading) {
+        setState(() => _isLoading = false);
+      }
+    });
     
     _carouselTimer = Timer.periodic(const Duration(seconds: 4), (Timer timer) {
       if (_pageController.hasClients && banners.isNotEmpty) {
@@ -104,6 +112,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       if (mounted) setState(() => categoryList = data);
     });
 
+    _deliverySub = AppConfigRepository().getDeliveryConfigStream().listen((data) {
+      CartManager().setDeliveryConfig(
+        (data['base_fee'] ?? 40.0).toDouble(),
+        (data['free_threshold'] ?? 500.0).toDouble(),
+      );
+    });
+
     _productsSub = ProductRepository().getProductsStream().listen((data) {
       if (mounted) {
         setState(() {
@@ -126,6 +141,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _dealsSub?.cancel();
     _packagingSub?.cancel();
     _categoriesSub?.cancel();
+    _deliverySub?.cancel();
     _pageController.dispose();
     _adPageController.dispose();
     super.dispose();

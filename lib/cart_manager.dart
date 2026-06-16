@@ -9,10 +9,18 @@ class CartManager extends ChangeNotifier {
   final List<CartItem> _items = [];
   double _discountAmount = 0;
   String _appliedPromoCode = "";
+  double _baseDeliveryFee = 40;
+  double _freeThreshold = 500;
 
   List<CartItem> get items => _items;
   double get discountAmount => _discountAmount;
   String get appliedPromoCode => _appliedPromoCode;
+
+  void setDeliveryConfig(double base, double threshold) {
+    _baseDeliveryFee = base;
+    _freeThreshold = threshold;
+    notifyListeners();
+  }
 
   bool applyPromoCode(String code) {
     if (code.toUpperCase() == "FIRST30") {
@@ -95,6 +103,9 @@ class CartManager extends ChangeNotifier {
     return total;
   }
 
-  double get deliveryFee => _items.isEmpty ? 0 : 40;
+  double get deliveryFee {
+    if (_items.isEmpty) return 0;
+    return subtotal >= _freeThreshold ? 0 : _baseDeliveryFee;
+  }
   double get total => (subtotal - _discountAmount) + deliveryFee;
 }

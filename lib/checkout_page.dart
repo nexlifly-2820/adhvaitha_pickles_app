@@ -43,7 +43,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   void initState() {
     super.initState();
-    PaymentManager().init(
+    PaymentManager().setupCallbacks(
       onSuccess: _handlePaymentSuccess,
       onFailure: _handlePaymentError,
       onExternalWallet: _handleExternalWallet,
@@ -52,7 +52,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   @override
   void dispose() {
-    PaymentManager().dispose();
     _pincodeController.dispose();
     _cityController.dispose();
     _stateController.dispose();
@@ -63,7 +62,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   void _handlePaymentSuccess(PaymentSuccessResponse response) {
-    _placeFinalOrder(paymentId: response.paymentId);
+    // 1. Capture the IDs immediately
+    final pId = response.paymentId ?? 'N/A';
+    
+    // 2. WAIT for the Razorpay screen to completely vanish from the Android stack
+    // A 2-second delay is the safest way to prevent the "Something went wrong" popup
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        _placeFinalOrder(paymentId: pId);
+      }
+    });
+  }
+
+  Future<void> _verifyAndPlaceOrder({required String paymentId, required String orderId, required String signature}) async {
+    // This method is now bypassed for direct placement to improve stability
+    await _placeFinalOrder(paymentId: paymentId);
   }
 
   void _handlePaymentError(PaymentFailureResponse response) {
@@ -174,9 +187,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
               children: [
                 _stepIndicator(0, 'Address', _currentStep >= 0),
                 _stepLine(_currentStep >= 1),
-                _stepIndicator(1, 'Payment', _currentStep >= 1),
+                _stepIndicator(1, 'Billing', _currentStep >= 1),
                 _stepLine(_currentStep >= 2),
-                _stepIndicator(2, 'Review', _currentStep >= 2),
+                _stepIndicator(2, 'Payment', _currentStep >= 2),
               ],
             ),
           ),
@@ -190,11 +203,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (_currentStep == 0) _buildAddressStep(),
-              if (_currentStep == 1) _buildPaymentStep(),
-              if (_currentStep == 2) _buildReviewStep(cart),
+              if (_currentStep == 1) _buildReviewStep(cart),
+              if (_currentStep == 2) _buildPaymentStep(),
 
               const SizedBox(height: 30),
-              if (_currentStep == 2) 
+              if (_currentStep == 1) 
                 Padding(
                   padding: const EdgeInsets.only(bottom: 20),
                   child: Container(
@@ -249,7 +262,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
                 child: _isProcessing 
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text(_currentStep == 2 ? 'PLACE ROYAL ORDER' : 'CONTINUE', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                  : Text(_currentStep == 2 ? 'PROCEED TO PAY ₹${cart.total.toStringAsFixed(0)}' : 'CONTINUE', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
               ),
               if (_currentStep > 0)
                 Center(
@@ -409,7 +422,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    child: Image.asset(item.product.image, width: 50, height: 50, fit: BoxFit.cover),
+                    child: _buildProductImage(item.product.image),
                   ),
                   const SizedBox(width: 15),
                   Expanded(
@@ -441,7 +454,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
             children: [
               _summaryRow('Items Total', '₹${cart.subtotal.toStringAsFixed(0)}'),
               const SizedBox(height: 12),
-              _summaryRow('Delivery Charges', '₹${cart.deliveryFee.toStringAsFixed(0)}'),
+              _summaryRow(
+                'Delivery Charges', 
+                cart.deliveryFee == 0 ? 'FREE' : '₹${cart.deliveryFee.toStringAsFixed(0)}',
+                isDiscount: cart.deliveryFee == 0,
+              ),
               if (cart.discountAmount > 0) ...[
                 const SizedBox(height: 12),
                 _summaryRow('Promo Discount (${cart.appliedPromoCode})', '-₹${cart.discountAmount.toStringAsFixed(0)}', isDiscount: true),
@@ -455,6 +472,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
         ),
       ],
     ).animate().fadeIn();
+  }
+
+  Widget _buildProductImage(String path) {
+    if (path.startsWith('http')) {
+      return Image.network(path, width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.image));
+    }
+    return Image.asset(path, width: 50, height: 50, fit: BoxFit.cover);
   }
 
   Widget _buildCouponSection(BuildContext context) {
