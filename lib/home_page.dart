@@ -56,7 +56,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.initState();
     _startConfigListeners();
     
-    // SAFETY TIMEOUT: If nothing loads in 3 seconds, stop showing the spinner
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted && _isLoading) {
         setState(() => _isLoading = false);
@@ -116,6 +115,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       CartManager().setDeliveryConfig(
         (data['base_fee'] ?? 40.0).toDouble(),
         (data['free_threshold'] ?? 500.0).toDouble(),
+        (data['packing_fee'] ?? 0.0).toDouble(),
+        (data['gst_percentage'] ?? 0.0).toDouble(),
       );
     });
 
@@ -172,7 +173,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 const SizedBox(height: 30),
                 if (banners.isNotEmpty) _buildCarouselBanners(),
                 _buildCategoryScroll(),
-                _buildQuickDiscovery(),
+                _buildPerfectPairings(),
                 _buildSection('Most Loved Pickles', 'Pickles'),
                 if (activeCoupons.isNotEmpty) _buildActiveCoupons(),
                 _buildDealsOfTheDay(),
@@ -523,12 +524,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(20, 20, 20, 15),
-          child: Text('Active Coupons', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 60, 20, 25),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('ROYAL PRIVILEGES', style: TextStyle(color: const Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 3)),
+              const SizedBox(height: 4),
+              Text('Unlock Exclusive Tastes', style: GoogleFonts.philosopher(fontSize: 24, fontWeight: FontWeight.w900, color: const Color(0xFF18453B))),
+            ],
+          ),
         ),
         SizedBox(
-          height: 140,
+          height: 200,
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             scrollDirection: Axis.horizontal,
@@ -536,104 +544,168 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             itemCount: activeCoupons.length,
             itemBuilder: (context, index) {
               final c = activeCoupons[index];
-              
-              // Safe color parsing
-              Color bgColor;
-              try {
-                String colorStr = c['color']?.toString() ?? '0xFF18453B';
-                colorStr = colorStr.replaceAll('#', '');
-                if (colorStr.length == 6) colorStr = 'FF$colorStr';
-                bgColor = Color(int.parse(colorStr.replaceFirst('0x', ''), radix: 16));
-              } catch (e) {
-                bgColor = const Color(0xFF18453B);
-              }
-              
-              final bool isGold = c['color']?.toString().contains('D4AF37') ?? false;
+              final String code = c['code']?.toString() ?? '';
+              final String title = c['title']?.toString() ?? '';
+              final String sub = c['sub']?.toString() ?? '';
 
               return Container(
                 width: 300,
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(25),
-                  boxShadow: [
-                    BoxShadow(color: bgColor.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8)),
-                  ],
-                ),
-                child: Row(
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Stack(
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            c['title']?.toString() ?? '', 
-                            style: GoogleFonts.philosopher(
-                              fontSize: 24, 
-                              fontWeight: FontWeight.w900, 
-                              color: isGold ? const Color(0xFF18453B) : const Color(0xFFD4AF37)
-                            ),
-                          ),
-                          Text(
-                            c['sub']?.toString() ?? '', 
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: isGold ? Colors.black54 : Colors.white60, 
-                              fontSize: 11, 
-                              fontWeight: FontWeight.bold
-                            )
+                    // 1. The Glass Card Base
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(30),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white,
+                            const Color(0xFFFFF8E8),
+                            Colors.white.withOpacity(0.9),
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF18453B).withOpacity(0.08),
+                            blurRadius: 30,
+                            offset: const Offset(0, 15),
                           ),
                         ],
+                        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.2), width: 1),
                       ),
-                    ),
-                    const SizedBox(width: 15),
-                    GestureDetector(
-                      onTap: () {
-                        HapticFeedback.heavyImpact();
-                        Clipboard.setData(ClipboardData(text: c['code']?.toString() ?? ''));
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text('Code ${c['code']} copied to royal clipboard!'),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: const Color(0xFF18453B),
-                        ));
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isGold ? const Color(0xFF18453B) : const Color(0xFFD4AF37),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(30),
+                        child: Stack(
                           children: [
-                            Text(
-                              c['code']?.toString() ?? '', 
-                              style: TextStyle(
-                                color: isGold ? const Color(0xFFD4AF37) : const Color(0xFF18453B), 
-                                fontWeight: FontWeight.w900, 
-                                fontSize: 12, 
-                                letterSpacing: 1
-                              )
+                            // 2. Animated Gloss Shimmer
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Colors.white.withOpacity(0),
+                                      Colors.white.withOpacity(0.4),
+                                      Colors.white.withOpacity(0),
+                                    ],
+                                    stops: const [0.3, 0.5, 0.7],
+                                  ),
+                                ),
+                              ).animate(onPlay: (c) => c.repeat())
+                               .shimmer(duration: 3.seconds, color: Colors.white.withOpacity(0.5)),
                             ),
-                            Text('COPY', style: TextStyle(color: isGold ? Colors.white60 : Colors.black45, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                            
+                            // 3. Content Layout
+                            Padding(
+                              padding: const EdgeInsets.all(25),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF18453B).withOpacity(0.05),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(Icons.auto_awesome, color: Color(0xFFD4AF37), size: 16),
+                                      ),
+                                      Text(
+                                        'OFFER VALID',
+                                        style: TextStyle(color: Colors.grey.shade400, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1),
+                                      ),
+                                    ],
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    title,
+                                    style: GoogleFonts.philosopher(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFF18453B),
+                                      height: 1,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    sub.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Color(0xFFD4AF37),
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  // 4. Interaction Area
+                                  GestureDetector(
+                                    onTap: () {
+                                      HapticFeedback.heavyImpact();
+                                      Clipboard.setData(ClipboardData(text: code));
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                        content: Text('Royal code "$code" revealed and copied!'),
+                                        behavior: SnackBarBehavior.floating,
+                                        backgroundColor: const Color(0xFF18453B),
+                                        margin: const EdgeInsets.all(20),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                                      ));
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF18453B),
+                                        borderRadius: BorderRadius.circular(15),
+                                        boxShadow: [
+                                          BoxShadow(color: const Color(0xFF18453B).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5)),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            code,
+                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Container(width: 1, height: 12, color: Colors.white24),
+                                          const SizedBox(width: 12),
+                                          const Text(
+                                            'REVEAL',
+                                            style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                    )
+                    ),
+                    // 5. Decorative Seal
+                    Positioned(
+                      right: -10, top: 40,
+                      child: Opacity(
+                        opacity: 0.05,
+                        child: Icon(Icons.verified_user_rounded, size: 120, color: const Color(0xFF184537)),
+                      ),
+                    ),
                   ],
                 ),
-              ).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.2, end: 0);
+              ).animate().fadeIn(delay: (index * 150).ms).slideX(begin: 0.2, end: 0, curve: Curves.easeOutQuart);
             },
           ),
         ),
       ],
     );
   }
-
-  // --- REUSED UI BLOCKS ---
 
   Widget _buildStoriesSection() {
     if (stories.isEmpty) return const SizedBox.shrink();
@@ -877,13 +949,133 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildQuickDiscovery() {
-    final filters = [{'label': 'Mildly Spicy', 'color': Colors.green.shade700}, {'label': 'Extra Hot', 'color': Colors.red.shade900}, {'label': 'Sweet & Tangy', 'color': Colors.orange.shade800}, {'label': 'Non-Veg Spec', 'color': Colors.brown.shade800}];
+  Widget _buildPerfectPairings() {
+    final List<Map<String, String>> pairings = [
+      {
+        'title': 'THE COASTAL CLASSIC',
+        'pairing': 'Rice + Ghee + Avakaya',
+        'desc': 'Hot steaming rice melts the ghee, perfectly balancing the tangy jaggery mango.',
+        'product': 'Bellam Avakaya',
+        'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'
+      },
+      {
+        'title': 'THE BREAKFAST RITUAL',
+        'pairing': 'Pesarattu + Allam Pickle',
+        'desc': 'Sharp ginger and garlic notes provide the perfect contrast to earthy moong dal.',
+        'product': 'Allam Velluli Pickle',
+        'image': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'
+      },
+      {
+        'title': 'CRUNCHY TEA TIME',
+        'pairing': 'Chakinalu + Usiri Pickle',
+        'desc': 'The citrusy amla tartness cuts through the savory sesame crunch of Chakinalu.',
+        'product': 'Usiri Pickle',
+        'image': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg'
+      }
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(padding: EdgeInsets.fromLTRB(20, 30, 20, 15), child: Text('Personalize Search', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF18453B)))),
-        SizedBox(height: 50, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 15), itemCount: filters.length, itemBuilder: (context, index) => Container(margin: const EdgeInsets.only(right: 12), padding: const EdgeInsets.symmetric(horizontal: 20), decoration: BoxDecoration(color: (filters[index]['color'] as Color).withOpacity(0.1), borderRadius: BorderRadius.circular(15), border: Border.all(color: (filters[index]['color'] as Color).withOpacity(0.3))), alignment: Alignment.center, child: Text(filters[index]['label'] as String, style: TextStyle(color: filters[index]['color'] as Color, fontWeight: FontWeight.bold, fontSize: 13))))),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
+          child: Row(
+            children: [
+              Container(width: 4, height: 24, decoration: BoxDecoration(color: const Color(0xFFD4AF37), borderRadius: BorderRadius.circular(2))),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('CURATED COMBOS', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 2)),
+                  Text('The Art of Pairing', style: GoogleFonts.philosopher(fontSize: 26, fontWeight: FontWeight.w900, color: const Color(0xFF18453B))),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 300,
+          child: PageView.builder(
+            controller: PageController(viewportFraction: 0.9),
+            itemCount: pairings.length,
+            itemBuilder: (context, index) {
+              final p = pairings[index];
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                child: Stack(
+                  children: [
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Container(
+                        height: 220,
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(20, 20, 140, 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(35),
+                          boxShadow: [
+                            BoxShadow(color: const Color(0xFF2D1B12).withOpacity(0.06), blurRadius: 30, offset: const Offset(0, 15)),
+                          ],
+                          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.15)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(p['pairing']!, style: GoogleFonts.philosopher(color: const Color(0xFF18453B), fontSize: 18, fontWeight: FontWeight.w900, height: 1.2)),
+                            const SizedBox(height: 8),
+                            Text(p['desc']!, style: TextStyle(color: Colors.grey.shade600, fontSize: 10, height: 1.6, fontWeight: FontWeight.w500), maxLines: 3),
+                            const SizedBox(height: 15),
+                            GestureDetector(
+                              onTap: () {
+                                final product = allProducts.firstWhere((prod) => prod.name == p['product'], orElse: () => allProducts[0]);
+                                AppNavigator.push(context, ProductDetailPage(product: product, allProducts: allProducts));
+                              },
+                              child: Row(
+                                children: [
+                                  const Text('SEE DETAILS', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1)),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.arrow_forward_rounded, color: Color(0xFFD4AF37), size: 12),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 10, top: 0,
+                      child: Container(
+                        height: 180, width: 130,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(25),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(10, 10)),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(25),
+                          child: Image.asset(p['image']!, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.image)),
+                        ),
+                      ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: -5, end: 5, duration: 3.seconds, curve: Curves.easeInOut),
+                    ),
+                    Positioned(
+                      left: 20, top: 25,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF18453B),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(p['title']!, style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(delay: (index * 200).ms).slideX(begin: 0.2, end: 0, curve: Curves.easeOutQuart);
+            },
+          ),
+        ),
       ],
     );
   }
@@ -941,12 +1133,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 15),
-            itemCount: allProducts.length > 14 ? 4 : allProducts.length,
+            itemCount: allProducts.length > 6 ? 6 : allProducts.length,
             itemBuilder: (context, index) {
-              final product = allProducts.length > 10 + index ? allProducts[index + 10] : allProducts[index];
+              final product = allProducts[index];
               return GestureDetector(
                 onTap: () => AppNavigator.push(context, ProductDetailPage(product: product, allProducts: allProducts)),
-                child: Container(width: 120, margin: const EdgeInsets.only(right: 15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.asset(product.image, width: 70, height: 70, fit: BoxFit.cover)), const SizedBox(height: 12), Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(product.name, maxLines: 1, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis))), Text(product.defaultPrice, style: const TextStyle(fontSize: 13, color: Color(0xFF18453B), fontWeight: FontWeight.w900))])),
+                child: Container(width: 120, margin: const EdgeInsets.only(right: 15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.asset(product.image, width: 70, height: 70, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.image))), const SizedBox(height: 12), Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(product.name, maxLines: 1, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis))), Text(product.defaultPrice, style: const TextStyle(fontSize: 13, color: Color(0xFF18453B), fontWeight: FontWeight.w900))])),
               );
             },
           ),
@@ -958,19 +1150,105 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget _buildHeritageStory() {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-      padding: const EdgeInsets.all(30),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30), border: Border.all(color: const Color(0xFF18453B).withOpacity(0.05))),
-      child: Column(
-        children: [
-          const Icon(Icons.auto_awesome, color: Color(0xFFD4AF37), size: 32),
-          const SizedBox(height: 20),
-          const Text('OUR KITCHEN STORY', style: TextStyle(fontFamily: 'Philosopher', fontWeight: FontWeight.w900, fontSize: 22, color: Color(0xFF18453B), letterSpacing: 1)),
-          const SizedBox(height: 15),
-          Text('Since 1982, we have been crafting tradition in every jar. No preservatives, only sun-dried ingredients and love from coastal Andhra.', textAlign: TextAlign.center, style: TextStyle(color: const Color(0xFF2D1B12).withOpacity(0.6), height: 1.6, fontSize: 13)),
-          const SizedBox(height: 25),
-          GestureDetector(onTap: () => AppNavigator.push(context, const KitchenStoryPage()), child: Container(padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12), decoration: BoxDecoration(border: Border.all(color: const Color(0xFF18453B)), borderRadius: BorderRadius.circular(15)), child: const Text('READ OUR JOURNEY', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.bold, fontSize: 11)))),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
+      height: 480,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(40),
+        image: const DecorationImage(
+          image: AssetImage('assets/images/allam_velli_pickle.jpg'),
+          fit: BoxFit.cover,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF18453B).withOpacity(0.2),
+            blurRadius: 40,
+            offset: const Offset(0, 20),
+          ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(40),
+        child: Stack(
+          children: [
+            // Dark Overlay for text readability
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.1),
+                    Colors.black.withOpacity(0.8),
+                    const Color(0xFF18453B),
+                  ],
+                ),
+              ),
+            ),
+            
+            Padding(
+              padding: const EdgeInsets.all(40),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.auto_awesome, color: Color(0xFFD4AF37), size: 40)
+                      .animate(onPlay: (c) => c.repeat())
+                      .shimmer(duration: 3.seconds),
+                  const SizedBox(height: 25),
+                  Text(
+                    'OUR KITCHEN\nSTORY', 
+                    style: GoogleFonts.philosopher(
+                      fontWeight: FontWeight.w900, 
+                      fontSize: 42, 
+                      color: Colors.white, 
+                      height: 1,
+                      letterSpacing: 2
+                    )
+                  ),
+                  const SizedBox(height: 15),
+                  Container(height: 2, width: 60, color: const Color(0xFFD4AF37)),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Handmade with love since 1982. Experience the ancestral legacy of Coastal Andhra in every jar.', 
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7), 
+                      height: 1.6, 
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500
+                    )
+                  ),
+                  const SizedBox(height: 35),
+                  ElevatedButton(
+                    onPressed: () => AppNavigator.push(context, const KitchenStoryPage()), 
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD4AF37),
+                      foregroundColor: const Color(0xFF18453B),
+                      minimumSize: const Size(double.infinity, 64),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'EXPLORE OUR JOURNEY', 
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)
+                    )
+                  ),
+                ],
+              ),
+            ),
+
+            // Subtle animated highlight
+            Positioned(
+              top: -100, right: -100,
+              child: Container(
+                height: 300, width: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.05),
+                ),
+              ).animate(onPlay: (c) => c.repeat()).scale(begin: const Offset(1,1), end: const Offset(1.5, 1.5), duration: 4.seconds, curve: Curves.easeInOut),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -987,10 +1265,38 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildTestimonials() {
+    // Collect all reviews from all products to show a diverse mix
+    List<Review> mixedReviews = [];
+    for (var p in allProducts) {
+      mixedReviews.addAll(p.reviews);
+    }
+    mixedReviews.shuffle(); // Optional: show random reviews
+
+    if (mixedReviews.isEmpty) return const SizedBox.shrink();
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(title: 'What Royalty Says', onSeeAll: () {}),
-        SizedBox(height: 230, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 10), itemCount: allProducts.isNotEmpty && allProducts[0].reviews.isNotEmpty ? allProducts[0].reviews.length : 0, itemBuilder: (context, index) => _ReviewCard(review: allProducts[0].reviews[index]))),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 60, 20, 25),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('TESTIMONIALS', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 3)),
+              const SizedBox(height: 4),
+              Text('What Royalty Says', style: GoogleFonts.philosopher(fontSize: 26, fontWeight: FontWeight.w900, color: const Color(0xFF18453B))),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 320, 
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal, 
+            padding: const EdgeInsets.symmetric(horizontal: 10), 
+            itemCount: mixedReviews.length > 10 ? 10 : mixedReviews.length, 
+            itemBuilder: (context, index) => RoyalReviewCard(review: mixedReviews[index], index: index)
+          )
+        ),
       ],
     );
   }
@@ -1108,8 +1414,6 @@ class _DealItem extends StatelessWidget {
     return Expanded(
       child: GestureDetector(
         onTap: () {
-          // This would ideally come from the parent widget's allProducts
-          // For now, deal products are passed directly
           AppNavigator.push(context, ProductDetailPage(product: product));
         },
         child: Container(
@@ -1380,27 +1684,122 @@ class _BentoCard extends StatelessWidget {
   }
 }
 
-class _ReviewCard extends StatelessWidget {
+class RoyalReviewCard extends StatelessWidget {
   final Review review;
-  const _ReviewCard({required this.review});
+  final int index;
+  const RoyalReviewCard({super.key, required this.review, this.index = 0});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 300,
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10))]),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      width: 320,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Row(children: List.generate(5, (i) => Icon(Icons.star_rounded, size: 18, color: i < review.rating ? const Color(0xFFD4AF37) : Colors.grey.shade200))),
-          const SizedBox(height: 15),
-          Expanded(child: Text(review.comment, style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Color(0xFF2D1B12), height: 1.6, letterSpacing: 0.3), maxLines: 3, overflow: TextOverflow.ellipsis)),
-          const SizedBox(height: 15),
-          Text('- ${review.userName}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF18453B), letterSpacing: 0.5)),
+          // 1. The Main Luxury Card
+          Container(
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(50),
+                bottomLeft: Radius.circular(50),
+                topLeft: Radius.circular(15),
+                bottomRight: Radius.circular(15),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF18453B).withOpacity(0.06),
+                  blurRadius: 25,
+                  offset: const Offset(0, 12),
+                )
+              ],
+              border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: List.generate(5, (i) => Icon(
+                        Icons.star_rounded, 
+                        size: 14, 
+                        color: i < review.rating ? const Color(0xFFD4AF37) : Colors.grey.shade100
+                      )),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF18453B).withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text('VERIFIED', style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: const Color(0xFF18453B), letterSpacing: 1)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: Text(
+                    review.comment, 
+                    style: GoogleFonts.poppins(
+                      fontSize: 14, 
+                      fontStyle: FontStyle.italic, 
+                      color: const Color(0xFF2D1B12), 
+                      height: 1.7, 
+                      fontWeight: FontWeight.w400
+                    ), 
+                    maxLines: 4, 
+                    overflow: TextOverflow.ellipsis
+                  )
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Container(
+                      width: 36, height: 36,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(colors: [Color(0xFF18453B), Color(0xFF276357)]),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        review.userName.isEmpty ? '?' : review.userName[0].toUpperCase(),
+                        style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 14, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          review.userName.toUpperCase(), 
+                          style: GoogleFonts.philosopher(fontWeight: FontWeight.w900, fontSize: 12, color: const Color(0xFF18453B), letterSpacing: 0.5)
+                        ),
+                        const Text(
+                          'HONORED GUEST',
+                          style: TextStyle(fontSize: 7, color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, letterSpacing: 1),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // 2. The Floating Badge
+          Positioned(
+            left: -8, top: -8,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(color: Color(0xFFD4AF37), shape: BoxShape.circle),
+              child: const Icon(Icons.format_quote_rounded, color: Colors.white, size: 16),
+            ),
+          ),
         ],
       ),
-    );
+    ).animate().fadeIn(delay: (index * 150).ms).scale(begin: const Offset(0.95, 0.95));
   }
 }

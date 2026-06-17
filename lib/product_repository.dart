@@ -408,17 +408,48 @@ class ProductRepository {
   ];
 
   Stream<List<Product>> getProductsStream() {
-    return _firestore.collection('products').snapshots().map((snapshot) {
-      if (snapshot.docs.isEmpty) {
-        return allProducts;
+    return _firestore
+        .collection('products')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      if (snapshot.docs.isEmpty) return allProducts;
+      
+      List<Product> products = [];
+      for (var doc in snapshot.docs) {
+        Product p = _mapToProduct(doc);
+        // Fetch approved reviews for this product
+        final reviewsSnap = await _firestore
+            .collection('reviews')
+            .where('productId', isEqualTo: p.name)
+            .where('status', isEqualTo: 'approved')
+            .get();
+            
+        final reviews = reviewsSnap.docs.map((r) => _mapToReview(r)).toList();
+        products.add(p.copyWith(reviews: reviews));
       }
-      return snapshot.docs.map((doc) => _mapToProduct(doc)).toList();
+      return products;
     });
+  }
+
+  Review _mapToReview(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Review(
+      id: doc.id,
+      userName: data['userName'] ?? 'Anonymous',
+      comment: data['comment'] ?? '',
+      rating: (data['rating'] as num?)?.toDouble() ?? 5.0,
+      date: data['date'] ?? 'Recently',
+      status: data['status'] ?? 'approved',
+    );
   }
 
   Future<List<Product>> getProducts() async {
     try {
-      final snapshot = await _firestore.collection('products').get();
+      final snapshot = await _firestore
+          .collection('products')
+          .orderBy('createdAt', descending: true)
+          .get();
       if (snapshot.docs.isEmpty) {
         // If Firestore is empty, seed with local data for first run
         await seedProducts();

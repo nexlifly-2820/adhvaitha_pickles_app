@@ -10,311 +10,247 @@ class KitchenStoryPage extends StatefulWidget {
 }
 
 class _KitchenStoryPageState extends State<KitchenStoryPage> {
-  final ScrollController _scrollController = ScrollController();
+  final PageController _pageController = PageController();
+  double _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController.addListener(() {
+      setState(() {
+        _currentPage = _pageController.page ?? 0;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  final List<Map<String, String>> chapters = [
+    {
+      'year': '1982',
+      'title': 'THE FIRST\nSPARK',
+      'sub': 'A Grandmothers Legacy',
+      'desc': 'In a sun-drenched kitchen in coastal Andhra, a revolution began with just 5kg of seasonal mangoes and ancestral love.',
+      'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+    },
+    {
+      'year': 'RITUAL',
+      'title': 'SUN, SALT &\nPATIENCE',
+      'sub': 'Nature’s Slow Alchemy',
+      'desc': 'We wait for the peak coastal sun to naturally dehydrate our produce for 48 hours, locking in the soul of the fruit.',
+      'image': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
+    },
+    {
+      'year': 'SOUL',
+      'title': 'STONE GROUND\nHERITAGE',
+      'sub': 'The Sound of Purity',
+      'desc': 'Zero machines. Only stone mortars slowly crushing spices to release essential oils that define our 40-year aroma.',
+      'image': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg',
+    },
+    {
+      'year': 'TODAY',
+      'title': 'ROYAL\nVESSELS',
+      'sub': 'Delivered to your Door',
+      'desc': 'Now, we bring the same medical-grade glass jars and vacuum-sealed tradition from our kitchen to your table.',
+      'image': 'assets/images/gondh_laddu_edible_gum_laddu.jpg',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8E8),
-      body: CustomScrollView(
-        controller: _scrollController,
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildCinematicHeader(),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
-              child: Column(
-                children: [
-                  _AdvancedStoryBlock(
-                    index: "01",
-                    year: '1982',
-                    title: 'The First Spark',
-                    content: 'In a sun-drenched kitchen in coastal Andhra, our grandmother started a revolution. With just 5kg of seasonal mangoes and an ancestral blend of hand-ground spices, the first jar of Adhvaitha was born from pure love.',
-                    image: 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-                  ),
-                  const SizedBox(height: 120),
-                  _AdvancedStoryBlock(
-                    index: "02",
-                    year: 'Ritual',
-                    title: 'Sun, Salt & Patience',
-                    content: 'We refuse to rush. Each batch is a commitment to time. We wait for the peak coastal sun to naturally dehydrate our produce for 48 hours, locking in the soul of the fruit before it meets the jar.',
-                    image: 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
-                    isReversed: true,
-                  ),
-                  const SizedBox(height: 120),
-                  _AdvancedStoryBlock(
-                    index: "03",
-                    year: 'The Legacy',
-                    title: 'Stone-Ground Soul',
-                    content: 'While industrial grinders destroy flavor with heat, we stay loyal to the stone mortar. Our spices are slowly crushed to release essential oils, preserving the aroma that defines our heritage.',
-                    image: 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg',
-                  ),
-                  const SizedBox(height: 150),
-                  _buildStatsGrid(),
-                  const SizedBox(height: 150),
-                  _buildGrandmotherQuote(),
-                  const SizedBox(height: 150),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCinematicHeader() {
-    return SliverAppBar(
-      expandedHeight: 600,
-      pinned: true,
-      stretch: true,
-      backgroundColor: const Color(0xFF18453B),
-      leading: IconButton(
-        onPressed: () => Navigator.pop(context),
-        icon: const CircleAvatar(
-          backgroundColor: Colors.black26,
-          child: Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
-        ),
-      ),
-      flexibleSpace: FlexibleSpaceBar(
-        stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-              fit: BoxFit.cover,
-            ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.15, 1.15), duration: 20.seconds),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.4),
-                    const Color(0xFF18453B).withOpacity(0.8),
-                    const Color(0xFF18453B),
-                  ],
-                ),
-              ),
-            ),
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 80),
-                  const Icon(Icons.auto_awesome, color: Color(0xFFD4AF37), size: 60)
-                      .animate().scale(duration: 1.5.seconds, curve: Curves.elasticOut),
-                  const SizedBox(height: 40),
-                  Text(
-                    'OUR JOURNEY',
-                    style: GoogleFonts.philosopher(
-                      fontSize: 56,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 16,
-                    ),
-                  ).animate().fadeIn(duration: 1.5.seconds).slideY(begin: 0.2, end: 0),
-                  const SizedBox(height: 20),
-                  Container(
-                    height: 1.5, width: 100, color: const Color(0xFFD4AF37),
-                  ).animate().scaleX(duration: 1.5.seconds, delay: 500.ms),
-                  const SizedBox(height: 25),
-                  Text(
-                    'A TRADITION KEPT SACRED SINCE 1982',
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFFD4AF37),
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 6,
-                      fontSize: 12,
-                    ),
-                  ).animate().fadeIn(delay: 1.seconds),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatsGrid() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF18453B),
-        borderRadius: BorderRadius.circular(40),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF18453B).withOpacity(0.3),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
-          )
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: Colors.black,
+      body: Stack(
         children: [
-          Row(
-            children: [
-              Expanded(child: _statBox('42+', 'YEARS OF HERITAGE')),
-              Expanded(child: _statBox('1M+', 'HAND-PACKED JARS')),
-            ],
+          // 1. Cinematic Background Layer (Parallax)
+          PageView.builder(
+            controller: _pageController,
+            itemCount: chapters.length,
+            itemBuilder: (context, index) {
+              double offset = (_currentPage - index);
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  Transform.translate(
+                    offset: Offset(offset * 200, 0),
+                    child: Transform.scale(
+                      scale: 1.2 + (offset.abs() * 0.2),
+                      child: Image.asset(
+                        chapters[index]['image']!,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.3),
+                          Colors.black.withOpacity(0.1),
+                          Colors.black.withOpacity(0.8),
+                          Colors.black,
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
-          const SizedBox(height: 60),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 50),
-            child: Divider(color: const Color(0xFFD4AF37).withOpacity(0.2), thickness: 1),
+
+          // 2. Animated Content Overlay
+          IgnorePointer(
+            child: PageView.builder(
+              controller: PageController(viewportFraction: 1.0),
+              itemCount: chapters.length,
+              itemBuilder: (context, index) {
+                if (index != _currentPage.floor() && index != _currentPage.ceil()) {
+                  return const SizedBox.shrink();
+                }
+                
+                final opacity = (1 - (_currentPage - index).abs()).clamp(0.0, 1.0);
+                final slide = (_currentPage - index) * 100;
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 80),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Opacity(
+                        opacity: opacity,
+                        child: Transform.translate(
+                          offset: Offset(0, slide * 0.5),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                chapters[index]['year']!,
+                                style: GoogleFonts.philosopher(
+                                  color: const Color(0xFFD4AF37),
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 8,
+                                ),
+                              ).animate().shimmer(duration: 2.seconds),
+                              const SizedBox(height: 20),
+                              Text(
+                                chapters[index]['title']!,
+                                style: GoogleFonts.philosopher(
+                                  color: Colors.white,
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1,
+                                  letterSpacing: -1,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Container(height: 2, width: 40, color: const Color(0xFFD4AF37)),
+                              const SizedBox(height: 25),
+                              Text(
+                                chapters[index]['sub']!.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Color(0xFFD4AF37),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 4,
+                                ),
+                              ),
+                              const SizedBox(height: 15),
+                              Text(
+                                chapters[index]['desc']!,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.6),
+                                  fontSize: 14,
+                                  height: 1.8,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 100),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
-          const SizedBox(height: 60),
-          _statBox('100%', 'NATURAL, PURE & CRAFTED'),
-        ],
-      ),
-    ).animate().fadeIn(duration: 1.seconds).scale(begin: const Offset(0.9, 0.9));
-  }
 
-  Widget _statBox(String val, String label) {
-    return Column(
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(val, style: GoogleFonts.philosopher(color: const Color(0xFFD4AF37), fontSize: 48, fontWeight: FontWeight.w900)),
-        ),
-        const SizedBox(height: 12),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(label, textAlign: TextAlign.center, style: GoogleFonts.poppins(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 4)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGrandmotherQuote() {
-    return Column(
-      children: [
-        const Icon(Icons.format_quote_rounded, color: Color(0xFFD4AF37), size: 100),
-        const SizedBox(height: 40),
-        Text(
-          '“We don\'t just sell pickles;\nwe sell the lingering warmth\nof my grandmother\'s kitchen.”',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.philosopher(
-            fontStyle: FontStyle.italic,
-            fontSize: 34,
-            color: const Color(0xFF18453B),
-            height: 1.6,
-          ),
-        ),
-        const SizedBox(height: 80),
-        const Text(
-          'ESTABLISHED 1982 • COASTAL ANDHRA',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            color: Color(0xFFD4AF37),
-            letterSpacing: 8,
-            fontSize: 12,
-          ),
-        ),
-      ],
-    ).animate().fadeIn(duration: 2.seconds);
-  }
-}
-
-class _AdvancedStoryBlock extends StatelessWidget {
-  final String index, year, title, content, image;
-  final bool isReversed;
-
-  const _AdvancedStoryBlock({
-    required this.index,
-    required this.year,
-    required this.title,
-    required this.content,
-    required this.image,
-    this.isReversed = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: isReversed ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: isReversed ? MainAxisAlignment.end : MainAxisAlignment.start,
-          children: [
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                index,
-                style: GoogleFonts.philosopher(
-                  color: const Color(0xFFD4AF37).withOpacity(0.3),
-                  fontSize: 80,
-                  fontWeight: FontWeight.w900,
-                ),
+          // 3. Navigation Controls & Header
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
+                    ),
+                  ),
+                  Row(
+                    children: List.generate(chapters.length, (index) {
+                      bool isSelected = _currentPage.round() == index;
+                      return AnimatedContainer(
+                        duration: 300.ms,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        height: 4,
+                        width: isSelected ? 30 : 8,
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFFD4AF37) : Colors.white24,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      );
+                    }),
+                  ),
+                ],
               ),
-            ).animate(onPlay: (c) => c.repeat(reverse: true))
-             .shimmer(duration: 4.seconds, color: const Color(0xFFD4AF37).withOpacity(0.4)),
-            const SizedBox(width: 25),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  year,
-                  style: GoogleFonts.philosopher(
-                    color: const Color(0xFFD4AF37),
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 4,
+            ),
+          ),
+
+          // 4. Scroll Indicator
+          Positioned(
+            bottom: 40,
+            left: 0, right: 0,
+            child: Column(
+              children: [
+                const Text(
+                  'SWIPE TO DISCOVER',
+                  style: TextStyle(color: Colors.white24, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 4),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  height: 40, width: 2,
+                  color: Colors.white10,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Container(
+                      height: 15, width: 2,
+                      color: const Color(0xFFD4AF37),
+                    ).animate(onPlay: (c) => c.repeat())
+                     .moveY(begin: 0, end: 25, duration: 1.5.seconds, curve: Curves.easeInOut),
                   ),
                 ),
-              ),
-            ).animate().blurXY(begin: 10, end: 0, duration: 1.seconds),
-          ],
-        ).animate().fadeIn(duration: 1.2.seconds).slideX(begin: isReversed ? 0.3 : -0.3, end: 0),
-        
-        const SizedBox(height: 30),
-        
-        Text(
-          title,
-          textAlign: isReversed ? TextAlign.right : TextAlign.left,
-          style: GoogleFonts.philosopher(
-            fontSize: 46,
-            fontWeight: FontWeight.w900,
-            color: const Color(0xFF18453B),
+              ],
+            ),
           ),
-        ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.15, end: 0).blurXY(begin: 8, end: 0, delay: 300.ms),
-        
-        const SizedBox(height: 40),
-        
-        Container(
-          height: 350,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(50),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 40, offset: const Offset(0, 20))
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(50),
-            child: Image.asset(image, fit: BoxFit.cover)
-                .animate(onPlay: (c) => c.repeat(reverse: true))
-                .scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1), duration: 12.seconds),
-          ),
-        ).animate().scale(delay: 500.ms, duration: 1.seconds, curve: Curves.easeOutQuart),
-        
-        const SizedBox(height: 40),
-        
-        Text(
-          content,
-          textAlign: isReversed ? TextAlign.right : TextAlign.left,
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            color: const Color(0xFF2D1B12).withOpacity(0.7),
-            height: 2.0,
-          ),
-        ).animate().fadeIn(delay: 1.seconds).blurXY(begin: 5, end: 0, delay: 1.seconds),
-      ],
+        ],
+      ),
     );
   }
 }

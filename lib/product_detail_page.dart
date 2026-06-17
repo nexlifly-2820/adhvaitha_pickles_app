@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'models.dart';
 import 'cart_manager.dart';
 import 'wishlist_manager.dart';
 import 'checkout_page.dart';
 import 'navigation_util.dart';
 import 'product_repository.dart';
+import 'cloud_function_manager.dart';
 import 'main.dart';
 
 class ProductDetailPage extends StatefulWidget {
@@ -183,7 +186,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   const SizedBox(height: 15),
                   Wrap(
                     spacing: 12,
-                    children: widget.product.weightPriceMap.keys.map((w) => _WeightOption(
+                    children: widget.product.weightPriceMap.keys.map<Widget>((w) => _WeightOption(
                       label: w, 
                       isSelected: selectedWeight == w, 
                       onTap: () {
@@ -358,7 +361,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     const SizedBox(height: 45),
                     const Text('THE SOMMELIER GUIDE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12, color: Color(0xFF18453B))),
                     const SizedBox(height: 20),
-                    ...widget.product.sommelierPairings.map((pairing) => _buildSommelierCard(pairing)),
+                    ...widget.product.sommelierPairings.map<Widget>((pairing) => _buildSommelierCard(pairing)),
                   ],
 
                   const SizedBox(height: 40),
@@ -366,7 +369,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   const SizedBox(height: 15),
                   Wrap(
                     spacing: 10,
-                    children: widget.product.ingredients.map((i) => Chip(
+                    children: widget.product.ingredients.map<Widget>((i) => Chip(
                       label: Text(i, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                       backgroundColor: Colors.white,
                       side: BorderSide(color: const Color(0xFF18453B).withOpacity(0.1)),
@@ -431,31 +434,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Widget _buildReviewsList() {
     if (widget.product.reviews.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-        child: const Center(child: Text('No reviews yet. Be the first to rate!', style: TextStyle(color: Colors.grey, fontSize: 12))),
-      );
-    }
-    return Column(
-      children: widget.product.reviews.take(3).map((r) => Container(
-        margin: const EdgeInsets.only(bottom: 15),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10)]),
+        width: double.infinity,
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(35),
+          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.1)),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(r.userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                Row(children: List.generate(5, (i) => Icon(Icons.star_rounded, size: 12, color: i < r.rating ? const Color(0xFFD4AF37) : Colors.grey.shade200))),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(r.comment, style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.5)),
+            const Icon(Icons.auto_awesome, color: Color(0xFFD4AF37), size: 32).animate(onPlay: (c) => c.repeat()).shimmer(),
+            const SizedBox(height: 20),
+            Text('Awaiting Your Royalty', style: GoogleFonts.philosopher(color: const Color(0xFF18453B), fontSize: 20, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            Text('Be the first to leave a mark on our heritage.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade400, fontSize: 11, letterSpacing: 0.5)),
           ],
         ),
-      )).toList(),
+      );
+    }
+
+    return Column(
+      children: widget.product.reviews.take(10).toList().asMap().entries.map<Widget>((entry) {
+        return RoyalReviewCard(review: entry.value, index: entry.key);
+      }).toList(),
     );
   }
 
@@ -627,6 +628,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   void _showReviewDialog() {
     int selectedStars = 5;
+    final TextEditingController reviewController = TextEditingController();
+    
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -646,6 +649,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
               const SizedBox(height: 20),
               TextField(
+                controller: reviewController,
                 maxLines: 3,
                 decoration: InputDecoration(
                   hintText: 'Describe the taste...',
@@ -658,9 +662,22 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review submitted for approval!'), backgroundColor: Color(0xFF18453B)));
+              onPressed: () async {
+                final user = FirebaseAuth.instance.currentUser;
+                final bool success = await CloudFunctionManager().submitReview(
+                  productId: widget.product.name,
+                  userName: user?.displayName ?? 'Anonymous',
+                  rating: selectedStars.toDouble(),
+                  comment: reviewController.text,
+                );
+                
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(success ? 'Review submitted for royal approval!' : 'Failed to submit review.'),
+                    backgroundColor: const Color(0xFF18453B),
+                  ));
+                }
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF18453B), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               child: const Text('SUBMIT'),
@@ -671,6 +688,122 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
+}
+
+class RoyalReviewCard extends StatelessWidget {
+  final Review review;
+  final int index;
+  const RoyalReviewCard({super.key, required this.review, this.index = 0});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // 1. The Main Luxury Card
+          Container(
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(50),
+                bottomLeft: Radius.circular(50),
+                topLeft: Radius.circular(15),
+                bottomRight: Radius.circular(15),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF18453B).withOpacity(0.06),
+                  blurRadius: 25,
+                  offset: const Offset(0, 12),
+                )
+              ],
+              border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: List.generate(5, (i) => Icon(
+                        Icons.star_rounded, 
+                        size: 14, 
+                        color: i < review.rating ? const Color(0xFFD4AF37) : Colors.grey.shade100
+                      )),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF18453B).withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Text('VERIFIED', style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: Color(0xFF18453B), letterSpacing: 1)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  review.comment, 
+                  style: GoogleFonts.poppins(
+                    fontSize: 14, 
+                    fontStyle: FontStyle.italic, 
+                    color: const Color(0xFF2D1B12), 
+                    height: 1.7, 
+                    fontWeight: FontWeight.w400
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Container(
+                      width: 36, height: 36,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(colors: [Color(0xFF18453B), Color(0xFF276357)]),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        review.userName.isEmpty ? '?' : review.userName[0].toUpperCase(),
+                        style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 14, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          review.userName.toUpperCase(), 
+                          style: GoogleFonts.philosopher(fontWeight: FontWeight.w900, fontSize: 12, color: const Color(0xFF18453B), letterSpacing: 0.5)
+                        ),
+                        const Text(
+                          'HONORED GUEST',
+                          style: TextStyle(fontSize: 7, color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, letterSpacing: 1),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // 2. The Floating Badge
+          Positioned(
+            left: -8, top: -8,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(color: Color(0xFFD4AF37), shape: BoxShape.circle),
+              child: const Icon(Icons.format_quote_rounded, color: Colors.white, size: 16),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: (index * 150).ms).scale(begin: const Offset(0.95, 0.95));
+  }
 }
 
 class _WeightOption extends StatelessWidget {

@@ -38,9 +38,14 @@ class CloudFunctionManager {
     required List<CartItem> items,
     required double subtotal,
     required double deliveryFee,
+    required double packingFee,
+    required double gstAmount,
     required double discountAmount,
     required double total,
     required String shippingAddress,
+    required String city,
+    required String state,
+    required String pincode,
     required String paymentMethod,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -64,9 +69,14 @@ class CloudFunctionManager {
         'items': formattedItems,
         'subtotal': subtotal,
         'deliveryFee': deliveryFee,
+        'packingFee': packingFee,
+        'gstAmount': gstAmount,
         'discountAmount': discountAmount,
         'total': total,
         'shippingAddress': shippingAddress,
+        'city': city,
+        'state': state,
+        'pincode': pincode,
         'paymentMethod': paymentMethod,
         'status': "Placed",
         'date': FieldValue.serverTimestamp(),
@@ -109,6 +119,29 @@ class CloudFunctionManager {
       return true;
     } catch (e) {
       print('Error submitting inquiry: $e');
+      return false;
+    }
+  }
+
+  Future<bool> submitReview({
+    required String productId,
+    required String userName,
+    required double rating,
+    required String comment,
+  }) async {
+    try {
+      await _firestore.collection('reviews').add({
+        'productId': productId,
+        'userName': userName,
+        'rating': rating,
+        'comment': comment,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+        'date': 'Just now',
+      });
+      return true;
+    } catch (e) {
+      print('Error submitting review: $e');
       return false;
     }
   }

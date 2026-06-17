@@ -33,6 +33,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _areaController = TextEditingController();
 
   bool _isLoadingLocation = false;
   bool _isProcessing = false;
@@ -58,6 +59,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _addressController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
+    _areaController.dispose();
     super.dispose();
   }
 
@@ -99,9 +101,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
       items: cart.items,
       subtotal: cart.subtotal,
       deliveryFee: cart.deliveryFee,
+      packingFee: cart.packingFee,
+      gstAmount: cart.gstAmount,
       discountAmount: cart.discountAmount,
       total: cart.total,
-      shippingAddress: '${_addressController.text}, ${_cityController.text}, ${_stateController.text} - ${_pincodeController.text}',
+      shippingAddress: '${_addressController.text}, ${_areaController.text}',
+      city: _cityController.text,
+      state: _stateController.text,
+      pincode: _pincodeController.text,
       paymentMethod: _selectedPayment + (paymentId != null ? ' (ID: $paymentId)' : ''),
     );
 
@@ -325,7 +332,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         ),
         _buildTextField('State', _stateController, Icons.map_outlined),
         _buildTextField('House No / Building Name', _addressController, Icons.home_rounded),
-        _buildTextField('Road Name / Area / Colony', TextEditingController(), Icons.edit_road_rounded),
+        _buildTextField('Road Name / Area / Colony', _areaController, Icons.edit_road_rounded),
 
         const SizedBox(height: 10),
         const Text('ADDRESS TYPE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 10, color: Colors.grey)),
@@ -459,6 +466,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 cart.deliveryFee == 0 ? 'FREE' : '₹${cart.deliveryFee.toStringAsFixed(0)}',
                 isDiscount: cart.deliveryFee == 0,
               ),
+              if (cart.packingFee > 0) ...[
+                const SizedBox(height: 12),
+                _summaryRow('Secure Packaging', '₹${cart.packingFee.toStringAsFixed(0)}'),
+              ],
+              if (cart.gstPercentage > 0) ...[
+                const SizedBox(height: 12),
+                _summaryRow('GST (${cart.gstPercentage.toStringAsFixed(0)}%)', '₹${cart.gstAmount.toStringAsFixed(0)}'),
+              ],
               if (cart.discountAmount > 0) ...[
                 const SizedBox(height: 12),
                 _summaryRow('Promo Discount (${cart.appliedPromoCode})', '-₹${cart.discountAmount.toStringAsFixed(0)}', isDiscount: true),

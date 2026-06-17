@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 
 class Review {
+  final String? id;
   final String userName;
   final String comment;
   final double rating;
   final String date;
+  final String status; // "pending", "approved", "rejected"
 
   Review({
+    this.id,
     required this.userName,
     required this.comment,
     required this.rating,
     required this.date,
+    this.status = 'approved',
   });
 }
 
@@ -74,6 +78,52 @@ class Product {
     this.sommelierPairings = const [],
     this.isOutOfStock = false,
   });
+
+  Product copyWith({
+    String? name,
+    String? description,
+    Map<String, double>? weightPriceMap,
+    double? rating,
+    String? image,
+    Color? color,
+    String? category,
+    List<String>? pairings,
+    List<Review>? reviews,
+    bool? isBestSeller,
+    String? origin,
+    List<String>? ingredients,
+    String? preparationMethod,
+    String? shelfLife,
+    String? storageInstructions,
+    String? servingSuggestion,
+    IngredientDetail? secretIngredient,
+    bool? canRequestTempering,
+    List<SommelierPairing>? sommelierPairings,
+    bool? isOutOfStock,
+  }) {
+    return Product(
+      name: name ?? this.name,
+      description: description ?? this.description,
+      weightPriceMap: weightPriceMap ?? this.weightPriceMap,
+      rating: rating ?? this.rating,
+      image: image ?? this.image,
+      color: color ?? this.color,
+      category: category ?? this.category,
+      pairings: pairings ?? this.pairings,
+      reviews: reviews ?? this.reviews,
+      isBestSeller: isBestSeller ?? this.isBestSeller,
+      origin: origin ?? this.origin,
+      ingredients: ingredients ?? this.ingredients,
+      preparationMethod: preparationMethod ?? this.preparationMethod,
+      shelfLife: shelfLife ?? this.shelfLife,
+      storageInstructions: storageInstructions ?? this.storageInstructions,
+      servingSuggestion: servingSuggestion ?? this.servingSuggestion,
+      secretIngredient: secretIngredient ?? this.secretIngredient,
+      canRequestTempering: canRequestTempering ?? this.canRequestTempering,
+      sommelierPairings: sommelierPairings ?? this.sommelierPairings,
+      isOutOfStock: isOutOfStock ?? this.isOutOfStock,
+    );
+  }
 
   // Helper to get formatted price for a specific weight
   String getPriceForWeight(String weight) {

@@ -11,14 +11,20 @@ class CartManager extends ChangeNotifier {
   String _appliedPromoCode = "";
   double _baseDeliveryFee = 40;
   double _freeThreshold = 500;
+  double _packingFee = 0;
+  double _gstPercentage = 0;
 
   List<CartItem> get items => _items;
   double get discountAmount => _discountAmount;
   String get appliedPromoCode => _appliedPromoCode;
+  double get packingFee => _packingFee;
+  double get gstPercentage => _gstPercentage;
 
-  void setDeliveryConfig(double base, double threshold) {
+  void setDeliveryConfig(double base, double threshold, double packing, double gst) {
     _baseDeliveryFee = base;
     _freeThreshold = threshold;
+    _packingFee = packing;
+    _gstPercentage = gst;
     notifyListeners();
   }
 
@@ -107,5 +113,14 @@ class CartManager extends ChangeNotifier {
     if (_items.isEmpty) return 0;
     return subtotal >= _freeThreshold ? 0 : _baseDeliveryFee;
   }
-  double get total => (subtotal - _discountAmount) + deliveryFee;
+
+  double get gstAmount {
+    if (_items.isEmpty) return 0;
+    return (subtotal - _discountAmount) * (_gstPercentage / 100);
+  }
+
+  double get total {
+    if (_items.isEmpty) return 0;
+    return (subtotal - _discountAmount) + deliveryFee + _packingFee + gstAmount;
+  }
 }
