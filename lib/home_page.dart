@@ -43,6 +43,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   StreamSubscription? _packagingSub;
   StreamSubscription? _categoriesSub;
   StreamSubscription? _deliverySub;
+  StreamSubscription? _pairingsSub;
+  StreamSubscription? _heritageSub;
 
   List<Map<String, String>> banners = [];
   List<Map<String, String>> adBanners = [];
@@ -52,6 +54,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Map<String, dynamic> dealsConfig = {};
   List<Map<String, String>> packagingList = [];
   List<Map<String, String>> categoryList = [];
+  List<Map<String, String>> pairingList = [];
+  Map<String, String> heritageBanner = {};
 
   @override
   void initState() {
@@ -87,8 +91,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _bannersSub = AppConfigRepository().getBannersStream().listen((data) {
       if (mounted) {
         setState(() {
-          banners = data['main']!;
-          adBanners = data['ad']!;
+          banners = data['main'] ?? [];
+          adBanners = data['ad'] ?? [];
         });
       }
     });
@@ -126,6 +130,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       );
     });
 
+    _pairingsSub = AppConfigRepository().getPairingsStream().listen((data) {
+      if (mounted) setState(() => pairingList = data);
+    });
+
+    _heritageSub = AppConfigRepository().getHeritageBannerStream().listen((data) {
+      if (mounted) setState(() => heritageBanner = data);
+    });
+
     _productsSub = ProductRepository().getProductsStream().listen((data) {
       if (mounted) {
         setState(() {
@@ -150,6 +162,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _packagingSub?.cancel();
     _categoriesSub?.cancel();
     _deliverySub?.cancel();
+    _pairingsSub?.cancel();
+    _heritageSub?.cancel();
     _pageController.dispose();
     _adPageController.dispose();
     super.dispose();
@@ -429,15 +443,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildImage(String path, double size) {
+    if (path.isEmpty) {
+      return Icon(Icons.image_not_supported, color: Colors.white24, size: size * 0.5);
+    }
     if (path.startsWith('http')) {
       return Image.network(
         path, height: size, width: size, fit: BoxFit.contain,
-        errorBuilder: (c, e, s) => const Icon(Icons.image_not_supported, color: Colors.white24, size: 40),
+        errorBuilder: (c, e, s) => Icon(Icons.image_not_supported, color: Colors.white24, size: size * 0.5),
       );
     }
     return Image.asset(
       path, height: size, width: size, fit: BoxFit.contain,
-      errorBuilder: (c, e, s) => const Icon(Icons.image_not_supported, color: Colors.white24, size: 40),
+      errorBuilder: (c, e, s) => Icon(Icons.image_not_supported, color: Colors.white24, size: size * 0.5),
     );
   }
 
@@ -521,17 +538,23 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildBannerImage(String path) {
-    if (path.startsWith('http')) {
-      return Image.network(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity);
+    if (path.isEmpty) {
+      return Container(color: Colors.grey.shade200, child: const Center(child: Icon(Icons.image, color: Colors.grey)));
     }
-    return Image.asset(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity);
+    if (path.startsWith('http')) {
+      return Image.network(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200, child: const Icon(Icons.broken_image, color: Colors.grey)));
+    }
+    return Image.asset(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200, child: const Icon(Icons.broken_image, color: Colors.grey)));
   }
 
   Widget _buildPairingImage(String path) {
-    if (path.startsWith('http')) {
-      return Image.network(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.image));
+    if (path.isEmpty) {
+      return Container(color: Colors.grey.shade200, child: const Center(child: Icon(Icons.image, color: Colors.grey)));
     }
-    return Image.asset(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.image));
+    if (path.startsWith('http')) {
+      return Image.network(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200, child: const Icon(Icons.image, color: Colors.grey)));
+    }
+    return Image.asset(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200, child: const Icon(Icons.image, color: Colors.grey)));
   }
 
   Widget _buildActiveCoupons() {
@@ -675,7 +698,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                         color: const Color(0xFF18453B),
                                         borderRadius: BorderRadius.circular(15),
                                         boxShadow: [
-                                          BoxShadow(color: const Color(0xFF18453B).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5)),
+                                          BoxShadow(color: const Color(0xFF184537).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5)),
                                         ],
                                       ),
                                       child: Row(
@@ -753,6 +776,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       case 'verified_user': return Icons.verified_user_rounded;
       case 'card_giftcard': return Icons.card_giftcard_rounded;
       case 'auto_awesome': return Icons.auto_awesome;
+      case 'restaurant_menu_rounded': return Icons.restaurant_menu_rounded;
       default: return Icons.help_outline_rounded;
     }
   }
@@ -958,35 +982,39 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(padding: EdgeInsets.fromLTRB(20, 40, 20, 20), child: Text('Royal Collections', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF18453B)))),
-        SizedBox(height: 120, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 10), itemCount: categoryList.length, itemBuilder: (context, index) => _CategoryItem(label: categoryList[index]['label']!, img: categoryList[index]['img']!, onTap: () => AppNavigator.push(context, ProductListingPage(category: categoryList[index]['label']!))).animate().scale(delay: (index * 50).ms, curve: Curves.easeOutBack))),
+        SizedBox(height: 120, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 10), itemCount: categoryList.length, itemBuilder: (context, index) => _CategoryItem(label: categoryList[index]['label'] ?? '', img: categoryList[index]['img'] ?? '', onTap: () => AppNavigator.push(context, ProductListingPage(category: categoryList[index]['label'] ?? ''))).animate().scale(delay: (index * 50).ms, curve: Curves.easeOutBack))),
       ],
     );
   }
 
   Widget _buildPerfectPairings() {
-    final List<Map<String, String>> pairings = [
-      {
-        'title': 'THE COASTAL CLASSIC',
-        'pairing': 'Rice + Ghee + Avakaya',
-        'desc': 'Hot steaming rice melts the ghee, perfectly balancing the tangy jaggery mango.',
-        'product': 'Bellam Avakaya',
-        'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'
-      },
-      {
-        'title': 'THE BREAKFAST RITUAL',
-        'pairing': 'Pesarattu + Allam Pickle',
-        'desc': 'Sharp ginger and garlic notes provide the perfect contrast to earthy moong dal.',
-        'product': 'Allam Velluli Pickle',
-        'image': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'
-      },
-      {
-        'title': 'CRUNCHY TEA TIME',
-        'pairing': 'Chakinalu + Usiri Pickle',
-        'desc': 'The citrusy amla tartness cuts through the savory sesame crunch of Chakinalu.',
-        'product': 'Usiri Pickle',
-        'image': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg'
-      }
-    ];
+    List<Map<String, String>> pairings = pairingList;
+    
+    if (pairings.isEmpty) {
+      pairings = [
+        {
+          'title': 'THE COASTAL CLASSIC',
+          'pairing': 'Rice + Ghee + Avakaya',
+          'desc': 'Hot steaming rice melts the ghee, perfectly balancing the tangy jaggery mango.',
+          'product_name': 'Bellam Avakaya',
+          'image_url': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'
+        },
+        {
+          'title': 'THE BREAKFAST RITUAL',
+          'pairing': 'Pesarattu + Allam Pickle',
+          'desc': 'Sharp ginger and garlic notes provide the perfect contrast to earthy moong dal.',
+          'product_name': 'Allam Velluli Pickle',
+          'image_url': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'
+        },
+        {
+          'title': 'CRUNCHY TEA TIME',
+          'pairing': 'Chakinalu + Usiri Pickle',
+          'desc': 'The citrusy amla tartness cuts through the savory sesame crunch of Chakinalu.',
+          'product_name': 'Usiri Pickle',
+          'image_url': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg'
+        }
+      ];
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1036,13 +1064,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(p['pairing']!, style: GoogleFonts.philosopher(color: const Color(0xFF18453B), fontSize: 18, fontWeight: FontWeight.w900, height: 1.2)),
+                            Text(p['pairing'] ?? '', style: GoogleFonts.philosopher(color: const Color(0xFF18453B), fontSize: 18, fontWeight: FontWeight.w900, height: 1.2)),
                             const SizedBox(height: 8),
-                            Text(p['desc']!, style: TextStyle(color: Colors.grey.shade600, fontSize: 10, height: 1.6, fontWeight: FontWeight.w500), maxLines: 3),
+                            Text(p['desc'] ?? '', style: TextStyle(color: Colors.grey.shade600, fontSize: 10, height: 1.6, fontWeight: FontWeight.w500), maxLines: 3),
                             const SizedBox(height: 15),
                             GestureDetector(
                               onTap: () {
-                                final product = allProducts.firstWhere((prod) => prod.name == p['product'], orElse: () => allProducts[0]);
+                                final product = allProducts.firstWhere((prod) => prod.name == p['product_name'], orElse: () => allProducts[0]);
                                 AppNavigator.push(context, ProductDetailPage(product: product, allProducts: allProducts));
                               },
                               child: Row(
@@ -1069,7 +1097,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(25),
-                          child: _buildPairingImage(p['image']!),
+                          child: _buildPairingImage(p['image_url'] ?? ''),
                         ),
                       ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: -5, end: 5, duration: 3.seconds, curve: Curves.easeInOut),
                     ),
@@ -1081,7 +1109,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           color: const Color(0xFF18453B),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Text(p['title']!, style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                        child: Text(p['title'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.w900, letterSpacing: 1)),
                       ),
                     ),
                   ],
@@ -1107,46 +1135,107 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildDealsOfTheDay() {
-    final List<dynamic> productNames = dealsConfig['product_names'] ?? [];
-    final dealProducts = allProducts.where((p) => productNames.contains(p.name)).toList();
-    if (dealProducts.isEmpty) return const SizedBox.shrink();
-
-    final Timestamp? endTime = dealsConfig['end_time'];
-    String timeLeft = "Limited Time";
-    if (endTime != null) {
-      final now = DateTime.now();
-      final diff = endTime.toDate().difference(now);
-      if (diff.isNegative) {
-        timeLeft = "Deal Ended";
-      } else {
-        timeLeft = "Ending in ${diff.inHours.toString().padLeft(2, '0')}:${(diff.inMinutes % 60).toString().padLeft(2, '0')}:${(diff.inSeconds % 60).toString().padLeft(2, '0')}";
+    List<Product> dealProducts = [];
+    final List<dynamic>? productNames = dealsConfig['product_names'];
+    
+    if (productNames != null && productNames.isNotEmpty) {
+      dealProducts = allProducts.where((p) => productNames.contains(p.name)).toList();
+    }
+    
+    // Ensure minimum 3 products
+    if (dealProducts.length < 3) {
+      for (var p in allProducts) {
+        if (dealProducts.length >= 3) break;
+        if (!dealProducts.contains(p)) {
+          dealProducts.add(p);
+        }
       }
     }
 
     return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: const Color(0xFF2D1B12), borderRadius: BorderRadius.circular(30), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20)]),
+      width: double.infinity,
+      color: const Color(0xFFFFF8E8),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const FittedBox(fit: BoxFit.scaleDown, child: Text('DEALS OF THE DAY', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12))), const SizedBox(height: 4), Text(timeLeft, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold))])),
-              GestureDetector(
-                onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Pickles')),
-                child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10)), child: const Text('SHOP ALL', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
-              )
-            ],
+          CustomPaint(
+            size: const Size(double.infinity, 25),
+            painter: _ScallopPainter(isTop: true),
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              _DealItem(product: dealProducts[0]),
-              const SizedBox(width: 15),
-              if (dealProducts.length > 1) _DealItem(product: dealProducts[1]),
-            ],
+          Container(
+            color: const Color(0xFFF9E9CF),
+            padding: const EdgeInsets.only(top: 15, bottom: 5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Stack(
+                              children: [
+                                Text(
+                                  'DEAL OF THE DAY',
+                                  style: GoogleFonts.bangers(
+                                    fontSize: 34,
+                                    letterSpacing: 2,
+                                    foreground: Paint()
+                                      ..style = PaintingStyle.stroke
+                                      ..strokeWidth = 4
+                                      ..color = const Color(0xFF8B4513),
+                                  ),
+                                ),
+                                Text(
+                                  'DEAL OF THE DAY',
+                                  style: GoogleFonts.bangers(
+                                    fontSize: 34,
+                                    letterSpacing: 2,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Craving-worthy deals, for today only',
+                              style: GoogleFonts.philosopher(
+                                color: const Color(0xFF18453B),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Image.asset(
+                        'assets/images/gondh_laddu_edible_gum_laddu.jpg',
+                        height: 80, width: 100, fit: BoxFit.contain,
+                      ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: -5, end: 5, duration: 2.seconds),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 15),
+                SizedBox(
+                  height: 340,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: dealProducts.length,
+                    itemBuilder: (context, index) {
+                      return _DealCard(product: dealProducts[index], allProducts: allProducts);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          CustomPaint(
+            size: const Size(double.infinity, 25),
+            painter: _ScallopPainter(isTop: false),
           ),
         ],
       ),
@@ -1178,14 +1267,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildHeritageStory() {
+    final String title = heritageBanner['title'] ?? 'OUR KITCHEN\nSTORY';
+    final String desc = heritageBanner['description'] ?? 'Handmade with love since 1982. Experience the ancestral legacy of Coastal Andhra in every jar.';
+    final String img = heritageBanner['image_url'] ?? 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg';
+    final String btnText = heritageBanner['button_text'] ?? 'EXPLORE OUR JOURNEY';
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
       height: 480,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(40),
-        image: const DecorationImage(
-          image: AssetImage('assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'),
+        image: DecorationImage(
+          image: _getBannerImageProvider(img),
           fit: BoxFit.cover,
         ),
         boxShadow: [
@@ -1200,7 +1294,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         borderRadius: BorderRadius.circular(40),
         child: Stack(
           children: [
-            // Dark Overlay for text readability
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -1214,7 +1307,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            
             Padding(
               padding: const EdgeInsets.all(40),
               child: Column(
@@ -1226,7 +1318,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       .shimmer(duration: 3.seconds),
                   const SizedBox(height: 25),
                   Text(
-                    'OUR KITCHEN\nSTORY', 
+                    title, 
                     style: GoogleFonts.philosopher(
                       fontWeight: FontWeight.w900, 
                       fontSize: 42, 
@@ -1239,7 +1331,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   Container(height: 2, width: 60, color: const Color(0xFFD4AF37)),
                   const SizedBox(height: 20),
                   Text(
-                    'Handmade with love since 1982. Experience the ancestral legacy of Coastal Andhra in every jar.', 
+                    desc, 
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7), 
                       height: 1.6, 
@@ -1257,16 +1349,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       elevation: 0,
                     ),
-                    child: const Text(
-                      'EXPLORE OUR JOURNEY', 
-                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)
+                    child: Text(
+                      btnText, 
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)
                     )
                   ),
                 ],
               ),
             ),
-
-            // Subtle animated highlight
             Positioned(
               top: -100, right: -100,
               child: Container(
@@ -1283,6 +1373,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
+  ImageProvider _getBannerImageProvider(String path) {
+    if (path.startsWith('http')) return NetworkImage(path);
+    return AssetImage(path);
+  }
+
   Widget _buildMakingProcessSection() {
     final steps = [{'title': 'Sun Drying', 'desc': 'Ingredients dried under peak coastal sun.', 'icon': Icons.wb_sunny_rounded}, {'title': 'Stone Grinding', 'desc': 'Spices ground in traditional stone mortars.', 'icon': Icons.hardware}, {'title': 'Secret Ratios', 'desc': 'Ancestral recipes passed down since 1982.', 'icon': Icons.auto_awesome}];
     return Column(
@@ -1295,12 +1390,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildTestimonials() {
-    // Collect all reviews from all products to show a diverse mix
     List<Review> mixedReviews = [];
     for (var p in allProducts) {
       mixedReviews.addAll(p.reviews);
     }
-    mixedReviews.shuffle(); // Optional: show random reviews
+    mixedReviews.shuffle();
 
     if (mixedReviews.isEmpty) return const SizedBox.shrink();
 
@@ -1435,44 +1529,6 @@ class _StoryItem extends StatelessWidget {
   }
 }
 
-class _DealItem extends StatelessWidget {
-  final Product product;
-  const _DealItem({required this.product});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          AppNavigator.push(context, ProductDetailPage(product: product));
-        },
-        child: Container(
-          height: 180,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white10)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: Center(child: Hero(tag: 'deal_${product.name}', child: _buildImage(product.image)))),
-              const SizedBox(height: 10),
-              Text(product.name, maxLines: 1, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11, overflow: TextOverflow.ellipsis)),
-              const SizedBox(height: 4),
-              Row(children: [Text(product.defaultPrice, style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 13)), const SizedBox(width: 4), Flexible(child: Text('₹${(product.getRawPriceForWeight(product.defaultWeight) * 1.3).toStringAsFixed(0)}', maxLines: 1, style: const TextStyle(color: Colors.white30, decoration: TextDecoration.lineThrough, fontSize: 9, overflow: TextOverflow.ellipsis)))]),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImage(String path) {
-    if (path.startsWith('http')) {
-      return Image.network(path, fit: BoxFit.contain, errorBuilder: (c, e, s) => const Icon(Icons.image_not_supported_outlined, color: Colors.white24));
-    }
-    return Image.asset(path, fit: BoxFit.contain, errorBuilder: (c, e, s) => const Icon(Icons.image_not_supported_outlined, color: Colors.white24));
-  }
-}
-
 class _CategoryItem extends StatefulWidget {
   final String label;
   final String img;
@@ -1525,6 +1581,9 @@ class _CategoryItemState extends State<_CategoryItem> {
   }
 
   Widget _buildImage(String path) {
+    if (path.isEmpty) {
+      return Container(color: Colors.grey.shade50, child: const Center(child: Icon(Icons.category_outlined, color: Colors.grey)));
+    }
     if (path.startsWith('http')) {
       return Image.network(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.category_outlined, color: Colors.grey));
     }
@@ -1698,6 +1757,9 @@ class _PremiumProductCardState extends State<_PremiumProductCard> {
   }
 
   Widget _buildProductImage(String path) {
+    if (path.isEmpty) {
+      return Container(color: Colors.grey.shade50, child: const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
+    }
     if (path.startsWith('http')) {
       return Image.network(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
     }
@@ -1755,7 +1817,6 @@ class RoyalReviewCard extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // 1. The Main Luxury Card
           Container(
             padding: const EdgeInsets.all(30),
             decoration: BoxDecoration(
@@ -1847,7 +1908,6 @@ class RoyalReviewCard extends StatelessWidget {
               ],
             ),
           ),
-          // 2. The Floating Badge
           Positioned(
             left: -8, top: -8,
             child: Container(
@@ -1859,5 +1919,177 @@ class RoyalReviewCard extends StatelessWidget {
         ],
       ),
     ).animate().fadeIn(delay: (index * 150).ms).scale(begin: const Offset(0.95, 0.95));
+  }
+}
+
+class _ScallopPainter extends CustomPainter {
+  final bool isTop;
+  _ScallopPainter({required this.isTop});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = const Color(0xFFF9E9CF);
+    final paintWhite = Paint()..color = const Color(0xFFFFF8E8);
+    
+    // Draw the base cream background
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+
+    double radius = 12.0;
+    double diameter = radius * 2;
+    double spacing = 4.0;
+    double step = diameter + spacing;
+
+    for (double x = 0; x < size.width; x += step) {
+      canvas.drawCircle(
+        Offset(x + radius, isTop ? 0 : size.height),
+        radius,
+        paintWhite,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _DealCard extends StatelessWidget {
+  final Product product;
+  final List<Product> allProducts;
+  const _DealCard({required this.product, required this.allProducts});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 260,
+      margin: const EdgeInsets.only(right: 15, bottom: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                child: _buildImage(product.image, 160, width: double.infinity),
+              ),
+              Positioned(
+                bottom: 8,
+                left: 10,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Colors.green, width: 1.5),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Icon(Icons.circle, color: Colors.green, size: 8),
+                ),
+              ),
+              Positioned(
+                bottom: -18,
+                right: 12,
+                child: GestureDetector(
+                  onTap: () {
+                    HapticFeedback.mediumImpact();
+                    CartManager().addToCart(product);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF8B4513).withOpacity(0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                      border: Border.all(color: const Color(0xFF8B4513), width: 1.5),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'ADD',
+                          style: GoogleFonts.montserrat(
+                            color: const Color(0xFF8B4513),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.add, color: Color(0xFF8B4513), size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(15, 24, 15, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: GoogleFonts.philosopher(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF18453B),
+                    height: 1.1,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  product.description,
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    height: 1.2,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  product.defaultPrice,
+                  style: GoogleFonts.philosopher(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF18453B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImage(String path, double height, {double? width}) {
+    if (path.isEmpty) {
+      return Container(height: height, width: width, color: Colors.grey.shade100, child: const Icon(Icons.image_outlined, color: Colors.grey));
+    }
+    if (path.startsWith('http')) {
+      return Image.network(path, height: height, width: width, fit: BoxFit.cover, errorBuilder: (c,e,s) => Container(height: height, width: width, color: Colors.grey.shade100, child: const Icon(Icons.broken_image, color: Colors.grey)));
+    }
+    return Image.asset(path, height: height, width: width, fit: BoxFit.cover, errorBuilder: (c,e,s) => Container(height: height, width: width, color: Colors.grey.shade100, child: const Icon(Icons.broken_image, color: Colors.grey)));
   }
 }

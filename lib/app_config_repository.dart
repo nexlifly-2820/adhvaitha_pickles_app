@@ -110,4 +110,21 @@ class AppConfigRepository {
       return snapshot.data()!;
     });
   }
+
+  // 12. Perfect Pairings
+  Stream<List<Map<String, String>>> getPairingsStream() {
+    return _firestore.collection('app_data').doc('pairings').snapshots().map((snapshot) {
+      if (!snapshot.exists) return [];
+      final List<dynamic> data = snapshot.data()?['list'] ?? [];
+      return data.map((item) => Map<String, String>.from(item)).toList();
+    });
+  }
+
+  // 13. Heritage Story Banner
+  Stream<Map<String, String>> getHeritageBannerStream() {
+    return _firestore.collection('app_data').doc('heritage_banner').snapshots().map((snapshot) {
+      if (!snapshot.exists) return {};
+      return Map<String, String>.from(snapshot.data() ?? {});
+    });
+  }
 }

@@ -6,7 +6,6 @@ import 'cart_manager.dart';
 import 'navigation_util.dart';
 import 'product_repository.dart';
 import 'main.dart';
-import 'cart_page.dart';
 
 class ProductListingPage extends StatefulWidget {
   final String category;
@@ -55,6 +54,18 @@ class _ProductListingPageState extends State<ProductListingPage> {
     });
   }
 
+  Widget _buildSortDropdown() {
+    return PopupMenuButton<String>(
+      onSelected: _sortProducts,
+      icon: const Icon(Icons.sort_rounded),
+      itemBuilder: (context) => [
+        const PopupMenuItem(value: "Best Selling", child: Text("Best Selling")),
+        const PopupMenuItem(value: "Price: Low to High", child: Text("Price: Low to High")),
+        const PopupMenuItem(value: "Price: High to Low", child: Text("Price: High to Low")),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,12 +81,11 @@ class _ProductListingPageState extends State<ProductListingPage> {
         ),
         actions: [
           _buildSortDropdown(),
-          GlobalCartBadge(),
+          const GlobalCartBadge(),
         ],
       ),
       body: Column(
         children: [
-          // QUICK FILTERS
           Container(
             height: 60,
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -99,7 +109,7 @@ class _ProductListingPageState extends State<ProductListingPage> {
                   padding: const EdgeInsets.all(20),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.58, // Adjusted for dropdown
+                    childAspectRatio: 0.58,
                     crossAxisSpacing: 15,
                     mainAxisSpacing: 25,
                   ),
@@ -111,35 +121,6 @@ class _ProductListingPageState extends State<ProductListingPage> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSortDropdown() {
-    return PopupMenuButton<String>(
-      onSelected: _sortProducts,
-      icon: const Icon(Icons.sort_rounded),
-      itemBuilder: (context) => [
-        const PopupMenuItem(value: "Best Selling", child: Text("Best Selling")),
-        const PopupMenuItem(value: "Price: Low to High", child: Text("Price: Low to High")),
-        const PopupMenuItem(value: "Price: High to Low", child: Text("Price: High to Low")),
-      ],
-    );
-  Widget _buildProductImage(String path) {
-    if (path.startsWith('http')) {
-      return Image.network(
-        path, 
-        width: double.infinity, 
-        height: double.infinity, 
-        fit: BoxFit.contain, 
-        errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
-      );
-    }
-    return Image.asset(
-      path, 
-      width: double.infinity, 
-      height: double.infinity, 
-      fit: BoxFit.contain, 
-      errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
     );
   }
 }
@@ -170,23 +151,6 @@ class _FilterChip extends StatelessWidget {
           ],
         ),
       ),
-    );
-  Widget _buildProductImage(String path) {
-    if (path.startsWith('http')) {
-      return Image.network(
-        path, 
-        width: double.infinity, 
-        height: double.infinity, 
-        fit: BoxFit.contain, 
-        errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
-      );
-    }
-    return Image.asset(
-      path, 
-      width: double.infinity, 
-      height: double.infinity, 
-      fit: BoxFit.contain, 
-      errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
     );
   }
 }
@@ -267,7 +231,6 @@ class _ProductCardState extends State<_ProductCard> {
                     )),
                   ),
                   const SizedBox(height: 8),
-                  // WEIGHT DROPDOWN
                   Container(
                     height: 32,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -309,11 +272,6 @@ class _ProductCardState extends State<_ProductCard> {
                             onTap: () {
                               HapticFeedback.mediumImpact();
                               CartManager().addToCart(widget.product, weight: _selectedWeight);
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text('${widget.product.name} added!'), 
-                                behavior: SnackBarBehavior.floating,
-                                duration: const Duration(seconds: 1),
-                              ));
                             },
                             child: Container(
                               padding: EdgeInsets.symmetric(horizontal: qty > 0 ? 10 : 8, vertical: 8),
@@ -330,8 +288,6 @@ class _ProductCardState extends State<_ProductCard> {
                                 children: [
                                   const Icon(Icons.add, color: Colors.white, size: 14),
                                   if (qty > 0) ...[
-                                    const SizedBox(width: 4),
-                                    const Text('•', style: TextStyle(color: Colors.white70, fontSize: 12)),
                                     const SizedBox(width: 4),
                                     Text('$qty', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                                   ],
@@ -350,17 +306,12 @@ class _ProductCardState extends State<_ProductCard> {
         ),
       ),
     );
-  Widget _buildProductImage(String path) {
-    if (path.startsWith('http')) {
-      return Image.network(
-        path, 
-        width: double.infinity, 
-        height: double.infinity, 
-        fit: BoxFit.contain, 
-        errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
-      );
-    }
-    return Image.asset(
+  }
+}
+
+Widget _buildProductImage(String path) {
+  if (path.startsWith('http')) {
+    return Image.network(
       path, 
       width: double.infinity, 
       height: double.infinity, 
@@ -368,4 +319,11 @@ class _ProductCardState extends State<_ProductCard> {
       errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
     );
   }
+  return Image.asset(
+    path, 
+    width: double.infinity, 
+    height: double.infinity, 
+    fit: BoxFit.contain, 
+    errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
+  );
 }
