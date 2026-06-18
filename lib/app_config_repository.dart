@@ -43,11 +43,10 @@ class AppConfigRepository {
   }
 
   // 5. Deals of the Day
-  Stream<List<String>> getDealsStream() {
+  Stream<Map<String, dynamic>> getDealsStream() {
     return _firestore.collection('app_data').doc('deals').snapshots().map((snapshot) {
-      if (!snapshot.exists) return [];
-      final List<dynamic> data = snapshot.data()?['product_names'] ?? [];
-      return data.map((item) => item.toString()).toList();
+      if (!snapshot.exists) return {'product_names': [], 'end_time': Timestamp.now()};
+      return snapshot.data() ?? {'product_names': [], 'end_time': Timestamp.now()};
     });
   }
 
@@ -63,9 +62,19 @@ class AppConfigRepository {
   // 7. Categories Section
   Stream<List<Map<String, String>>> getCategoriesStream() {
     return _firestore.collection('app_data').doc('categories').snapshots().map((snapshot) {
-      if (!snapshot.exists) return [];
+      if (!snapshot.exists) {
+        print('DEBUG: Categories document does not exist in Firestore');
+        return [];
+      }
       final List<dynamic> data = snapshot.data()?['list'] ?? [];
-      return data.map((item) => Map<String, String>.from(item)).toList();
+      print('DEBUG: Fetched ${data.length} categories from Firestore');
+      return data.map((item) {
+        final map = item as Map<String, dynamic>;
+        return {
+          'label': map['label']?.toString() ?? '',
+          'img': map['img']?.toString() ?? '',
+        };
+      }).toList();
     });
   }
 

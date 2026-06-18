@@ -166,11 +166,11 @@ class Order {
   final double total;
   final DateTime date;
   final String status;
-  final DateTime estimatedDelivery;
+  final DateTime? estimatedDelivery;
   final String shippingAddress;
   final String paymentMethod;
   final String batchId;
-  final DateTime preparationDate;
+  final DateTime? preparationDate;
   final String spiceOrigin;
   final String? trackingId;
   final String? courierName;
@@ -184,11 +184,11 @@ class Order {
     required this.total,
     required this.date,
     required this.status,
-    required this.estimatedDelivery,
+    this.estimatedDelivery,
     required this.shippingAddress,
     required this.paymentMethod,
     required this.batchId,
-    required this.preparationDate,
+    this.preparationDate,
     required this.spiceOrigin,
     this.trackingId,
     this.courierName,

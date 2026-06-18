@@ -490,7 +490,7 @@ class ProductRepository {
       description: data['description'] ?? '',
       weightPriceMap: safeWeightMap,
       rating: (data['rating'] as num?)?.toDouble() ?? 5.0,
-      image: data['image'] ?? 'assets/images/logo.png',
+      image: data['image'] ?? 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
       color: Color(int.tryParse(data['color']?.toString() ?? '0xFF18453B') ?? 0xFF18453B),
       category: data['category'] ?? 'Pickles',
       isBestSeller: data['isBestSeller'] ?? false,
@@ -507,7 +507,7 @@ class ProductRepository {
       secretIngredient: IngredientDetail(
         name: data['secretIngredient']?['name'] ?? 'Royal Spices',
         description: data['secretIngredient']?['description'] ?? 'Secret blend of heritage spices.',
-        image: data['secretIngredient']?['image'] ?? 'assets/images/logo.png',
+        image: data['secretIngredient']?['image'] ?? 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
       ),
       sommelierPairings: (data['sommelierPairings'] as List? ?? []).map((p) => SommelierPairing(
         title: p['title'] ?? '',

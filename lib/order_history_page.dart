@@ -222,7 +222,7 @@ class _OrderCard extends StatelessWidget {
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              'Estimated Delivery: ${DateFormat('dd MMM').format(order.estimatedDelivery)}',
+                              'Estimated Delivery: ${order.estimatedDelivery != null ? DateFormat('dd MMM').format(order.estimatedDelivery!) : 'TBD'}',
                               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
                             ),
                           ),

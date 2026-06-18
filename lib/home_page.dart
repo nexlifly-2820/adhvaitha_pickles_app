@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'kitchen_story_page.dart';
 import 'product_detail_page.dart';
 import 'product_listing_page.dart';
@@ -32,6 +33,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentAdPage = 0;
   Timer? _carouselTimer;
   Timer? _adCarouselTimer;
+  Timer? _countdownTimer;
   StreamSubscription? _bannersSub;
   StreamSubscription? _couponsSub;
   StreamSubscription? _productsSub;
@@ -47,7 +49,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   List<Map<String, dynamic>> activeCoupons = [];
   List<Map<String, dynamic>> stories = [];
   Map<String, dynamic> bentoConfig = {};
-  List<String> dealProductNames = [];
+  Map<String, dynamic> dealsConfig = {};
   List<Map<String, String>> packagingList = [];
   List<Map<String, String>> categoryList = [];
 
@@ -75,6 +77,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         _adPageController.animateToPage(_currentAdPage, duration: const Duration(milliseconds: 900), curve: Curves.easeInOutCubic);
       }
     });
+
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
+      if (mounted) setState(() {});
+    });
   }
 
   void _startConfigListeners() {
@@ -100,7 +106,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
 
     _dealsSub = AppConfigRepository().getDealsStream().listen((data) {
-      if (mounted) setState(() => dealProductNames = data);
+      if (mounted) setState(() => dealsConfig = data);
     });
 
     _packagingSub = AppConfigRepository().getPackagingStream().listen((data) {
@@ -134,6 +140,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void dispose() {
     _carouselTimer?.cancel();
     _adCarouselTimer?.cancel();
+    _countdownTimer?.cancel();
     _bannersSub?.cancel();
     _couponsSub?.cancel();
     _productsSub?.cancel();
@@ -518,6 +525,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       return Image.network(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity);
     }
     return Image.asset(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity);
+  }
+
+  Widget _buildPairingImage(String path) {
+    if (path.startsWith('http')) {
+      return Image.network(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.image));
+    }
+    return Image.asset(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.image));
   }
 
   Widget _buildActiveCoupons() {
@@ -1055,7 +1069,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(25),
-                          child: Image.asset(p['image']!, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.image)),
+                          child: _buildPairingImage(p['image']!),
                         ),
                       ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: -5, end: 5, duration: 3.seconds, curve: Curves.easeInOut),
                     ),
@@ -1093,8 +1107,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildDealsOfTheDay() {
-    final dealProducts = allProducts.where((p) => dealProductNames.contains(p.name)).toList();
+    final List<dynamic> productNames = dealsConfig['product_names'] ?? [];
+    final dealProducts = allProducts.where((p) => productNames.contains(p.name)).toList();
     if (dealProducts.isEmpty) return const SizedBox.shrink();
+
+    final Timestamp? endTime = dealsConfig['end_time'];
+    String timeLeft = "Limited Time";
+    if (endTime != null) {
+      final now = DateTime.now();
+      final diff = endTime.toDate().difference(now);
+      if (diff.isNegative) {
+        timeLeft = "Deal Ended";
+      } else {
+        timeLeft = "Ending in ${diff.inHours.toString().padLeft(2, '0')}:${(diff.inMinutes % 60).toString().padLeft(2, '0')}:${(diff.inSeconds % 60).toString().padLeft(2, '0')}";
+      }
+    }
 
     return Container(
       margin: const EdgeInsets.all(20),
@@ -1106,8 +1133,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [FittedBox(fit: BoxFit.scaleDown, child: Text('DEALS OF THE DAY', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12))), SizedBox(height: 4), Text('Ending in 04:23:12', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold))])),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10)), child: const Text('SHOP ALL', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const FittedBox(fit: BoxFit.scaleDown, child: Text('DEALS OF THE DAY', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12))), const SizedBox(height: 4), Text(timeLeft, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold))])),
+              GestureDetector(
+                onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Pickles')),
+                child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10)), child: const Text('SHOP ALL', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
+              )
             ],
           ),
           const SizedBox(height: 20),
@@ -1138,7 +1168,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               final product = allProducts[index];
               return GestureDetector(
                 onTap: () => AppNavigator.push(context, ProductDetailPage(product: product, allProducts: allProducts)),
-                child: Container(width: 120, margin: const EdgeInsets.only(right: 15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.asset(product.image, width: 70, height: 70, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.image))), const SizedBox(height: 12), Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(product.name, maxLines: 1, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis))), Text(product.defaultPrice, style: const TextStyle(fontSize: 13, color: Color(0xFF18453B), fontWeight: FontWeight.w900))])),
+                child: Container(width: 120, margin: const EdgeInsets.only(right: 15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [ClipRRect(borderRadius: BorderRadius.circular(10), child: _buildImage(product.image, 70)), const SizedBox(height: 12), Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(product.name, maxLines: 1, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis))), Text(product.defaultPrice, style: const TextStyle(fontSize: 13, color: Color(0xFF18453B), fontWeight: FontWeight.w900))])),
               );
             },
           ),
@@ -1155,7 +1185,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(40),
         image: const DecorationImage(
-          image: AssetImage('assets/images/allam_velli_pickle.jpg'),
+          image: AssetImage('assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'),
           fit: BoxFit.cover,
         ),
         boxShadow: [
@@ -1423,7 +1453,7 @@ class _DealItem extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: Center(child: Hero(tag: 'deal_${product.name}', child: Image.asset(product.image, fit: BoxFit.contain, errorBuilder: (c, e, s) => const Icon(Icons.image_not_supported_outlined, color: Colors.white24))))),
+              Expanded(child: Center(child: Hero(tag: 'deal_${product.name}', child: _buildImage(product.image)))),
               const SizedBox(height: 10),
               Text(product.name, maxLines: 1, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11, overflow: TextOverflow.ellipsis)),
               const SizedBox(height: 4),
@@ -1433,6 +1463,13 @@ class _DealItem extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildImage(String path) {
+    if (path.startsWith('http')) {
+      return Image.network(path, fit: BoxFit.contain, errorBuilder: (c, e, s) => const Icon(Icons.image_not_supported_outlined, color: Colors.white24));
+    }
+    return Image.asset(path, fit: BoxFit.contain, errorBuilder: (c, e, s) => const Icon(Icons.image_not_supported_outlined, color: Colors.white24));
   }
 }
 
@@ -1463,7 +1500,21 @@ class _CategoryItemState extends State<_CategoryItem> {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Column(
             children: [
-              Container(height: 74, width: 74, decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 10))]), child: Padding(padding: const EdgeInsets.all(3), child: ClipRRect(borderRadius: BorderRadius.circular(40), child: Image.asset(widget.img, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined)))))),
+              Container(
+                height: 74, width: 74, 
+                decoration: BoxDecoration(
+                  color: Colors.white, 
+                  shape: BoxShape.circle, 
+                  boxShadow: [BoxShadow(color: const Color(0xFF18453B).withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 10))]
+                ), 
+                child: Padding(
+                  padding: const EdgeInsets.all(3), 
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(40), 
+                    child: _buildImage(widget.img),
+                  )
+                )
+              ),
               const SizedBox(height: 10),
               Text(widget.label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF18453B))),
             ],
@@ -1471,6 +1522,13 @@ class _CategoryItemState extends State<_CategoryItem> {
         ),
       ),
     );
+  }
+
+  Widget _buildImage(String path) {
+    if (path.startsWith('http')) {
+      return Image.network(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.category_outlined, color: Colors.grey));
+    }
+    return Image.asset(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.category_outlined, color: Colors.grey));
   }
 }
 

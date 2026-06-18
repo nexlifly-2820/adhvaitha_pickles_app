@@ -76,7 +76,7 @@ class BatchGenealogyPage extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _metaRow('Preparation Date', DateFormat('dd MMMM, yyyy').format(order.preparationDate)),
+          _metaRow('Preparation Date', order.preparationDate != null ? DateFormat('dd MMMM, yyyy').format(order.preparationDate!) : 'Processing...'),
           const Divider(height: 40, color: Colors.white10),
           _metaRow('Chef in Charge', 'Chef Lakshmi Amma'),
           const Divider(height: 40, color: Colors.white10),

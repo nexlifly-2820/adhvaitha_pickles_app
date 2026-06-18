@@ -124,6 +124,23 @@ class _ProductListingPageState extends State<ProductListingPage> {
         const PopupMenuItem(value: "Price: High to Low", child: Text("Price: High to Low")),
       ],
     );
+  Widget _buildProductImage(String path) {
+    if (path.startsWith('http')) {
+      return Image.network(
+        path, 
+        width: double.infinity, 
+        height: double.infinity, 
+        fit: BoxFit.contain, 
+        errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
+      );
+    }
+    return Image.asset(
+      path, 
+      width: double.infinity, 
+      height: double.infinity, 
+      fit: BoxFit.contain, 
+      errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
+    );
   }
 }
 
@@ -153,6 +170,23 @@ class _FilterChip extends StatelessWidget {
           ],
         ),
       ),
+    );
+  Widget _buildProductImage(String path) {
+    if (path.startsWith('http')) {
+      return Image.network(
+        path, 
+        width: double.infinity, 
+        height: double.infinity, 
+        fit: BoxFit.contain, 
+        errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
+      );
+    }
+    return Image.asset(
+      path, 
+      width: double.infinity, 
+      height: double.infinity, 
+      fit: BoxFit.contain, 
+      errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
     );
   }
 }
@@ -195,13 +229,7 @@ class _ProductCardState extends State<_ProductCard> {
                     child: Container(
                       color: Colors.white,
                       padding: const EdgeInsets.all(15),
-                      child: Image.asset(
-                        widget.product.image, 
-                        width: double.infinity, 
-                        height: double.infinity, 
-                        fit: BoxFit.contain, 
-                        errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
-                      ),
+                      child: _buildProductImage(widget.product.image),
                     ),
                   ),
                   if (widget.product.isBestSeller)
@@ -321,6 +349,23 @@ class _ProductCardState extends State<_ProductCard> {
           ],
         ),
       ),
+    );
+  Widget _buildProductImage(String path) {
+    if (path.startsWith('http')) {
+      return Image.network(
+        path, 
+        width: double.infinity, 
+        height: double.infinity, 
+        fit: BoxFit.contain, 
+        errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
+      );
+    }
+    return Image.asset(
+      path, 
+      width: double.infinity, 
+      height: double.infinity, 
+      fit: BoxFit.contain, 
+      errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined))
     );
   }
 }
