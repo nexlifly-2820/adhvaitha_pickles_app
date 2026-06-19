@@ -8,6 +8,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:adhvaitha_pickles_app/app_config_repository.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'cart_manager.dart';
 import 'order_manager.dart';
@@ -33,22 +34,46 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _secondaryPhoneController = TextEditingController();
   final TextEditingController _areaController = TextEditingController();
+  final TextEditingController _giftNoteController = TextEditingController();
 
   bool _isLoadingLocation = false;
   bool _isProcessing = false;
+  bool _isGift = false;
   int _currentStep = 0;
   String _selectedPayment = 'UPI (Google Pay / PhonePe)';
   String _addressType = 'Home';
+  List<String> _serviceablePincodes = [];
+  Map<String, dynamic> _billingConfig = {};
 
   @override
   void initState() {
     super.initState();
+    _loadServiceability();
+    _loadBillingConfig();
     PaymentManager().setupCallbacks(
       onSuccess: _handlePaymentSuccess,
       onFailure: _handlePaymentError,
       onExternalWallet: _handleExternalWallet,
     );
+  }
+
+  void _loadServiceability() {
+    AppConfigRepository().getServiceablePincodesStream().listen((list) {
+      if (mounted) setState(() => _serviceablePincodes = list);
+    });
+  }
+
+  void _loadBillingConfig() {
+    AppConfigRepository().getBillingConfigStream().listen((data) {
+      if (mounted) setState(() => _billingConfig = data);
+    });
+  }
+
+  bool _isPincodeServiceable() {
+    if (_serviceablePincodes.isEmpty) return true; // Ship everywhere if list empty
+    return _serviceablePincodes.contains(_pincodeController.text);
   }
 
   @override
@@ -59,7 +84,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _addressController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
+    _secondaryPhoneController.dispose();
     _areaController.dispose();
+    _giftNoteController.dispose();
     super.dispose();
   }
 
@@ -243,7 +270,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 onPressed: _isProcessing ? null : () async {
                   HapticFeedback.mediumImpact();
                   if (_currentStep < 2) {
-                    if (_currentStep == 0 && !_formKey.currentState!.validate()) return;
+                    if (_currentStep == 0) {
+                      if (!_formKey.currentState!.validate()) return;
+                      if (!_isPincodeServiceable()) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('We currently do not ship to this pincode. Please try another address.'),
+                          backgroundColor: Colors.red,
+                        ));
+                        return;
+                      }
+                    }
                     setState(() => _currentStep++);
                   } else {
                     setState(() => _isProcessing = true);
@@ -295,7 +331,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
         const Text('CONTACT INFORMATION', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 10, color: Colors.grey)),
         const SizedBox(height: 20),
         _buildTextField('Full Name', _nameController, Icons.person_outline_rounded),
-        _buildTextField('Phone Number', _phoneController, Icons.phone_android_rounded),
+        Row(
+          children: [
+            Expanded(child: _buildTextField('Phone Number', _phoneController, Icons.phone_android_rounded)),
+            const SizedBox(width: 15),
+            Expanded(child: _buildTextField('Secondary Phone (Optional)', _secondaryPhoneController, Icons.phone_android_rounded, required: false)),
+          ],
+        ),
         
         const SizedBox(height: 10),
         const Divider(height: 40),
@@ -325,7 +367,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
         const SizedBox(height: 20),
         Row(
           children: [
-            Expanded(child: _buildTextField('Pincode', _pincodeController, Icons.pin_drop_outlined)),
+            Expanded(
+              child: TextFormField(
+                controller: _pincodeController,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                onChanged: (v) {
+                  if (v.length == 6) _autoFillLocation(v);
+                },
+                decoration: _inputDecoration('Pincode', Icons.pin_drop_outlined),
+                validator: (v) => v!.length < 6 ? 'Invalid' : null,
+              ),
+            ),
             const SizedBox(width: 15),
             Expanded(child: _buildTextField('City', _cityController, Icons.location_city_outlined)),
           ],
@@ -346,6 +400,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
             _addressTypeChip('Other', Icons.location_on_rounded),
           ],
         ),
+
+        const SizedBox(height: 30),
+        _buildGiftSection(),
       ],
     ).animate().fadeIn();
   }
@@ -371,6 +428,86 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildGiftSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFD4AF37).withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.card_giftcard_rounded, color: Color(0xFFD4AF37), size: 20),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('SEND AS A ROYAL GIFT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Color(0xFF18453B))),
+                    Text('Add a personalized note for family.', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _isGift, 
+                onChanged: (v) => setState(() => _isGift = v),
+                activeColor: const Color(0xFFD4AF37),
+              ),
+            ],
+          ),
+          if (_isGift) ...[
+            const SizedBox(height: 15),
+            _buildTextField('Gift Message', _giftNoteController, Icons.edit_note_rounded, maxLines: 2, required: false),
+          ]
+        ],
+      ),
+    );
+  }
+
+  Future<void> _autoFillLocation(String pincode) async {
+    final response = await http.get(Uri.parse('https://api.postalpincode.in/pincode/$pincode'));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data[0]['Status'] == 'Success') {
+        final postOffice = data[0]['PostOffice'][0];
+        setState(() {
+          _cityController.text = postOffice['District'];
+          _stateController.text = postOffice['State'];
+        });
+      }
+    }
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      counterText: "",
+      labelStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+      prefixIcon: Icon(icon, size: 20, color: const Color(0xFF18453B)),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Color(0xFF18453B), width: 1)),
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller, IconData icon, {int maxLines = 1, bool required = true}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: TextFormField(
+        controller: controller,
+        maxLines: maxLines,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+        decoration: _inputDecoration(label, icon),
+        validator: (v) => (required && v!.isEmpty) ? 'Required' : null,
       ),
     );
   }
@@ -406,11 +543,83 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Widget _buildReviewStep(CartManager cart) {
+    double totalSavings = cart.discountAmount + (cart.deliveryFee == 0 ? 40 : 0);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('ORDER SUMMARY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 11, color: Colors.grey)),
-        const SizedBox(height: 20),
+        // 1. ADDRESS SUMMARY CARD
+        const Text('DELIVERING TO', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 10, color: Colors.grey)),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF18453B).withOpacity(0.05)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: const Color(0xFF18453B).withOpacity(0.05), shape: BoxShape.circle),
+                child: const Icon(Icons.location_on_rounded, color: Color(0xFF18453B), size: 18),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_nameController.text.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1)),
+                    const SizedBox(height: 2),
+                    Text('${_addressController.text}, ${_areaController.text}, ${_cityController.text} - ${_pincodeController.text}', 
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 11, height: 1.4),
+                      maxLines: 2, overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(() => _currentStep = 0),
+                child: const Text('CHANGE', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 10)),
+              ),
+            ],
+          ),
+        ),
+
+        // 2. GIFT PREVIEW (If applicable)
+        if (_isGift) ...[
+          const SizedBox(height: 15),
+          Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD4AF37).withOpacity(0.05),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.2)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.card_giftcard_rounded, color: Color(0xFFD4AF37), size: 18),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('ROYAL GIFT MESSAGE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 9, color: Color(0xFF18453B), letterSpacing: 1)),
+                      Text(_giftNoteController.text.isEmpty ? 'Best wishes from ${_nameController.text}' : _giftNoteController.text, 
+                        style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.grey.shade700),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 30),
+        const Text('ORDER SUMMARY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 10, color: Colors.grey)),
+        const SizedBox(height: 15),
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -436,7 +645,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        Row(
+                          children: [
+                            Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            if (item.isTemperingRequested) ...[
+                              const SizedBox(width: 6),
+                              const Icon(Icons.soup_kitchen_rounded, size: 12, color: Color(0xFFE65100)),
+                            ],
+                          ],
+                        ),
                         Text('${item.weight} • Qty: ${item.quantity}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
                       ],
                     ),
@@ -447,9 +664,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
             );
           },
         ),
+
         const SizedBox(height: 30),
-        const Text('BILLING DETAILS', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 11, color: Colors.grey)),
-        const SizedBox(height: 20),
+        const Text('BILLING DETAILS', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 10, color: Colors.grey)),
+        const SizedBox(height: 15),
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -482,6 +700,51 @@ class _CheckoutPageState extends State<CheckoutPage> {
               _buildCouponSection(context),
               const Divider(height: 30),
               _summaryRow('Total Amount', '₹${cart.total.toStringAsFixed(0)}', isTotal: true),
+              
+              if (totalSavings > 0) ...[
+                const SizedBox(height: 15),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.auto_awesome, size: 14, color: Colors.green.shade700),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${_billingConfig['savings_highlight_text'] ?? 'Total Savings on this order:'} ₹${totalSavings.toStringAsFixed(0)}',
+                        style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.bold, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 3.seconds),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 25),
+        Center(
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.timer_outlined, size: 14, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Text(_billingConfig['delivery_estimate_text'] ?? 'Estimated Delivery: 3-5 Business Days', 
+                    style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _billingConfig['support_chat_text'] ?? 'Need help? Chat with our heritage kitchen',
+                style: TextStyle(color: const Color(0xFF18453B).withOpacity(0.5), fontSize: 10, fontWeight: FontWeight.bold),
+              ),
             ],
           ),
         ),
@@ -618,28 +881,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
           subtitle: Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)),
           trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: Color(0xFFD4AF37)) : const Icon(Icons.circle_outlined, color: Colors.grey, size: 20),
         ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(String label, TextEditingController controller, IconData icon, {int maxLines = 1}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: TextFormField(
-        controller: controller,
-        maxLines: maxLines,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-          prefixIcon: Icon(icon, size: 20, color: const Color(0xFF18453B)),
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Color(0xFF18453B), width: 1)),
-        ),
-        validator: (v) => v!.isEmpty ? 'Required' : null,
       ),
     );
   }

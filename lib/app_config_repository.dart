@@ -60,19 +60,21 @@ class AppConfigRepository {
   }
 
   // 7. Categories Section
-  Stream<List<Map<String, String>>> getCategoriesStream() {
+  Stream<List<Map<String, dynamic>>> getCategoriesStream() {
     return _firestore.collection('app_data').doc('categories').snapshots().map((snapshot) {
       if (!snapshot.exists) {
-        print('DEBUG: Categories document does not exist in Firestore');
         return [];
       }
       final List<dynamic> data = snapshot.data()?['list'] ?? [];
-      print('DEBUG: Fetched ${data.length} categories from Firestore');
       return data.map((item) {
         final map = item as Map<String, dynamic>;
         return {
           'label': map['label']?.toString() ?? '',
           'img': map['img']?.toString() ?? '',
+          'tagline': map['tagline']?.toString() ?? '',
+          'badge': map['badge']?.toString() ?? '', // e.g., 'NEW', 'HOT'
+          'description': map['description']?.toString() ?? '',
+          'banner_img': map['banner_img']?.toString() ?? '',
         };
       }).toList();
     });
@@ -138,6 +140,52 @@ class AppConfigRepository {
       if (!snapshot.exists) return ['Mango Special', 'New Snacks', 'Spicy Chicken', 'Ladoo', 'Combos'];
       final List<dynamic> data = snapshot.data()?['trending_keywords'] ?? [];
       return data.map((item) => item.toString()).toList();
+    });
+  }
+
+  // 15. Categories Page Hero Banner
+  Stream<Map<String, dynamic>> getCategoryPageConfigStream() {
+    return _firestore.collection('app_data').doc('category_page_config').snapshots().map((snapshot) {
+      if (!snapshot.exists) return {
+        'hero_title': 'The Royal Summer Festival',
+        'hero_subtitle': 'Authentic sun-dried mango delicacies',
+        'hero_image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+        'hero_tag': 'FEATURED COLLECTION'
+      };
+      return snapshot.data() ?? {};
+    });
+  }
+
+  // 16. Cart Configuration
+  Stream<Map<String, dynamic>> getCartConfigStream() {
+    return _firestore.collection('app_data').doc('cart_config').snapshots().map((snapshot) {
+      if (!snapshot.exists) return {
+        'freshness_tagline': 'FRESHNESS GUARANTEED',
+        'dispatch_reassurance': 'Order in the next 2 hrs for same-day dispatch.',
+        'upsell_section_title': 'COMPLETES THE EXPERIENCE'
+      };
+      return snapshot.data() ?? {};
+    });
+  }
+
+  // 17. Serviceable Pincodes
+  Stream<List<String>> getServiceablePincodesStream() {
+    return _firestore.collection('app_data').doc('serviceability').snapshots().map((snapshot) {
+      if (!snapshot.exists) return []; // Empty means ship everywhere for now
+      final List<dynamic> list = snapshot.data()?['pincodes'] ?? [];
+      return list.map((e) => e.toString()).toList();
+    });
+  }
+
+  // 18. Billing Page Configuration
+  Stream<Map<String, dynamic>> getBillingConfigStream() {
+    return _firestore.collection('app_data').doc('billing_config').snapshots().map((snapshot) {
+      if (!snapshot.exists) return {
+        'delivery_estimate_text': 'Estimated Delivery: 3-5 Business Days',
+        'support_chat_text': 'Need help? Chat with our heritage kitchen',
+        'savings_highlight_text': 'Total Savings on this order:'
+      };
+      return snapshot.data() ?? {};
     });
   }
 }

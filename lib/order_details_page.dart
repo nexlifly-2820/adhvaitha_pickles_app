@@ -48,12 +48,62 @@ class OrderDetailsPage extends StatelessWidget {
             _buildSectionTitle('BILLING SUMMARY'),
             const SizedBox(height: 15),
             _buildBillingCard(),
+            const SizedBox(height: 40),
+            if (order.batchId.isNotEmpty) ...[
+              _buildSectionTitle('BATCH HERITAGE'),
+              const SizedBox(height: 15),
+              _buildBatchHeritageCard(),
+            ],
             const SizedBox(height: 50),
             _buildGenealogyButton(context),
             const SizedBox(height: 100),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildBatchHeritageCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.2)),
+        boxShadow: [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.05), blurRadius: 20)],
+      ),
+      child: Column(
+        children: [
+          _heritageItem(Icons.fingerprint_rounded, 'Batch ID', order.batchId),
+          const Divider(height: 30, indent: 40),
+          _heritageItem(Icons.calendar_today_rounded, 'Prepared On', 
+            order.preparationDate != null ? DateFormat('dd MMM, yyyy').format(order.preparationDate!) : 'Artisanal Preparation'),
+          const Divider(height: 30, indent: 40),
+          _heritageItem(Icons.auto_stories_rounded, 'Spice Origin', order.spiceOrigin),
+        ],
+      ),
+    );
+  }
+
+  Widget _heritageItem(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: const Color(0xFF18453B).withOpacity(0.05), shape: BoxShape.circle),
+          child: Icon(icon, color: const Color(0xFFD4AF37), size: 18),
+        ),
+        const SizedBox(width: 15),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
+              Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF18453B))),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

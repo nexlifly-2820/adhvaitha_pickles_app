@@ -258,14 +258,16 @@ class _OrderCard extends StatelessWidget {
             ),
             // TRACKING TIMELINE
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
               decoration: BoxDecoration(color: const Color(0xFF18453B).withOpacity(0.03), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30))),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _timelineDot('Placed', _isStatusReached(order.status, 'Placed')),
-                  _timelineLine(_isStatusReached(order.status, 'Packed')),
-                  _timelineDot('Packed', _isStatusReached(order.status, 'Packed')),
+                  _timelineLine(_isStatusReached(order.status, 'Preparing')),
+                  _timelineDot('Kitchen', _isStatusReached(order.status, 'Preparing')),
+                  _timelineLine(_isStatusReached(order.status, 'Quality Sealed')),
+                  _timelineDot('Sealed', _isStatusReached(order.status, 'Quality Sealed')),
                   _timelineLine(_isStatusReached(order.status, 'Shipped')),
                   _timelineDot('Shipped', _isStatusReached(order.status, 'Shipped')),
                   _timelineLine(_isStatusReached(order.status, 'Delivered')),
@@ -280,22 +282,23 @@ class _OrderCard extends StatelessWidget {
   }
 
   bool _isStatusReached(String currentStatus, String targetStatus) {
-    const statuses = ['Placed', 'Packed', 'Shipped', 'Delivered'];
+    const statuses = ['Placed', 'Preparing', 'Quality Sealed', 'Shipped', 'Delivered'];
     int currentIndex = statuses.indexOf(currentStatus);
     int targetIndex = statuses.indexOf(targetStatus);
+    if (currentIndex == -1) return false;
     return currentIndex >= targetIndex;
   }
 
   Widget _timelineDot(String label, bool isDone) {
     return SizedBox(
-      width: 50,
+      width: 45,
       child: Column(
         children: [
-          Icon(isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, size: 18, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade300),
+          Icon(isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, size: 16, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade300),
           const SizedBox(height: 6),
           FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(label, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: isDone ? const Color(0xFF18453B) : Colors.grey, letterSpacing: 0.5)),
+            child: Text(label, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: isDone ? const Color(0xFF18453B) : Colors.grey, letterSpacing: 0.5)),
           ),
         ],
       ),
@@ -303,6 +306,6 @@ class _OrderCard extends StatelessWidget {
   }
 
   Widget _timelineLine(bool isDone) {
-    return Expanded(child: Container(height: 2, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade200, margin: const EdgeInsets.only(bottom: 20)));
+    return Expanded(child: Container(height: 1.5, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade200, margin: const EdgeInsets.only(bottom: 20)));
   }
 }

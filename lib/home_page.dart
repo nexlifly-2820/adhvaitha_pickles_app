@@ -70,7 +70,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Map<String, dynamic> bentoConfig = {};
   Map<String, dynamic> dealsConfig = {};
   List<Map<String, String>> packagingList = [];
-  List<Map<String, String>> categoryList = [];
+  List<Map<String, dynamic>> categoryList = [];
   List<Map<String, String>> pairingList = [];
   Map<String, String> heritageBanner = {};
   List<String> trendingKeywords = [];
@@ -1133,8 +1133,42 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(padding: EdgeInsets.fromLTRB(20, 40, 20, 20), child: Text('Royal Collections', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF18453B)))),
-        SizedBox(height: 120, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 10), itemCount: categoryList.length, itemBuilder: (context, index) => _CategoryItem(label: categoryList[index]['label'] ?? '', img: categoryList[index]['img'] ?? '', onTap: () => AppNavigator.push(context, ProductListingPage(category: categoryList[index]['label'] ?? ''))).animate().scale(delay: (index * 50).ms, curve: Curves.easeOutBack))),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Royal Collections', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
+              Text(
+                '${categoryList.length} CATEGORIES',
+                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFFD4AF37), letterSpacing: 1),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 150, // Increased height for tagline
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            itemCount: categoryList.length,
+            itemBuilder: (context, index) {
+              final cat = categoryList[index];
+              final label = cat['label'] ?? '';
+              // Count products in this category
+              final count = allProducts.where((p) => p.category == label).length;
+              
+              return _CategoryItem(
+                label: label,
+                img: cat['img'] ?? '',
+                tagline: cat['tagline'] ?? '',
+                badge: cat['badge'] ?? '',
+                productCount: count,
+                onTap: () => AppNavigator.push(context, ProductListingPage(category: label)),
+              ).animate().scale(delay: (index * 50).ms, curve: Curves.easeOutBack);
+            },
+          ),
+        ),
       ],
     );
   }
@@ -1776,8 +1810,18 @@ class _StoryItem extends StatelessWidget {
 class _CategoryItem extends StatefulWidget {
   final String label;
   final String img;
+  final String tagline;
+  final String badge;
+  final int productCount;
   final VoidCallback onTap;
-  const _CategoryItem({required this.label, required this.img, required this.onTap});
+  const _CategoryItem({
+    required this.label, 
+    required this.img, 
+    this.tagline = '',
+    this.badge = '',
+    this.productCount = 0,
+    required this.onTap
+  });
 
   @override
   State<_CategoryItem> createState() => _CategoryItemState();
@@ -1800,22 +1844,73 @@ class _CategoryItemState extends State<_CategoryItem> {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Column(
             children: [
-              Container(
-                height: 74, width: 74, 
-                decoration: const BoxDecoration(
-                  color: Colors.white, 
-                  shape: BoxShape.circle, 
-                ), 
-                child: Padding(
-                  padding: const EdgeInsets.all(3), 
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(40), 
-                    child: _buildImage(widget.img),
-                  )
-                )
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    height: 84, width: 84, 
+                    decoration: BoxDecoration(
+                      color: Colors.white, 
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: const Color(0xFF18453B).withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))
+                      ],
+                    ), 
+                    child: Padding(
+                      padding: const EdgeInsets.all(4), 
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(40), 
+                        child: _buildImage(widget.img),
+                      )
+                    )
+                  ),
+                  if (widget.badge.isNotEmpty)
+                    Positioned(
+                      top: -2, right: -2,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: widget.badge == 'HOT' ? Colors.red : const Color(0xFFD4AF37),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
+                        ),
+                        child: Text(
+                          widget.badge,
+                          style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                        ),
+                      ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds),
+                    ),
+                  Positioned(
+                    bottom: -5,
+                    right: 0,
+                    left: 0,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF18453B),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${widget.productCount}',
+                          style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              Text(widget.label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF18453B))),
+              const SizedBox(height: 12),
+              Text(
+                widget.label, 
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF18453B)),
+              ),
+              if (widget.tagline.isNotEmpty)
+                Text(
+                  widget.tagline,
+                  style: TextStyle(fontSize: 9, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+                ),
             ],
           ),
         ),

@@ -56,6 +56,15 @@ class Product {
   final List<SommelierPairing> sommelierPairings;
   final bool isOutOfStock;
   final int stockCount;
+  final bool isVeg;
+  final String subCategory;
+  final int viewCount;
+  final int purchaseCount;
+  final List<String> trustBadges;
+  final String artisanName;
+  final String artisanImage;
+  final String artisanDescription;
+  final List<Map<String, String>> recipes;
 
   Product({
     required this.name,
@@ -79,6 +88,18 @@ class Product {
     this.sommelierPairings = const [],
     this.isOutOfStock = false,
     this.stockCount = 100,
+    this.isVeg = true,
+    this.subCategory = 'Classic',
+    this.viewCount = 42,
+    this.purchaseCount = 15,
+    this.trustBadges = const ['Zero Preservatives', 'Sun-Dried', 'Hand-Sorted', 'Stone-Pounded'],
+    this.artisanName = 'Smt. Annapurna',
+    this.artisanImage = 'assets/images/kitchen_story_main.jpg',
+    this.artisanDescription = 'Our Master Pickle Maker with over 40 years of experience in traditional preservation.',
+    this.recipes = const [
+      {'title': 'The Coastal Classic', 'instruction': 'Mix with steaming hot rice and a generous dollop of Desi Ghee for the most authentic experience.'},
+      {'title': 'Spicy Marinade', 'instruction': 'Use 2 tablespoons as a marinade for grilled prawns or paneer to add a deep, tangy kick.'}
+    ],
   });
 
   Product copyWith({
@@ -103,6 +124,15 @@ class Product {
     List<SommelierPairing>? sommelierPairings,
     bool? isOutOfStock,
     int? stockCount,
+    bool? isVeg,
+    String? subCategory,
+    int? viewCount,
+    int? purchaseCount,
+    List<String>? trustBadges,
+    String? artisanName,
+    String? artisanImage,
+    String? artisanDescription,
+    List<Map<String, String>>? recipes,
   }) {
     return Product(
       name: name ?? this.name,
@@ -126,6 +156,15 @@ class Product {
       sommelierPairings: sommelierPairings ?? this.sommelierPairings,
       isOutOfStock: isOutOfStock ?? this.isOutOfStock,
       stockCount: stockCount ?? this.stockCount,
+      isVeg: isVeg ?? this.isVeg,
+      subCategory: subCategory ?? this.subCategory,
+      viewCount: viewCount ?? this.viewCount,
+      purchaseCount: purchaseCount ?? this.purchaseCount,
+      trustBadges: trustBadges ?? this.trustBadges,
+      artisanName: artisanName ?? this.artisanName,
+      artisanImage: artisanImage ?? this.artisanImage,
+      artisanDescription: artisanDescription ?? this.artisanDescription,
+      recipes: recipes ?? this.recipes,
     );
   }
 

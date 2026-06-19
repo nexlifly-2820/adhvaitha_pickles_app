@@ -114,6 +114,8 @@ class CartManager extends ChangeNotifier {
     return subtotal >= _freeThreshold ? 0 : _baseDeliveryFee;
   }
 
+  double get freeThreshold => _freeThreshold;
+
   double get gstAmount {
     if (_items.isEmpty) return 0;
     return (subtotal - _discountAmount) * (_gstPercentage / 100);
