@@ -31,6 +31,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   void initState() {
     super.initState();
     selectedWeight = widget.product.defaultWeight;
+    ProductRepository.addToRecentlyViewed(widget.product);
   }
 
   @override

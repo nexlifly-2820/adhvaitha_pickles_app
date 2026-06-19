@@ -42,6 +42,16 @@ class ProductRepository {
     image: 'assets/images/gondh_laddu_edible_gum_laddu.jpg',
   );
 
+  static final List<Product> recentlyViewed = [];
+
+  static void addToRecentlyViewed(Product product) {
+    if (recentlyViewed.contains(product)) {
+      recentlyViewed.remove(product);
+    }
+    recentlyViewed.insert(0, product);
+    if (recentlyViewed.length > 10) recentlyViewed.removeLast();
+  }
+
   static final List<Product> allProducts = [
     // PICKLES
     Product(
@@ -61,6 +71,7 @@ class ProductRepository {
         image: 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
       ),
       canRequestTempering: true,
+      stockCount: 8,
       sommelierPairings: [
         SommelierPairing(title: 'Artisanal Sourdough', description: 'The tangy crust of a fresh sourdough complements the sweet-spicy notes of Bellam Avakaya perfectly.', icon: Icons.bakery_dining_rounded),
         SommelierPairing(title: 'Aged Cheddar Cheese', description: 'The sharpness of cheddar cuts through the jaggery sweetness, creating a unique global-fusion snack.', icon: Icons.lunch_dining_rounded),
@@ -78,6 +89,7 @@ class ProductRepository {
       servingSuggestion: 'Best enjoyed with Curd Rice, Pesarattu, or as a side for hot Parathas.',
       secretIngredient: _secretGarlic,
       canRequestTempering: true,
+      stockCount: 5,
       sommelierPairings: [
         SommelierPairing(title: 'Grilled King Prawns', description: 'Use as a high-impact marinade or a side dip for seafood to elevate the umami of the ocean.', icon: Icons.set_meal_rounded),
         SommelierPairing(title: 'Creamy Avocado Toast', description: 'The creamy fats of avocado neutralize the ginger heat, resulting in a balanced gourmet breakfast.', icon: Icons.breakfast_dining_rounded),
@@ -504,6 +516,7 @@ class ProductRepository {
       storageInstructions: data['storageInstructions'] ?? '',
       servingSuggestion: data['servingSuggestion'] ?? '',
       canRequestTempering: data['canRequestTempering'] ?? false,
+      stockCount: data['stockCount'] ?? 100,
       secretIngredient: IngredientDetail(
         name: data['secretIngredient']?['name'] ?? 'Royal Spices',
         description: data['secretIngredient']?['description'] ?? 'Secret blend of heritage spices.',
@@ -538,6 +551,7 @@ class ProductRepository {
       'category': p.category,
       'isBestSeller': p.isBestSeller,
       'isOutOfStock': p.isOutOfStock,
+      'stockCount': p.stockCount,
       'pairings': p.pairings,
       'origin': p.origin,
       'ingredients': p.ingredients,

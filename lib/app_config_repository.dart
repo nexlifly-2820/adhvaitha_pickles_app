@@ -96,10 +96,14 @@ class AppConfigRepository {
     });
   }
 
-  // 10. App State (Maintenance/Version)
+  // 10. App State (Maintenance/Version/Inventory)
   Stream<Map<String, dynamic>> getAppStateStream() {
     return _firestore.collection('app_data').doc('config').snapshots().map((snapshot) {
-      return snapshot.data() ?? {'maintenance_mode': false, 'min_version': '1.0.0'};
+      return snapshot.data() ?? {
+        'maintenance_mode': false, 
+        'min_version': '1.0.0',
+        'inventory_threshold': 10
+      };
     });
   }
 
@@ -125,6 +129,15 @@ class AppConfigRepository {
     return _firestore.collection('app_data').doc('heritage_banner').snapshots().map((snapshot) {
       if (!snapshot.exists) return {};
       return Map<String, String>.from(snapshot.data() ?? {});
+    });
+  }
+
+  // 14. Trending Searches
+  Stream<List<String>> getTrendingSearchesStream() {
+    return _firestore.collection('app_data').doc('search_config').snapshots().map((snapshot) {
+      if (!snapshot.exists) return ['Mango Special', 'New Snacks', 'Spicy Chicken', 'Ladoo', 'Combos'];
+      final List<dynamic> data = snapshot.data()?['trending_keywords'] ?? [];
+      return data.map((item) => item.toString()).toList();
     });
   }
 }

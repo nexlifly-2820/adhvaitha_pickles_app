@@ -8,7 +8,8 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class SearchPage extends StatefulWidget {
   final bool autoListen;
-  const SearchPage({super.key, this.autoListen = false});
+  final String? initialQuery;
+  const SearchPage({super.key, this.autoListen = false, this.initialQuery});
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -28,6 +29,10 @@ class _SearchPageState extends State<SearchPage> {
   void initState() {
     super.initState();
     _speech = stt.SpeechToText();
+    if (widget.initialQuery != null) {
+      _searchController.text = widget.initialQuery!;
+      _performSearch(widget.initialQuery!);
+    }
     if (widget.autoListen) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _listen());
     }

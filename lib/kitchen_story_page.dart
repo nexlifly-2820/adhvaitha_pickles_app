@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'kitchen_story_model.dart';
+import 'journey_components.dart';
 
 class KitchenStoryPage extends StatefulWidget {
   const KitchenStoryPage({super.key});
@@ -27,7 +28,6 @@ class _KitchenStoryPageState extends State<KitchenStoryPage> {
 
         KitchenStoryData data;
         if (!snapshot.hasData || !snapshot.data!.exists) {
-          // Fallback to default data if Firestore document doesn't exist yet
           data = KitchenStoryData(
             appBarTitle: 'OUR JOURNEY',
             beginning: BeginningSection(
@@ -126,14 +126,14 @@ class _KitchenStoryPageState extends State<KitchenStoryPage> {
   Widget _buildFirstStoreSection(BeginningSection beginning) {
     return Column(
       children: [
-        _PhotoCard(
+        PhotoCard(
           imagePath: beginning.imagePath,
           angle: beginning.angle,
           hasPin: beginning.hasPin,
           label: beginning.label,
           icons: const [
-            _FloatingIcon(icon: Icons.eco_outlined, top: 40, right: -20, color: Colors.green),
-            _FloatingIcon(icon: Icons.agriculture_outlined, bottom: 20, left: -30, color: Colors.orange),
+            FloatingIcon(icon: Icons.eco_outlined, top: 40, right: -20, color: Colors.green),
+            FloatingIcon(icon: Icons.agriculture_outlined, bottom: 20, left: -30, color: Colors.orange),
           ],
         ),
         const SizedBox(height: 30),
@@ -163,19 +163,19 @@ class _KitchenStoryPageState extends State<KitchenStoryPage> {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 20),
-          child: _PhotoCard(
+          child: PhotoCard(
             imagePath: authentic.imagePath,
             angle: authentic.angle,
             hasPin: true,
             icons: const [
-              _FloatingIcon(icon: Icons.spa_outlined, top: -10, right: 20, color: Colors.green),
+              FloatingIcon(icon: Icons.spa_outlined, top: -10, right: 20, color: Colors.green),
             ],
           ),
         ),
         Positioned(
           right: 0,
           bottom: 40,
-          child: _RedBanner(text: authentic.bannerText),
+          child: RedBanner(text: authentic.bannerText),
         ),
       ],
     );
@@ -277,7 +277,7 @@ class _KitchenStoryPageState extends State<KitchenStoryPage> {
   Widget _buildHundredStoresSection(ReachSection reach) {
     return Column(
       children: [
-        _PhotoCard(
+        PhotoCard(
           imagePath: reach.imagePath,
           angle: 0.05,
           hasPin: true,
@@ -298,11 +298,11 @@ class _KitchenStoryPageState extends State<KitchenStoryPage> {
   Widget _buildFooterSection(FooterSection footer) {
     return Column(
       children: [
-        _PhotoCard(
+        PhotoCard(
           imagePath: footer.imagePath,
           angle: -0.03,
           icons: const [
-            _FloatingIcon(icon: Icons.local_florist_outlined, bottom: -20, right: 20, color: Colors.green),
+            FloatingIcon(icon: Icons.local_florist_outlined, bottom: -20, right: 20, color: Colors.green),
           ],
         ),
         Padding(
@@ -394,7 +394,7 @@ class _CircularIngredient extends StatelessWidget {
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
       ),
       child: ClipOval(
-        child: _buildImage(imagePath, fit: BoxFit.cover),
+        child: JourneyImage(path: imagePath, fit: BoxFit.cover),
       ),
     );
   }
@@ -441,114 +441,6 @@ class _DashedPathPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _PhotoCard extends StatelessWidget {
-  final String imagePath;
-  final double angle;
-  final bool hasPin;
-  final String? label;
-  final List<_FloatingIcon> icons;
-
-  const _PhotoCard({
-    required this.imagePath,
-    this.angle = 0,
-    this.hasPin = false,
-    this.label,
-    this.icons = const [],
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.rotate(
-      angle: angle,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
-            ),
-            child: CustomPaint(
-              painter: _CheckeredPainter(),
-              child: Padding(
-                padding: const EdgeInsets.all(10.0),
-                child: _buildImage(imagePath, width: 280, height: 200, fit: BoxFit.cover),
-              ),
-            ),
-          ),
-          if (hasPin)
-            const Positioned(
-              top: -15,
-              left: 20,
-              child: Icon(Icons.push_pin, color: Color(0xFFE21B23), size: 30),
-            ),
-          if (label != null)
-            Positioned(
-              bottom: -10,
-              right: -10,
-              child: Transform.rotate(
-                angle: 0.2,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE21B23),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: Text(
-                    label!,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12),
-                  ),
-                ),
-              ),
-            ),
-          ...icons,
-        ],
-      ),
-    );
-  }
-}
-
-class _CheckeredPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paintYellow = Paint()..color = const Color(0xFFFFD700);
-    const double squareSize = 15.0;
-
-    for (double x = 0; x < size.width; x += squareSize) {
-      for (double y = 0; y < size.height; y += squareSize) {
-        if ((x / squareSize).floor() % 2 == (y / squareSize).floor() % 2) {
-        } else {
-          canvas.drawRect(Rect.fromLTWH(x, y, squareSize, squareSize), paintYellow);
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _FloatingIcon extends StatelessWidget {
-  final IconData icon;
-  final double? top, bottom, left, right;
-  final Color color;
-
-  const _FloatingIcon({required this.icon, this.top, this.bottom, this.left, this.right, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      top: top, bottom: bottom, left: left, right: right,
-      child: Transform.rotate(
-        angle: 0.1,
-        child: Icon(icon, color: color, size: 40),
-      ),
-    );
-  }
-}
-
 class _CurvedArrow extends StatelessWidget {
   final double angle;
   final bool flip;
@@ -560,67 +452,6 @@ class _CurvedArrow extends StatelessWidget {
       alignment: Alignment.center,
       transform: Matrix4.rotationZ(angle)..scale(flip ? -1.0 : 1.0, 1.0),
       child: const Icon(Icons.subdirectory_arrow_right_rounded, color: Color(0xFF18453B), size: 60),
-    );
-  }
-}
-
-class _RedBanner extends StatelessWidget {
-  final String text;
-  const _RedBanner({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.rotate(
-      angle: -0.1,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-        decoration: const BoxDecoration(
-          color: Color(0xFFE21B23),
-          borderRadius: BorderRadius.only(topLeft: Radius.circular(30), bottomLeft: Radius.circular(30)),
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
-        ),
-      ),
-    );
-  }
-}
-
-Widget _buildImage(String path, {double? width, double? height, BoxFit fit = BoxFit.cover}) {
-  if (path.isEmpty) {
-    return Container(
-      width: width,
-      height: height,
-      color: Colors.grey[200],
-      child: const Icon(Icons.image_outlined, color: Colors.grey),
-    );
-  }
-  if (path.startsWith('http') || path.startsWith('https')) {
-    return Image.network(
-      path,
-      width: width,
-      height: height,
-      fit: fit,
-      errorBuilder: (context, error, stackTrace) => Container(
-        width: width,
-        height: height,
-        color: Colors.grey[300],
-        child: const Icon(Icons.broken_image, color: Colors.grey),
-      ),
-    );
-  } else {
-    return Image.asset(
-      path,
-      width: width,
-      height: height,
-      fit: fit,
-      errorBuilder: (context, error, stackTrace) => Container(
-        width: width,
-        height: height,
-        color: Colors.grey[300],
-        child: const Icon(Icons.broken_image, color: Colors.grey),
-      ),
     );
   }
 }

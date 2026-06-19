@@ -55,6 +55,7 @@ class Product {
   final bool canRequestTempering;
   final List<SommelierPairing> sommelierPairings;
   final bool isOutOfStock;
+  final int stockCount;
 
   Product({
     required this.name,
@@ -77,6 +78,7 @@ class Product {
     this.canRequestTempering = false,
     this.sommelierPairings = const [],
     this.isOutOfStock = false,
+    this.stockCount = 100,
   });
 
   Product copyWith({
@@ -100,6 +102,7 @@ class Product {
     bool? canRequestTempering,
     List<SommelierPairing>? sommelierPairings,
     bool? isOutOfStock,
+    int? stockCount,
   }) {
     return Product(
       name: name ?? this.name,
@@ -122,6 +125,7 @@ class Product {
       canRequestTempering: canRequestTempering ?? this.canRequestTempering,
       sommelierPairings: sommelierPairings ?? this.sommelierPairings,
       isOutOfStock: isOutOfStock ?? this.isOutOfStock,
+      stockCount: stockCount ?? this.stockCount,
     );
   }
 
