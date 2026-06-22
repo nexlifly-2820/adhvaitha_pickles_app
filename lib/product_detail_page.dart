@@ -8,6 +8,7 @@ import 'cart_manager.dart';
 import 'wishlist_manager.dart';
 import 'checkout_page.dart';
 import 'navigation_util.dart';
+import 'product_manager.dart';
 import 'product_repository.dart';
 import 'cloud_function_manager.dart';
 import 'main.dart';
@@ -56,7 +57,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final wishlist = WishlistManager();
     final bool isFav = wishlist.isFavorite(widget.product);
 
-    final productPool = widget.allProducts.isNotEmpty ? widget.allProducts : ProductRepository.allProducts;
+    final productPool = widget.allProducts.isNotEmpty ? widget.allProducts : ProductManager().products;
     final recommendations = productPool.where((p) =>
       widget.product.pairings.contains(p.name)).toList();
 
@@ -163,11 +164,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(25),
-                child: Image.asset(
-                  widget.product.image, 
-                  fit: BoxFit.cover,
-                  errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, size: 80, color: Colors.grey))
-                ),
+                child: _buildMainProductImage(widget.product.image),
               ),
             ),
           ),
@@ -221,9 +218,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         children: [
           const Icon(Icons.trending_up_rounded, size: 14, color: Color(0xFFD4AF37)),
           const SizedBox(width: 8),
-          Text(
-            '${widget.product.viewCount} royal guests viewed this today',
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFD4AF37)),
+          Flexible(
+            child: Text(
+              '${widget.product.viewCount} royal guests viewed this today',
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFD4AF37)),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -234,19 +234,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: (widget.product.isOutOfStock ? Colors.red : const Color(0xFF18453B)).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-          child: Text(
-            (widget.product.isOutOfStock ? 'OUT OF STOCK' : widget.product.category).toUpperCase(), 
-            style: TextStyle(color: widget.product.isOutOfStock ? Colors.red : const Color(0xFF18453B), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: (widget.product.isOutOfStock ? Colors.red : const Color(0xFF18453B)).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            child: Text(
+              (widget.product.isOutOfStock ? 'OUT OF STOCK' : widget.product.category).toUpperCase(), 
+              style: TextStyle(color: widget.product.isOutOfStock ? Colors.red : const Color(0xFF18453B), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ),
+        const SizedBox(width: 10),
         Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.star_rounded, color: Color(0xFFD4AF37), size: 20),
             Text(' ${widget.product.rating}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-            Text(' (120+ Reviews)', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+            const SizedBox(width: 4),
+            Text('(120+)', style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
           ],
         ),
       ],
@@ -272,7 +278,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text('DESCRIPTION', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12, color: Color(0xFF18453B))),
+        const Expanded(
+          child: Text('DESCRIPTION', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12, color: Color(0xFF18453B))),
+        ),
+        const SizedBox(width: 10),
         GestureDetector(
           onTap: _showSecretIngredient,
           child: Container(
@@ -283,10 +292,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
             ),
             child: const Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.auto_awesome, size: 14, color: Color(0xFFD4AF37)),
                 SizedBox(width: 6),
-                Text('SECRET INGREDIENT', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 10)),
+                Text('SECRET', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 10)),
               ],
             ),
           ),
@@ -468,7 +478,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.asset(p.image, width: 80, height: 80, fit: BoxFit.cover),
+                        child: _buildPairingImage(p.image),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -573,7 +583,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child: Image.asset(widget.product.artisanImage, width: 80, height: 80, fit: BoxFit.cover),
+                child: _buildArtisanImage(widget.product.artisanImage),
               ),
               const SizedBox(width: 20),
               Expanded(
@@ -591,6 +601,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         ),
       ],
     );
+  }
+
+  Widget _buildArtisanImage(String path) {
+    if (path.startsWith('http')) {
+      return Image.network(path, width: 80, height: 80, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.person, size: 40));
+    }
+    return Image.asset(path, width: 80, height: 80, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.person, size: 40));
   }
 
   Widget _buildRecipesSection() {
@@ -659,6 +676,46 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ],
         ),
       ).animate().slideY(begin: 1, end: 0),
+    );
+  }
+
+  Widget _buildMainProductImage(String path) {
+    if (path.isEmpty) {
+      return const Center(child: Icon(Icons.image_not_supported_outlined, size: 80, color: Colors.grey));
+    }
+    if (path.startsWith('http')) {
+      return Image.network(
+        path, fit: BoxFit.cover,
+        errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image_outlined, size: 80, color: Colors.grey)),
+      );
+    }
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(
+      assetPath, fit: BoxFit.cover,
+      errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, size: 80, color: Colors.grey)),
+    );
+  }
+
+  Widget _buildPairingImage(String path) {
+    if (path.isEmpty) {
+      return Container(width: 80, height: 80, color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey, size: 20));
+    }
+    if (path.startsWith('http')) {
+      return Image.network(
+        path, width: 80, height: 80, fit: BoxFit.cover,
+        errorBuilder: (c, e, s) => Container(width: 80, height: 80, color: Colors.grey.shade50, child: const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 20)),
+      );
+    }
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(
+      assetPath, width: 80, height: 80, fit: BoxFit.cover,
+      errorBuilder: (c, e, s) => Container(width: 80, height: 80, color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey, size: 20)),
     );
   }
 

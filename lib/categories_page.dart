@@ -6,6 +6,7 @@ import 'product_listing_page.dart';
 import 'navigation_util.dart';
 import 'main.dart';
 import 'app_config_repository.dart';
+import 'product_manager.dart';
 import 'product_repository.dart';
 import 'models.dart';
 import 'search_page.dart';
@@ -18,10 +19,25 @@ class CategoriesPage extends StatefulWidget {
 }
 
 class _CategoriesPageState extends State<CategoriesPage> {
-  List<Product> allProducts = ProductRepository.allProducts;
+  @override
+  void initState() {
+    super.initState();
+    ProductManager().addListener(_onProductsUpdated);
+  }
+
+  @override
+  void dispose() {
+    ProductManager().removeListener(_onProductsUpdated);
+    super.dispose();
+  }
+
+  void _onProductsUpdated() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
+    final allProducts = ProductManager().products;
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
       body: StreamBuilder<List<Map<String, dynamic>>>(
@@ -72,7 +88,14 @@ class _CategoriesPageState extends State<CategoriesPage> {
                           (context, index) {
                             final cat = categories[index];
                             final label = cat['label'] ?? '';
-                            final count = allProducts.where((p) => p.category == label).length;
+                            
+                            final count = allProducts.where((p) {
+                              final pCat = p.category.trim().toLowerCase();
+                              final targetCat = label.trim().toLowerCase();
+                              return pCat == targetCat || 
+                                     pCat == "${targetCat}s" || 
+                                     "${pCat}s" == targetCat;
+                            }).length;
 
                             return _CategoryGridCard(
                               title: label,

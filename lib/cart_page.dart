@@ -7,6 +7,7 @@ import 'checkout_page.dart';
 import 'main.dart';
 import 'models.dart';
 import 'navigation_util.dart';
+import 'product_manager.dart';
 import 'product_repository.dart';
 import 'product_detail_page.dart';
 
@@ -186,7 +187,7 @@ class _CartPageState extends State<CartPage> {
   Widget _buildUpsellSection() {
     // Suggest pairings based on what's in cart (Simple logic: show top products not in cart)
     final cartNames = CartManager().items.map((i) => i.product.name).toList();
-    final suggestions = ProductRepository.allProducts
+    final suggestions = ProductManager().products
         .where((p) => !cartNames.contains(p.name) && p.isBestSeller)
         .take(4)
         .toList();

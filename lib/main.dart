@@ -13,6 +13,7 @@ import 'order_history_page.dart';
 import 'cart_manager.dart';
 import 'cart_page.dart';
 import 'navigation_util.dart';
+import 'product_manager.dart';
 import 'notification_manager.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -24,8 +25,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   
-  // Initialize Notifications
+  // Initialize Managers
   await NotificationManager().init();
+  ProductManager().init();
   
   // Background message handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

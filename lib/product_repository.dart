@@ -52,6 +52,17 @@ class ProductRepository {
     if (recentlyViewed.length > 10) recentlyViewed.removeLast();
   }
 
+  static void refreshRecentlyViewed(List<Product> latestProducts) {
+    for (int i = 0; i < recentlyViewed.length; i++) {
+      try {
+        final latest = latestProducts.firstWhere((p) => p.name == recentlyViewed[i].name);
+        recentlyViewed[i] = latest;
+      } catch (e) {
+        // Product no longer exists
+      }
+    }
+  }
+
   static final List<Product> allProducts = [
     // PICKLES
     Product(
@@ -420,27 +431,33 @@ class ProductRepository {
   ];
 
   Stream<List<Product>> getProductsStream() {
-    return _firestore
-        .collection('products')
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .asyncMap((snapshot) async {
-      if (snapshot.docs.isEmpty) return allProducts;
+    return _firestore.collection('products_app').snapshots().map((snapshot) {
+      debugPrint('DEBUG: Firestore products_app snapshot received. Count: ${snapshot.docs.length}');
       
-      List<Product> products = [];
-      for (var doc in snapshot.docs) {
-        Product p = _mapToProduct(doc);
-        // Fetch approved reviews for this product
-        final reviewsSnap = await _firestore
-            .collection('reviews')
-            .where('productId', isEqualTo: p.name)
-            .where('status', isEqualTo: 'approved')
-            .get();
-            
-        final reviews = reviewsSnap.docs.map((r) => _mapToReview(r)).toList();
-        products.add(p.copyWith(reviews: reviews));
+      if (snapshot.docs.isEmpty) {
+        debugPrint('DEBUG: Firestore products_app collection is empty, returning local fallback data.');
+        return allProducts;
       }
-      return products;
+      
+      return snapshot.docs.map((doc) {
+        debugPrint('DEBUG: Mapping product document: ${doc.id}');
+        try {
+          return _mapToProduct(doc);
+        } catch (e) {
+          debugPrint('DEBUG: CRITICAL ERROR mapping product ${doc.id}: $e');
+          // Return a fallback product so the list doesn't break
+          return Product(
+            name: 'Data Error: ${doc.id}',
+            description: 'Check Firestore field types: $e',
+            weightPriceMap: {'Error': 0},
+            rating: 0,
+            image: '',
+            color: Colors.red,
+            category: 'Error',
+            secretIngredient: IngredientDetail(name: '', description: '', image: ''),
+          );
+        }
+      }).toList();
     });
   }
 
@@ -458,10 +475,7 @@ class ProductRepository {
 
   Future<List<Product>> getProducts() async {
     try {
-      final snapshot = await _firestore
-          .collection('products')
-          .orderBy('createdAt', descending: true)
-          .get();
+      final snapshot = await _firestore.collection('products_app').get();
       if (snapshot.docs.isEmpty) {
         // If Firestore is empty, seed with local data for first run
         await seedProducts();
@@ -469,7 +483,7 @@ class ProductRepository {
       }
       return snapshot.docs.map((doc) => _mapToProduct(doc)).toList();
     } catch (e) {
-      print('Error fetching products: $e');
+      debugPrint('DEBUG: Error fetching products (Future): $e');
       return allProducts; // Fallback to local data
     }
   }
@@ -477,7 +491,7 @@ class ProductRepository {
   Future<void> seedProducts() async {
     final batch = _firestore.batch();
     for (var product in allProducts) {
-      final docRef = _firestore.collection('products').doc(product.name.replaceAll(' ', '_').toLowerCase());
+      final docRef = _firestore.collection('products_app').doc(product.name.replaceAll(' ', '_').toLowerCase());
       batch.set(docRef, _productToMap(product));
     }
     await batch.commit();
@@ -486,56 +500,78 @@ class ProductRepository {
   Product _mapToProduct(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     
-    // SAFE PARSING: Ensure we don't crash if data is missing or malformed
+    // 1. SAFE WEIGHT MAP PARSING
     Map<String, double> safeWeightMap = {};
     if (data['weightPriceMap'] != null && data['weightPriceMap'] is Map) {
       (data['weightPriceMap'] as Map).forEach((k, v) {
         safeWeightMap[k.toString()] = (v as num).toDouble();
       });
-    } else {
-      // Default fallback if map is missing
-      safeWeightMap = {"250g": 180.0, "500g": 350.0};
+    }
+    if (safeWeightMap.isEmpty) {
+      safeWeightMap = {"500g": 350.0};
+    }
+
+    // 2. SAFE SOMMELIER PAIRINGS
+    List<SommelierPairing> safePairings = [];
+    if (data['sommelierPairings'] != null && data['sommelierPairings'] is List) {
+      for (var p in (data['sommelierPairings'] as List)) {
+        if (p is Map) {
+          safePairings.add(SommelierPairing(
+            title: p['title']?.toString() ?? '',
+            description: p['description']?.toString() ?? '',
+            icon: _getIconData(p['icon']?.toString() ?? 'help_outline'),
+          ));
+        }
+      }
+    }
+
+    // 3. SAFE RECIPES
+    List<Map<String, String>> safeRecipes = [];
+    if (data['recipes'] != null && data['recipes'] is List) {
+      for (var r in (data['recipes'] as List)) {
+        if (r is Map) {
+          safeRecipes.add({
+            'title': r['title']?.toString() ?? '',
+            'instruction': r['instruction']?.toString() ?? '',
+          });
+        }
+      }
     }
 
     return Product(
-      name: data['name'] ?? 'Royal Pickle',
-      description: data['description'] ?? '',
+      name: data['name']?.toString() ?? 'Royal Pickle',
+      description: data['description']?.toString() ?? '',
       weightPriceMap: safeWeightMap,
       rating: (data['rating'] as num?)?.toDouble() ?? 5.0,
-      image: data['image'] ?? 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
+      image: data['image']?.toString() ?? 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
       color: Color(int.tryParse(data['color']?.toString() ?? '0xFF18453B') ?? 0xFF18453B),
-      category: data['category'] ?? 'Pickles',
-      isBestSeller: data['isBestSeller'] ?? false,
-      isOutOfStock: data['isOutOfStock'] ?? false,
-      stockCount: data['stockCount'] ?? 100,
-      isVeg: data['isVeg'] ?? true,
-      subCategory: data['subCategory'] ?? 'Classic',
-      viewCount: data['viewCount'] ?? 42,
-      purchaseCount: data['purchaseCount'] ?? 15,
-      trustBadges: List<String>.from(data['trustBadges'] ?? ['Zero Preservatives', 'Sun-Dried', 'Hand-Sorted', 'Stone-Pounded']),
-      artisanName: data['artisanName'] ?? 'Smt. Annapurna',
-      artisanImage: data['artisanImage'] ?? 'assets/images/kitchen_story_main.jpg',
-      artisanDescription: data['artisanDescription'] ?? 'Our Master Pickle Maker with over 40 years of experience.',
-      recipes: (data['recipes'] as List? ?? []).map((r) => Map<String, String>.from(r as Map)).toList(),
-      reviews: _mockReviews,
-      pairings: List<String>.from(data['pairings'] ?? []),
-      origin: data['origin'] ?? 'Coastal Andhra, India',
-      ingredients: List<String>.from(data['ingredients'] ?? []),
-      preparationMethod: data['preparationMethod'] ?? '',
-      shelfLife: data['shelfLife'] ?? '',
-      storageInstructions: data['storageInstructions'] ?? '',
-      servingSuggestion: data['servingSuggestion'] ?? '',
-      canRequestTempering: data['canRequestTempering'] ?? false,
+      category: data['category']?.toString() ?? 'Pickles',
+      isBestSeller: data['isBestSeller'] == true,
+      isOutOfStock: data['isOutOfStock'] == true,
+      stockCount: (data['stockCount'] as num?)?.toInt() ?? 100,
+      isVeg: data['isVeg'] != false, // Default to true unless explicitly false
+      subCategory: data['subCategory']?.toString() ?? 'Classic',
+      viewCount: (data['viewCount'] as num?)?.toInt() ?? 42,
+      purchaseCount: (data['purchaseCount'] as num?)?.toInt() ?? 15,
+      trustBadges: List<String>.from(data['trustBadges'] as List? ?? ['Zero Preservatives', 'Sun-Dried', 'Hand-Sorted', 'Stone-Pounded']),
+      artisanName: data['artisanName']?.toString() ?? 'Smt. Annapurna',
+      artisanImage: data['artisanImage']?.toString() ?? 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+      artisanDescription: data['artisanDescription']?.toString() ?? 'Our Master Pickle Maker with over 40 years of experience.',
+      recipes: safeRecipes,
+      pairings: List<String>.from(data['pairings'] as List? ?? []),
+      origin: data['origin']?.toString() ?? 'Coastal Andhra, India',
+      ingredients: List<String>.from(data['ingredients'] as List? ?? []),
+      preparationMethod: data['preparationMethod']?.toString() ?? '',
+      shelfLife: data['shelfLife']?.toString() ?? '',
+      storageInstructions: data['storageInstructions']?.toString() ?? '',
+      servingSuggestion: data['servingSuggestion']?.toString() ?? '',
+      canRequestTempering: data['canRequestTempering'] == true,
       secretIngredient: IngredientDetail(
-        name: data['secretIngredient']?['name'] ?? 'Royal Spices',
-        description: data['secretIngredient']?['description'] ?? 'Secret blend of heritage spices.',
-        image: data['secretIngredient']?['image'] ?? 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
+        name: data['secretIngredient']?['name']?.toString() ?? 'Royal Spices',
+        description: data['secretIngredient']?['description']?.toString() ?? 'Secret blend of heritage spices.',
+        image: data['secretIngredient']?['image']?.toString() ?? 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
       ),
-      sommelierPairings: (data['sommelierPairings'] as List? ?? []).map((p) => SommelierPairing(
-        title: p['title'] ?? '',
-        description: p['description'] ?? '',
-        icon: _getIconData(p['icon'] ?? 'help_outline'),
-      )).toList(),
+      sommelierPairings: safePairings,
     );
   }
 

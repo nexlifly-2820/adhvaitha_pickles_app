@@ -158,7 +158,7 @@ class CloudFunctionManager {
 
   Future<bool> adminUpdateProduct({required String productId, required Map<String, dynamic> updates}) async {
     try {
-      await _firestore.collection('products').doc(productId).update(updates);
+      await _firestore.collection('products_app').doc(productId).update(updates);
       return true;
     } catch (e) {
       return false;

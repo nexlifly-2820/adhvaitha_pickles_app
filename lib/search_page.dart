@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'models.dart';
 import 'product_detail_page.dart';
+import 'product_manager.dart';
 import 'product_repository.dart';
 import 'navigation_util.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -75,7 +76,7 @@ class _SearchPageState extends State<SearchPage> {
 
     setState(() {
       isSearching = true;
-      searchResults = ProductRepository.allProducts.where((product) {
+      searchResults = ProductManager().products.where((product) {
         final bool matchesName = product.name.toLowerCase().contains(lowerQuery);
         final bool matchesCategory = product.category.toLowerCase().contains(lowerQuery);
         final bool matchesDescription = product.description.toLowerCase().contains(lowerQuery);
@@ -281,7 +282,7 @@ class _SearchPageState extends State<SearchPage> {
               contentPadding: const EdgeInsets.all(10),
               leading: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.asset(product.image, width: 60, height: 60, fit: BoxFit.cover),
+                child: _buildImage(product.image),
               ),
               title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
               subtitle: Text(product.category, style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 11, fontWeight: FontWeight.bold)),
@@ -291,6 +292,32 @@ class _SearchPageState extends State<SearchPage> {
           ),
         ).animate().fadeIn(delay: (index * 50).ms).slideX(begin: 0.1, end: 0);
       },
+    );
+  }
+  Widget _buildImage(String path) {
+    if (path.isEmpty) {
+      return Container(width: 60, height: 60, color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey, size: 20));
+    }
+    if (path.startsWith('http')) {
+      return Image.network(
+        path, width: 60, height: 60, fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          width: 60, height: 60, color: Colors.grey.shade50,
+          child: const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 20),
+        ),
+      );
+    }
+    // Safety check for local assets
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(
+      assetPath, width: 60, height: 60, fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => Container(
+        width: 60, height: 60, color: Colors.grey.shade50,
+        child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey, size: 20),
+      ),
     );
   }
 }

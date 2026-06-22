@@ -94,7 +94,7 @@ class Product {
     this.purchaseCount = 15,
     this.trustBadges = const ['Zero Preservatives', 'Sun-Dried', 'Hand-Sorted', 'Stone-Pounded'],
     this.artisanName = 'Smt. Annapurna',
-    this.artisanImage = 'assets/images/kitchen_story_main.jpg',
+    this.artisanImage = 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
     this.artisanDescription = 'Our Master Pickle Maker with over 40 years of experience in traditional preservation.',
     this.recipes = const [
       {'title': 'The Coastal Classic', 'instruction': 'Mix with steaming hot rice and a generous dollop of Desi Ghee for the most authentic experience.'},

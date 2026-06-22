@@ -125,4 +125,26 @@ class CartManager extends ChangeNotifier {
     if (_items.isEmpty) return 0;
     return (subtotal - _discountAmount) + deliveryFee + _packingFee + gstAmount;
   }
+
+  void refreshProductData(List<Product> latestProducts) {
+    bool changed = false;
+    for (int i = 0; i < _items.length; i++) {
+      try {
+        final latest = latestProducts.firstWhere((p) => p.name == _items[i].product.name);
+        if (latest != _items[i].product) {
+          _items[i] = CartItem(
+            product: latest,
+            quantity: _items[i].quantity,
+            weight: _items[i].weight,
+            isTemperingRequested: _items[i].isTemperingRequested,
+            chefNote: _items[i].chefNote,
+          );
+          changed = true;
+        }
+      } catch (e) {
+        // Product might have been deleted, keep as is or handle
+      }
+    }
+    if (changed) notifyListeners();
+  }
 }

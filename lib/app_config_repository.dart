@@ -62,23 +62,66 @@ class AppConfigRepository {
   // 7. Categories Section
   Stream<List<Map<String, dynamic>>> getCategoriesStream() {
     return _firestore.collection('app_data').doc('categories').snapshots().map((snapshot) {
-      if (!snapshot.exists) {
-        return [];
+      List<Map<String, dynamic>> finalCategories = List.from(_defaultCategories);
+      
+      if (snapshot.exists) {
+        final List<dynamic> data = snapshot.data()?['list'] ?? [];
+        if (data.isNotEmpty) {
+          final List<Map<String, dynamic>> firestoreList = data.map((item) {
+            final map = item as Map<String, dynamic>;
+            return {
+              'label': map['label']?.toString() ?? '',
+              'img': map['img']?.toString() ?? '',
+              'tagline': map['tagline']?.toString() ?? '',
+              'badge': map['badge']?.toString() ?? '',
+              'description': map['description']?.toString() ?? '',
+              'banner_img': map['banner_img']?.toString() ?? '',
+            };
+          }).toList();
+
+          // Merge: Firestore categories override defaults with same label
+          for (var fCat in firestoreList) {
+            int index = finalCategories.indexWhere((dCat) => 
+              dCat['label'].toString().toLowerCase() == fCat['label'].toString().toLowerCase()
+            );
+            if (index != -1) {
+              finalCategories[index] = fCat;
+            } else {
+              finalCategories.add(fCat);
+            }
+          }
+        }
       }
-      final List<dynamic> data = snapshot.data()?['list'] ?? [];
-      return data.map((item) {
-        final map = item as Map<String, dynamic>;
-        return {
-          'label': map['label']?.toString() ?? '',
-          'img': map['img']?.toString() ?? '',
-          'tagline': map['tagline']?.toString() ?? '',
-          'badge': map['badge']?.toString() ?? '', // e.g., 'NEW', 'HOT'
-          'description': map['description']?.toString() ?? '',
-          'banner_img': map['banner_img']?.toString() ?? '',
-        };
-      }).toList();
+      return finalCategories;
     });
   }
+
+  static final List<Map<String, dynamic>> _defaultCategories = [
+    {
+      'label': 'Pickles',
+      'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+      'tagline': 'Traditional Sun-Dried Jars',
+      'description': 'Handmade in small batches since 1982.',
+    },
+    {
+      'label': 'Snacks',
+      'img': 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg',
+      'tagline': 'Crispy Heritage Delights',
+      'description': 'Authentic traditional snacks for every mood.',
+    },
+    {
+      'label': 'Spices',
+      'img': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg',
+      'tagline': 'Hand-Ground Aromatic Blends',
+      'description': 'Purity you can taste, heritage you can feel.',
+    },
+    {
+      'label': 'Sweets',
+      'img': 'assets/images/gondh_laddu_edible_gum_laddu.jpg',
+      'tagline': 'Ghee-Soaked Memories',
+      'description': 'Traditional sweets made with pure desi cow ghee.',
+    },
+  ];
 
   // 8. Onboarding Section
   Stream<List<Map<String, String>>> getOnboardingStream() {

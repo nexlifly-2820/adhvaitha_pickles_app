@@ -19,6 +19,7 @@ import 'wishlist_page.dart';
 import 'main.dart';
 import 'search_page.dart';
 import 'navigation_util.dart';
+import 'product_manager.dart';
 import 'product_repository.dart';
 import 'app_config_repository.dart';
 import 'journey_components.dart';
@@ -31,9 +32,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  List<Product> allProducts = ProductRepository.allProducts;
   bool _isLoading = true;
   
+  List<Product> get allProducts => ProductManager().products;
+
   final ScrollController _scrollController = ScrollController();
   final PageController _pageController = PageController();
   final PageController _adPageController = PageController();
@@ -81,6 +83,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.initState();
     _startConfigListeners();
     _determinePosition();
+    ProductManager().addListener(_onProductUpdate);
     
     _scrollController.addListener(() {
       if (_scrollController.offset > 400 && !_showBackToTop) {
@@ -161,6 +164,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
+  void _onProductUpdate() {
+    if (mounted) setState(() {});
+  }
+
   void _startConfigListeners() {
     _bannersSub = AppConfigRepository().getBannersStream().listen((data) {
       if (mounted) {
@@ -227,7 +234,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _productsSub = ProductRepository().getProductsStream().listen((data) {
       if (mounted) {
         setState(() {
-          allProducts = data;
           _isLoading = false;
         });
       }
@@ -254,12 +260,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _configSub?.cancel();
     _pageController.dispose();
     _adPageController.dispose();
+    ProductManager().removeListener(_onProductUpdate);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    final allProducts = ProductManager().products;
+    final isGlobalLoading = ProductManager().isLoading;
+
+    if (_isLoading && isGlobalLoading && allProducts.length <= 5) {
       return Scaffold(
         backgroundColor: const Color(0xFFFFF8E8),
         body: _buildShimmerLoading(),
@@ -273,6 +283,56 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         physics: const BouncingScrollPhysics(),
         slivers: [
           _buildStickyHeader(),
+          SliverToBoxAdapter(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('products_app').snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const SizedBox.shrink();
+                final docs = snapshot.data!.docs;
+                final count = docs.length;
+                
+                // Find Bundhi specifically in this stream
+                Map<String, dynamic>? bundhiDoc;
+                try {
+                  bundhiDoc = docs.firstWhere((d) => 
+                    (d.data() as Map)['name']?.toString()?.toLowerCase()?.contains('bundhi') ?? false
+                  ).data() as Map<String, dynamic>;
+                } catch (e) {
+                  bundhiDoc = null;
+                }
+
+                String bundhiStatus = bundhiDoc != null 
+                  ? "FOUND (Cat: \"${bundhiDoc['category']}\", Price: ${bundhiDoc['weightPriceMap']?['250g']})" 
+                  : "NOT IN DATABASE";
+                
+                // Get a sample of categories from the DB
+                final dbCategories = docs.map((d) => (d.data() as Map)['category']?.toString() ?? 'N/A').toSet().join(", ");
+
+                return Container(
+                  width: double.infinity,
+                  color: Colors.red.shade900,
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    children: [
+                      Text(
+                        'DATABASE SYNC - Collection: "products_app"',
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Total Products: $count | DB Categories found: $dbCategories',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 8),
+                      ),
+                      Text(
+                        'Bundhi DB Status: $bundhiStatus',
+                        style: const TextStyle(color: Colors.yellow, fontSize: 9, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            ),
+          ),
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,6 +350,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 if (activeCoupons.isNotEmpty) _buildActiveCoupons(),
                 _buildDealsOfTheDay(),
                 _buildSection('Traditional Snacks', 'Snacks'),
+                _buildSection('Authentic Sweets', 'Sweets'),
                 _buildNewArrivalsRow(),
                 _buildHeritageStory(),
                 _buildSection('Fresh Ground Spices', 'Spices'),
@@ -1155,8 +1216,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             itemBuilder: (context, index) {
               final cat = categoryList[index];
               final label = cat['label'] ?? '';
-              // Count products in this category
-              final count = allProducts.where((p) => p.category == label).length;
+              
+              final count = allProducts.where((p) {
+                final pCat = p.category.trim().toLowerCase();
+                final targetCat = label.trim().toLowerCase();
+                return pCat == targetCat || 
+                       pCat == "${targetCat}s" || 
+                       "${pCat}s" == targetCat;
+              }).length;
               
               return _CategoryItem(
                 label: label,
@@ -1309,12 +1376,44 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildSection(String title, String category) {
-    final products = allProducts.where((p) => p.category == category).toList();
-    if (products.isEmpty) return const SizedBox.shrink();
+    final products = allProducts.where((p) {
+      final pCat = p.category.trim().toLowerCase();
+      final targetCat = category.trim().toLowerCase();
+      // ULTRA ROBUST MATCHING
+      return pCat == targetCat || 
+             pCat == "${targetCat}s" || 
+             "${pCat}s" == targetCat ||
+             pCat.contains(targetCat) ||
+             targetCat.contains(pCat);
+    }).toList();
+
+    if (products.isEmpty) {
+      // DEBUG: If a category row is hidden, show why in the console
+      debugPrint('DEBUG: Section "$title" (Target: "$category") is empty. All Categories in memory: ${allProducts.map((p) => p.category).toSet().toList()}');
+      return const SizedBox.shrink();
+    }
+    
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionTitle(title: title, onSeeAll: () => AppNavigator.push(context, ProductListingPage(category: category))),
-        SizedBox(height: 360, child: ListView.builder(scrollDirection: Axis.horizontal, physics: const BouncingScrollPhysics(), padding: const EdgeInsets.symmetric(horizontal: 12), itemCount: products.length, itemBuilder: (context, index) => _PremiumProductCard(product: products[index], allProducts: allProducts, threshold: inventoryThreshold).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.2, end: 0))),
+        SizedBox(
+          height: 360, 
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal, 
+            physics: const BouncingScrollPhysics(), 
+            padding: const EdgeInsets.symmetric(horizontal: 12), 
+            itemCount: products.length, 
+            itemBuilder: (context, index) {
+              final p = products[index];
+              return _PremiumProductCard(
+                product: p, 
+                allProducts: allProducts, 
+                threshold: inventoryThreshold
+              ).animate().fadeIn(delay: (index * 100).ms).slideX(begin: 0.2, end: 0);
+            }
+          )
+        ),
         const SizedBox(height: 20),
       ],
     );
@@ -2491,21 +2590,41 @@ class _DealCard extends StatelessWidget {
 
   Widget _buildImage(String path, double height, {double? width}) {
     if (path.isEmpty) {
-      return Container(color: Colors.grey.shade50, child: const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
+      return Container(height: height, width: width, color: Colors.grey.shade50, child: const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
     }
     if (path.startsWith('http')) {
-      return Image.network(path, height: height, width: width, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
+      return Image.network(
+        path, height: height, width: width, fit: BoxFit.cover,
+        errorBuilder: (c, e, s) => Container(height: height, width: width, color: Colors.grey.shade50, child: const Center(child: Icon(Icons.broken_image_outlined, color: Colors.grey))),
+      );
     }
-    return Image.asset(path, height: height, width: width, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(
+      assetPath, height: height, width: width, fit: BoxFit.cover,
+      errorBuilder: (c, e, s) => Container(height: height, width: width, color: Colors.grey.shade50, child: const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey))),
+    );
   }
 }
 
 Widget _buildProductImage(String path) {
   if (path.isEmpty) {
-    return Container(color: Colors.grey.shade50, child: const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
+    return const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey));
   }
   if (path.startsWith('http')) {
-    return Image.network(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
+    return Image.network(
+      path, fit: BoxFit.cover, width: double.infinity, height: double.infinity,
+      errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image_outlined, color: Colors.grey)),
+    );
   }
-  return Image.asset(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
+  String assetPath = path;
+  if (!assetPath.startsWith('assets/')) {
+    assetPath = 'assets/images/$path';
+  }
+  return Image.asset(
+    assetPath, fit: BoxFit.cover, width: double.infinity, height: double.infinity,
+    errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)),
+  );
 }

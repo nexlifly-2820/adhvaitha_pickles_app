@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'models.dart';
+import 'product_manager.dart';
 import 'product_repository.dart';
 
 class OrderManager extends ChangeNotifier {
@@ -59,18 +60,15 @@ class OrderManager extends ChangeNotifier {
     // Map items from raw data
     final List<CartItem> items = (data['items'] as List).map((itemData) {
       final productName = itemData['name'];
-      final product = ProductRepository.allProducts.firstWhere(
-        (p) => p.name == productName,
-        orElse: () => Product(
-          name: productName,
-          description: '',
-          weightPriceMap: {itemData['weight'].toString(): (itemData['price'] as num).toDouble()},
-          rating: 5.0,
-          image: 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
-          color: Colors.green,
-          category: '',
-          secretIngredient: IngredientDetail(name: '', description: '', image: ''),
-        ),
+      final product = ProductManager().getProductByName(productName) ?? Product(
+        name: productName,
+        description: '',
+        weightPriceMap: {itemData['weight'].toString(): (itemData['price'] as num).toDouble()},
+        rating: 5.0,
+        image: 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
+        color: Colors.green,
+        category: '',
+        secretIngredient: IngredientDetail(name: '', description: '', image: ''),
       );
       
       return CartItem(

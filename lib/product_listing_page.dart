@@ -7,6 +7,7 @@ import 'models.dart';
 import 'product_detail_page.dart';
 import 'cart_manager.dart';
 import 'navigation_util.dart';
+import 'product_manager.dart';
 import 'product_repository.dart';
 import 'app_config_repository.dart';
 import 'main.dart';
@@ -49,19 +50,39 @@ class _ProductListingPageState extends State<ProductListingPage> {
     });
 
     // 2. Fetch Products
-    ProductRepository().getProductsStream().listen((products) {
-      if (mounted) {
-        setState(() {
-          allCategoryProducts = products.where((p) {
-            if (widget.category == 'All') return true;
-            if (widget.category == 'Bestsellers') return p.isBestSeller;
-            return p.category.toLowerCase() == widget.category.toLowerCase();
-          }).toList();
-          _applyFilters();
-          _isLoading = false;
-        });
-      }
+    ProductManager().addListener(_onProductsUpdated);
+    _updateProducts();
+  }
+
+  void _onProductsUpdated() {
+    if (mounted) {
+      _updateProducts();
+    }
+  }
+
+  void _updateProducts() {
+    setState(() {
+      allCategoryProducts = ProductManager().products.where((p) {
+        if (widget.category == 'All') return true;
+        if (widget.category == 'Bestsellers') return p.isBestSeller;
+        
+        final pCat = p.category.trim().toLowerCase();
+        final targetCat = widget.category.trim().toLowerCase();
+        return pCat == targetCat || 
+               pCat == "${targetCat}s" || 
+               "${pCat}s" == targetCat ||
+               pCat.contains(targetCat) ||
+               targetCat.contains(pCat);
+      }).toList();
+      _applyFilters();
+      _isLoading = ProductManager().isLoading;
     });
+  }
+
+  @override
+  void dispose() {
+    ProductManager().removeListener(_onProductsUpdated);
+    super.dispose();
   }
 
   void _applyFilters() {
@@ -503,10 +524,23 @@ class _ProductCardState extends State<_ProductCard> {
   }
 
   Widget _buildImage(String path) {
-    if (path.startsWith('http')) {
-      return Image.network(path, fit: BoxFit.contain, errorBuilder: (c, e, s) => const Icon(Icons.image_not_supported_outlined, color: Colors.grey));
+    if (path.isEmpty) {
+      return const Icon(Icons.image_not_supported_outlined, color: Colors.grey);
     }
-    return Image.asset(path, fit: BoxFit.contain, errorBuilder: (c, e, s) => const Icon(Icons.image_not_supported_outlined, color: Colors.grey));
+    if (path.startsWith('http')) {
+      return Image.network(
+        path, fit: BoxFit.contain,
+        errorBuilder: (c, e, s) => const Icon(Icons.broken_image_outlined, color: Colors.grey),
+      );
+    }
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(
+      assetPath, fit: BoxFit.contain,
+      errorBuilder: (c, e, s) => const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+    );
   }
 }
 
