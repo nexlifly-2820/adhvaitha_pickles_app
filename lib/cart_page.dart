@@ -219,7 +219,7 @@ class _CartPageState extends State<CartPage> {
                   ),
                   child: Row(
                     children: [
-                      ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.asset(p.image, width: 60, height: 60, fit: BoxFit.cover)),
+                      ClipRRect(borderRadius: BorderRadius.circular(10), child: _buildImage(p.image, 60)),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -248,6 +248,26 @@ class _CartPageState extends State<CartPage> {
       ],
     );
   }
+
+  Widget _buildImage(String path, double size) {
+    if (path.isEmpty) {
+      return Container(width: size, height: size, color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey));
+    }
+    if (path.startsWith('http')) {
+      return Image.network(
+        path, width: size, height: size, fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(width: size, height: size, color: Colors.grey.shade50, child: const Icon(Icons.broken_image_outlined, color: Colors.grey)),
+      );
+    }
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(
+      assetPath, width: size, height: size, fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(width: size, height: size, color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey)),
+    );
+  }
 }
 
 class _CartItemTile extends StatelessWidget {
@@ -268,7 +288,7 @@ class _CartItemTile extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(15),
-            child: Image.asset(item.product.image, width: 70, height: 70, fit: BoxFit.cover),
+            child: _buildImage(item.product.image, 70),
           ),
           const SizedBox(width: 15),
           Expanded(
@@ -313,6 +333,26 @@ class _CartItemTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildImage(String path, double size) {
+    if (path.isEmpty) {
+      return Container(width: size, height: size, color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey));
+    }
+    if (path.startsWith('http')) {
+      return Image.network(
+        path, width: size, height: size, fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(width: size, height: size, color: Colors.grey.shade50, child: const Icon(Icons.broken_image_outlined, color: Colors.grey)),
+      );
+    }
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(
+      assetPath, width: size, height: size, fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(width: size, height: size, color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey)),
     );
   }
 }

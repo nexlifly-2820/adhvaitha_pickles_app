@@ -53,7 +53,7 @@ class _WishlistPageState extends State<WishlistPage> {
               },
               child: const Text('ADD ALL', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.bold)),
             ),
-          GlobalCartBadge(),
+          const GlobalCartBadge(),
         ],
       ),
       body: wishlist.items.isEmpty 
@@ -112,7 +112,7 @@ class _WishlistCard extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                    child: Image.asset(product.image, width: double.infinity, fit: BoxFit.cover),
+                    child: _buildImage(product.image),
                   ),
                   Positioned(
                     top: 10, right: 10,
@@ -160,6 +160,26 @@ class _WishlistCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildImage(String path) {
+    if (path.isEmpty) {
+      return Container(color: Colors.grey.shade50, child: const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
+    }
+    if (path.startsWith('http')) {
+      return Image.network(
+        path, width: double.infinity, fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade50, child: const Icon(Icons.broken_image_outlined, color: Colors.grey)),
+      );
+    }
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(
+      assetPath, width: double.infinity, fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey)),
     );
   }
 }

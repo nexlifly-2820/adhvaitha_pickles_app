@@ -753,10 +753,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Widget _buildProductImage(String path) {
-    if (path.startsWith('http')) {
-      return Image.network(path, width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.image));
+    if (path.isEmpty) {
+      return Container(width: 50, height: 50, color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey, size: 20));
     }
-    return Image.asset(path, width: 50, height: 50, fit: BoxFit.cover);
+    if (path.startsWith('http')) {
+      return Image.network(path, width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(width: 50, height: 50, color: Colors.grey.shade50, child: const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 20)));
+    }
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(assetPath, width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(width: 50, height: 50, color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey, size: 20)));
   }
 
   Widget _buildCouponSection(BuildContext context) {

@@ -148,6 +148,10 @@ class JourneyImage extends StatelessWidget {
     if (path.startsWith('http')) {
       return Image.network(path, width: width, height: height, fit: fit, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image));
     }
-    return Image.asset(path, width: width, height: height, fit: fit, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image));
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(assetPath, width: width, height: height, fit: fit, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image));
   }
 }

@@ -284,56 +284,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         slivers: [
           _buildStickyHeader(),
           SliverToBoxAdapter(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('products_app').snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const SizedBox.shrink();
-                final docs = snapshot.data!.docs;
-                final count = docs.length;
-                
-                // Find Bundhi specifically in this stream
-                Map<String, dynamic>? bundhiDoc;
-                try {
-                  bundhiDoc = docs.firstWhere((d) => 
-                    (d.data() as Map)['name']?.toString()?.toLowerCase()?.contains('bundhi') ?? false
-                  ).data() as Map<String, dynamic>;
-                } catch (e) {
-                  bundhiDoc = null;
-                }
-
-                String bundhiStatus = bundhiDoc != null 
-                  ? "FOUND (Cat: \"${bundhiDoc['category']}\", Price: ${bundhiDoc['weightPriceMap']?['250g']})" 
-                  : "NOT IN DATABASE";
-                
-                // Get a sample of categories from the DB
-                final dbCategories = docs.map((d) => (d.data() as Map)['category']?.toString() ?? 'N/A').toSet().join(", ");
-
-                return Container(
-                  width: double.infinity,
-                  color: Colors.red.shade900,
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    children: [
-                      Text(
-                        'DATABASE SYNC - Collection: "products_app"',
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'Total Products: $count | DB Categories found: $dbCategories',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white, fontSize: 8),
-                      ),
-                      Text(
-                        'Bundhi DB Status: $bundhiStatus',
-                        style: const TextStyle(color: Colors.yellow, fontSize: 9, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                );
-              }
-            ),
-          ),
-          SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -468,7 +418,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: Image.asset(product.image, width: 80, height: 80, fit: BoxFit.cover),
+                        child: _buildProductImage(product.image),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -525,7 +475,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildStickyHeader() {
     return SliverAppBar(
-      expandedHeight: 200,
+      expandedHeight: 140,
       toolbarHeight: 70,
       floating: false,
       pinned: true,
@@ -534,7 +484,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       surfaceTintColor: Colors.transparent,
       title: _buildHeaderTopRow(),
       bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
+        preferredSize: const Size.fromHeight(60),
         child: _buildAnimatedSearchBar(),
       ),
     );
@@ -557,10 +507,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.location_on_rounded, color: Color(0xFFD4AF37), size: 14),
                       const SizedBox(width: 4),
-                      Text(_currentAddress, style: const TextStyle(color: Color(0xFF18453B), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                      Flexible(
+                        child: Text(
+                          _currentAddress, 
+                          style: const TextStyle(color: Color(0xFF18453B), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
                       const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF18453B), size: 14),
                     ],
                   ),
@@ -596,7 +554,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildAnimatedSearchBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
       child: Row(
         children: [
           Expanded(
@@ -606,20 +564,28 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 AppNavigator.push(context, const SearchPage());
               },
               child: Container(
-                height: 56,
+                height: 52,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.2), width: 1.5),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 10)),
+                    BoxShadow(color: const Color(0xFF18453B).withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 8)),
                   ],
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Row(
                   children: [
                     const Icon(Icons.search_rounded, color: Color(0xFF18453B), size: 22),
                     const SizedBox(width: 12),
-                    Text('Search royal flavors...', style: TextStyle(fontSize: 14, color: const Color(0xFF2D1B12).withOpacity(0.4), fontWeight: FontWeight.w500)),
+                    Text(
+                      'Search royal flavors...', 
+                      style: GoogleFonts.poppins(
+                        fontSize: 14, 
+                        color: const Color(0xFF2D1B12).withOpacity(0.5), 
+                        fontWeight: FontWeight.w500
+                      )
+                    ),
                   ],
                 ),
               ),
@@ -632,19 +598,29 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               _listen();
             },
             child: Container(
-              height: 56, width: 56,
+              height: 52, width: 52,
               decoration: BoxDecoration(
-                color: _isListening ? Colors.red : Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                gradient: _isListening 
+                  ? const LinearGradient(colors: [Colors.red, Colors.redAccent])
+                  : const LinearGradient(
+                      colors: [Color(0xFF18453B), Color(0xFF276357)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                borderRadius: BorderRadius.circular(15),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 10)),
+                  BoxShadow(
+                    color: (_isListening ? Colors.red : const Color(0xFF18453B)).withOpacity(0.3), 
+                    blurRadius: 15, 
+                    offset: const Offset(0, 8)
+                  ),
                 ],
               ),
               child: Icon(
                 _isListening ? Icons.mic_rounded : Icons.mic_none_rounded, 
-                color: _isListening ? Colors.white : const Color(0xFFD4AF37), 
+                color: Colors.white, 
                 size: 24
-              ).animate(target: _isListening ? 1 : 0).scale(begin: const Offset(1,1), end: const Offset(1.2, 1.2)).shimmer(),
+              ).animate(target: _isListening ? 1 : 0).scale(begin: const Offset(1,1), end: const Offset(1.1, 1.1)).shimmer(),
             ),
           ),
         ],
@@ -836,7 +812,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (path.startsWith('http')) {
       return Image.network(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200, child: const Icon(Icons.broken_image, color: Colors.grey)));
     }
-    return Image.asset(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200, child: const Icon(Icons.broken_image, color: Colors.grey)));
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(assetPath, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200, child: const Icon(Icons.broken_image, color: Colors.grey)));
   }
 
   Widget _buildPairingImage(String path) {
@@ -846,7 +826,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (path.startsWith('http')) {
       return Image.network(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200, child: const Icon(Icons.image, color: Colors.grey)));
     }
-    return Image.asset(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200, child: const Icon(Icons.image, color: Colors.grey)));
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(assetPath, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200, child: const Icon(Icons.image, color: Colors.grey)));
   }
 
   Widget _buildActiveCoupons() {
@@ -1651,8 +1635,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   ImageProvider _getBannerImageProvider(String path) {
+    if (path.isEmpty) return const AssetImage('assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg');
     if (path.startsWith('http')) return NetworkImage(path);
-    return AssetImage(path);
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return AssetImage(assetPath);
   }
 
   Widget _buildMakingProcessSection() {
@@ -1761,7 +1750,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (path.startsWith('http')) {
       return Image.network(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
     }
-    return Image.asset(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(assetPath, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
   }
 }
 
@@ -2268,8 +2261,13 @@ class _BentoCard extends StatelessWidget {
   }
 
   ImageProvider _getBentoImage(String path) {
+    if (path.isEmpty) return const AssetImage('assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg');
     if (path.startsWith('http')) return NetworkImage(path);
-    return AssetImage(path);
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return AssetImage(assetPath);
   }
 }
 

@@ -154,17 +154,26 @@ class _OrderCard extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Row(
                       children: [
-                        ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.asset(item.product.image, width: 45, height: 45, fit: BoxFit.cover)),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: _buildProductImage(item.product.image),
+                        ),
                         const SizedBox(width: 15),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              Text(
+                                item.product.name,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                               Text(item.weight, style: const TextStyle(color: Colors.grey, fontSize: 11)),
                             ],
                           ),
                         ),
+                        const SizedBox(width: 10),
                         Text('x${item.quantity}', style: const TextStyle(color: Color(0xFF18453B), fontSize: 14, fontWeight: FontWeight.w900)),
                       ],
                     ),
@@ -215,22 +224,24 @@ class _OrderCard extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.timer_outlined, size: 16, color: Colors.grey),
+                        const Icon(Icons.timer_outlined, size: 14, color: Colors.grey),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Estimated Delivery: ${order.estimatedDelivery != null ? DateFormat('dd MMM').format(order.estimatedDelivery!) : 'TBD'}',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
-                            ),
+                          child: Text(
+                            'Delivery: ${order.estimatedDelivery != null ? DateFormat('dd MMM').format(order.estimatedDelivery!) : 'TBD'}',
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'NON-RETURNABLE',
-                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.black26, letterSpacing: 0.5),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(4)),
+                          child: const Text(
+                            'NON-RETURNABLE',
+                            style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: Colors.black26, letterSpacing: 0.5),
+                          ),
                         ),
                       ],
                     ),
@@ -291,11 +302,11 @@ class _OrderCard extends StatelessWidget {
 
   Widget _timelineDot(String label, bool isDone) {
     return SizedBox(
-      width: 45,
+      width: 40,
       child: Column(
         children: [
-          Icon(isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, size: 16, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade300),
-          const SizedBox(height: 6),
+          Icon(isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, size: 14, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade300),
+          const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(label, style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: isDone ? const Color(0xFF18453B) : Colors.grey, letterSpacing: 0.5)),
@@ -306,6 +317,26 @@ class _OrderCard extends StatelessWidget {
   }
 
   Widget _timelineLine(bool isDone) {
-    return Expanded(child: Container(height: 1.5, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade200, margin: const EdgeInsets.only(bottom: 20)));
+    return Expanded(child: Container(height: 1.5, color: isDone ? const Color(0xFF18453B) : Colors.grey.shade200, margin: const EdgeInsets.only(bottom: 15)));
+  }
+
+  Widget _buildProductImage(String path) {
+    if (path.isEmpty) {
+      return Container(width: 45, height: 45, color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey, size: 18));
+    }
+    if (path.startsWith('http')) {
+      return Image.network(
+        path, width: 45, height: 45, fit: BoxFit.cover,
+        errorBuilder: (c, e, s) => Container(width: 45, height: 45, color: Colors.grey.shade50, child: const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 18)),
+      );
+    }
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(
+      assetPath, width: 45, height: 45, fit: BoxFit.cover,
+      errorBuilder: (c, e, s) => Container(width: 45, height: 45, color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey, size: 18)),
+    );
   }
 }

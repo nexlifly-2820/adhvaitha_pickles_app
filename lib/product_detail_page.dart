@@ -604,10 +604,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _buildArtisanImage(String path) {
-    if (path.startsWith('http')) {
-      return Image.network(path, width: 80, height: 80, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.person, size: 40));
+    if (path.isEmpty) {
+      return Container(width: 80, height: 80, color: Colors.grey.shade50, child: const Icon(Icons.person, size: 40, color: Colors.grey));
     }
-    return Image.asset(path, width: 80, height: 80, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.person, size: 40));
+    if (path.startsWith('http')) {
+      return Image.network(path, width: 80, height: 80, fit: BoxFit.cover, errorBuilder: (c, e, s) => _buildArtisanImage(''));
+    }
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(assetPath, width: 80, height: 80, fit: BoxFit.cover, errorBuilder: (c, e, s) => _buildArtisanImage(''));
   }
 
   Widget _buildRecipesSection() {

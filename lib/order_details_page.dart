@@ -162,25 +162,51 @@ class OrderDetailsPage extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.asset(item.product.image, width: 60, height: 60, fit: BoxFit.cover),
+            child: _buildProductImage(item.product.image),
           ),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(
+                  item.product.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 4),
                 Text('${item.weight} • Qty: ${item.quantity}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
               ],
             ),
           ),
+          const SizedBox(width: 10),
           Text(
             '₹${(item.product.getRawPriceForWeight(item.weight) * item.quantity).toStringAsFixed(0)}',
             style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF18453B), fontSize: 15),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProductImage(String path) {
+    if (path.isEmpty) {
+      return Container(width: 60, height: 60, color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey, size: 24));
+    }
+    if (path.startsWith('http')) {
+      return Image.network(
+        path, width: 60, height: 60, fit: BoxFit.cover,
+        errorBuilder: (c, e, s) => Container(width: 60, height: 60, color: Colors.grey.shade50, child: const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 24)),
+      );
+    }
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(
+      assetPath, width: 60, height: 60, fit: BoxFit.cover,
+      errorBuilder: (c, e, s) => Container(width: 60, height: 60, color: Colors.grey.shade50, child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey, size: 24)),
     );
   }
 

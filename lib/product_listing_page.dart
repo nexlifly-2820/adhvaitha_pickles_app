@@ -357,7 +357,11 @@ class _ProductListingPageState extends State<ProductListingPage> {
     if (path.startsWith('http')) {
       return Image.network(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: const Color(0xFF18453B)));
     }
-    return Image.asset(path, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: const Color(0xFF18453B)));
+    String assetPath = path;
+    if (!assetPath.startsWith('assets/')) {
+      assetPath = 'assets/images/$path';
+    }
+    return Image.asset(assetPath, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: const Color(0xFF18453B)));
   }
 }
 
