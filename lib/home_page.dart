@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:geolocator/geolocator.dart';
@@ -41,6 +40,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final PageController _adPageController = PageController();
   int _currentPage = 0;
   int _currentAdPage = 0;
+  int _selectedCategoryIndex = 0;
   bool _showBackToTop = false;
   String _currentAddress = "Detecting location...";
   
@@ -277,7 +277,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8E8),
+      backgroundColor: const Color(0xFFF8F5EC),
       body: CustomScrollView(
         controller: _scrollController,
         physics: const BouncingScrollPhysics(),
@@ -287,25 +287,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTrendingChips(),
-                if (ProductRepository.recentlyViewed.isNotEmpty) _buildRecentlyViewedSection(),
-                if (adBanners.isNotEmpty) _buildAdBanner(),
-                _buildStoriesSection(),
-                _buildBentoSection(),
-                const SizedBox(height: 30),
-                if (banners.isNotEmpty) _buildCarouselBanners(),
-                _buildCategoryScroll(),
+                _buildValuePropsRow(),
+                _buildHeroBanner(),
                 _buildPerfectPairings(),
                 _buildSection('Most Loved Pickles', 'Pickles'),
-                if (activeCoupons.isNotEmpty) _buildActiveCoupons(),
-                _buildDealsOfTheDay(),
-                _buildSection('Traditional Snacks', 'Snacks'),
-                _buildSection('Authentic Sweets', 'Sweets'),
+                _buildTrustReassuranceBanner(),
+                _buildActiveCoupons(),
+                _buildRoyalCollectionsSection(),
+                _buildBestSellersSection(),
+                _buildPopularCategoriesSection(),
+                _buildContinueShoppingSection(),
+                _buildTodaysSpecialsGrid(),
                 _buildNewArrivalsRow(),
-                _buildHeritageStory(),
+                _buildSnacksSection(),
                 _buildSection('Fresh Ground Spices', 'Spices'),
+                _buildSweetsSection(),
+                _buildSweetsQuoteBanner(),
+                _buildHeritageStory(),
                 _buildMakingProcessSection(),
-                _buildPackagingGallery(),
                 _buildTestimonials(),
                 const SizedBox(height: 40),
                 _buildNexliflyFooter(),
@@ -475,16 +474,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildStickyHeader() {
     return SliverAppBar(
-      expandedHeight: 140,
-      toolbarHeight: 70,
+      expandedHeight: 145,
+      toolbarHeight: 72,
       floating: false,
       pinned: true,
       elevation: 0,
-      backgroundColor: const Color(0xFFFFF8E8),
+      backgroundColor: const Color(0xFFF8F5EC),
       surfaceTintColor: Colors.transparent,
       title: _buildHeaderTopRow(),
       bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
+        preferredSize: const Size.fromHeight(62),
         child: _buildAnimatedSearchBar(),
       ),
     );
@@ -492,7 +491,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildHeaderTopRow() {
     final user = FirebaseAuth.instance.currentUser;
-    final displayName = user?.displayName ?? (user?.phoneNumber != null ? 'Member' : 'HEMANTH SILLA');
+
+    String formattedName = "Hemanth";
+    if (user?.displayName != null && user!.displayName!.isNotEmpty) {
+      final parts = user.displayName!.trim().split(' ');
+      formattedName = parts.first[0].toUpperCase() + parts.first.substring(1).toLowerCase();
+    } else if (user?.email != null && user!.email!.isNotEmpty) {
+      final prefix = user.email!.split('@').first;
+      formattedName = prefix[0].toUpperCase() + prefix.substring(1).toLowerCase();
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -513,38 +520,82 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          _currentAddress, 
-                          style: const TextStyle(color: Color(0xFF18453B), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                          _currentAddress.isNotEmpty ? _currentAddress : "HSR Layout, Bengaluru",
+                          style: const TextStyle(
+                            color: Color(0xFF1B1B1B),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),
                       ),
-                      const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF18453B), size: 14),
+                      const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF1B1B1B), size: 16),
                     ],
                   ),
-                  Text(displayName.toUpperCase(), style: GoogleFonts.philosopher(fontWeight: FontWeight.w900, fontSize: 18, color: const Color(0xFF18453B), letterSpacing: 0.5)),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Text(
+                        'Good Afternoon 👋',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF6B7280),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    formattedName,
+                    style: GoogleFonts.philosopher(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 26,
+                      color: const Color(0xFF0F4D3C),
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Good food brings good mood!',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF9CA3AF),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _HeaderIconButton(
-                icon: Icons.favorite_border_rounded, 
-                onTap: () => AppNavigator.push(context, const WishlistPage())
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _HeaderIconButton(
+                    icon: Icons.favorite_border_rounded,
+                    onTap: () => AppNavigator.push(context, const WishlistPage()),
+                  ),
+                  const SizedBox(width: 8),
+                  _HeaderIconButton(
+                    icon: Icons.person_outline_rounded,
+                    onTap: () => MainScreen.of(context)?.setIndex(4),
+                  ),
+                  const SizedBox(width: 8),
+                  const GlobalCartBadge(),
+                ],
               ),
-              const SizedBox(width: 8),
-              _HeaderIconButton(
-                icon: Icons.person_outline_rounded, 
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  // TODO: Navigate to Profile
-                }
+              const SizedBox(height: 6),
+              Text(
+                'Taste Tradition Every Day',
+                style: GoogleFonts.caveat(
+                  color: const Color(0xFFD4AF37),
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              const SizedBox(width: 8),
-              const GlobalCartBadge(),
             ],
           ),
         ],
@@ -554,77 +605,1239 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildAnimatedSearchBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          AppNavigator.push(context, const SearchPage());
+        },
+        child: Container(
+          height: 56,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 15,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          child: Row(
+            children: [
+              const Icon(Icons.search_rounded, color: Color(0xFF0F4D3C), size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Search royal flavors...',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: const Color(0xFF9CA3AF),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Container(height: 20, width: 1, color: Colors.grey.shade300),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.heavyImpact();
+                  _listen();
+                },
+                child: Icon(
+                  _isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                  color: _isListening ? Colors.red : const Color(0xFF0F4D3C),
+                  size: 22,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChips() {
+    final categories = [
+      {'label': 'Mango', 'emoji': '🥭'},
+      {'label': 'Chicken', 'emoji': '🍗'},
+      {'label': 'Spicy', 'emoji': '🌶️'},
+      {'label': 'Snacks', 'emoji': '🍟'},
+      {'label': 'Dry Fruits', 'emoji': '🥜'},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: SizedBox(
+        height: 42,
+        child: ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: categories.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: (context, index) {
+            final cat = categories[index];
+            final isSelected = _selectedCategoryIndex == index;
+            return GestureDetector(
               onTap: () {
-                HapticFeedback.selectionClick();
-                AppNavigator.push(context, const SearchPage());
+                HapticFeedback.lightImpact();
+                setState(() => _selectedCategoryIndex = index);
+                AppNavigator.push(context, ProductListingPage(category: cat['label']!));
               },
-              child: Container(
-                height: 52,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.2), width: 1.5),
+                  color: isSelected ? const Color(0xFF0F4D3C) : Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  border: isSelected ? null : Border.all(color: Colors.grey.shade200),
                   boxShadow: [
-                    BoxShadow(color: const Color(0xFF18453B).withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 8)),
+                    if (!isSelected)
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      )
                   ],
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.search_rounded, color: Color(0xFF18453B), size: 22),
-                    const SizedBox(width: 12),
+                    Text(cat['emoji']!, style: const TextStyle(fontSize: 14)),
+                    const SizedBox(width: 8),
                     Text(
-                      'Search royal flavors...', 
-                      style: GoogleFonts.poppins(
-                        fontSize: 14, 
-                        color: const Color(0xFF2D1B12).withOpacity(0.5), 
-                        fontWeight: FontWeight.w500
-                      )
+                      cat['label']!,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : const Color(0xFF1B1B1B),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroBanner() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Container(
+        height: 200,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0C3D2E), Color(0xFF135341)],
           ),
-          const SizedBox(width: 12),
-          GestureDetector(
-            onTap: () {
-              HapticFeedback.heavyImpact();
-              _listen();
-            },
-            child: Container(
-              height: 52, width: 52,
-              decoration: BoxDecoration(
-                gradient: _isListening 
-                  ? const LinearGradient(colors: [Colors.red, Colors.redAccent])
-                  : const LinearGradient(
-                      colors: [Color(0xFF18453B), Color(0xFF276357)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0C3D2E).withOpacity(0.25),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            )
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: 16,
+              right: 18,
+              child: Text(
+                'Pure\nTraditional\nHomemade',
+                textAlign: TextAlign.right,
+                style: GoogleFonts.caveat(
+                  color: const Color(0xFFE5C76B),
+                  fontSize: 14,
+                  height: 1.1,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'AUTHENTIC ANDHRA',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFFD4AF37),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2,
                     ),
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: (_isListening ? Colors.red : const Color(0xFF18453B)).withOpacity(0.3), 
-                    blurRadius: 15, 
-                    offset: const Offset(0, 8)
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Handmade\nPickles',
+                    style: GoogleFonts.philosopher(
+                      color: const Color(0xFFFFF8E8),
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Traditional Taste Since 1982',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      AppNavigator.push(context, const ProductListingPage(category: 'Pickles'));
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5C76B),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Shop Now',
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF0F4D3C),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0F4D3C), size: 14),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-              child: Icon(
-                _isListening ? Icons.mic_rounded : Icons.mic_none_rounded, 
-                color: Colors.white, 
-                size: 24
-              ).animate(target: _isListening ? 1 : 0).scale(begin: const Offset(1,1), end: const Offset(1.1, 1.1)).shimmer(),
+            ),
+            Positioned(
+              right: 12,
+              bottom: 12,
+              width: 145,
+              height: 135,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: _buildProductImage('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'),
+              ),
+            ),
+            Positioned(
+              left: 22,
+              bottom: 14,
+              child: Row(
+                children: List.generate(4, (i) => Container(
+                  margin: const EdgeInsets.only(right: 5),
+                  width: i == 0 ? 16 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: i == 0 ? const Color(0xFFE5C76B) : Colors.white30,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                )),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoyalCollectionsSection() {
+    final collections = [
+      {'title': 'Pickles', 'sub': '12+ varieties', 'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', 'cat': 'Pickles'},
+      {'title': 'Snacks', 'sub': '9+ varieties', 'img': 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg', 'cat': 'Snacks'},
+      {'title': 'Spices', 'sub': '8+ varieties', 'img': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg', 'cat': 'Spices'},
+      {'title': 'Combos', 'sub': 'Special Packs', 'img': 'assets/images/gondh_laddu_edible_gum_laddu.jpg', 'cat': 'Sweets'},
+    ];
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Royal Collections',
+                style: GoogleFonts.philosopher(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF1B1B1B),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => MainScreen.of(context)?.setIndex(1),
+                child: Row(
+                  children: [
+                    Text(
+                      'View All',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF0F4D3C),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF0F4D3C)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 175,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: collections.length,
+            itemBuilder: (context, index) {
+              final item = collections[index];
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  AppNavigator.push(context, ProductListingPage(category: item['cat']!));
+                },
+                child: Container(
+                  width: 130,
+                  margin: const EdgeInsets.only(right: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                            child: SizedBox(
+                              height: 110,
+                              width: double.infinity,
+                              child: _buildProductImage(item['img']!),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF0F4D3C),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['title']!,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1B1B1B)),
+                            ),
+                            Text(
+                              item['sub']!,
+                              style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBestSellersSection() {
+    final bestSellers = [
+      {'name': 'Mango Pickle', 'weight': '500 g', 'price': '₹199', 'badge': 'Bestseller', 'badgeColor': const Color(0xFFE5C76B), 'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'},
+      {'name': 'Gongura Pickle', 'weight': '500 g', 'price': '₹219', 'badge': 'Spicy', 'badgeColor': Colors.red.shade600, 'img': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'},
+      {'name': 'Garlic Pickle', 'weight': '500 g', 'price': '₹199', 'badge': 'Popular', 'badgeColor': const Color(0xFF0F4D3C), 'img': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg'},
+      {'name': 'Mixed Pickle', 'weight': '500 g', 'price': '₹249', 'badge': 'New', 'badgeColor': const Color(0xFFD4AF37), 'img': 'assets/images/uppava_traditional_salted_pickle.jpg'},
+    ];
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Best Sellers',
+                style: GoogleFonts.philosopher(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF1B1B1B),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => MainScreen.of(context)?.setIndex(1),
+                child: Row(
+                  children: [
+                    Text(
+                      'View All',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF0F4D3C),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF0F4D3C)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 205,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: bestSellers.length,
+            itemBuilder: (context, index) {
+              final item = bestSellers[index];
+              final String nameStr = item['name'] as String;
+              final String imgStr = item['img'] as String;
+              final matchingProduct = allProducts.firstWhere(
+                (p) => p.name.contains(nameStr.split(' ').first),
+                orElse: () => allProducts[index % allProducts.length],
+              );
+
+              return GestureDetector(
+                onTap: () => AppNavigator.push(context, ProductDetailPage(product: matchingProduct, allProducts: allProducts)),
+                child: Container(
+                  width: 145,
+                  margin: const EdgeInsets.only(right: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                            child: SizedBox(
+                              height: 110,
+                              width: double.infinity,
+                              child: _buildProductImage(imgStr),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  nameStr,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1B1B1B)),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  item['weight'] as String,
+                                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      item['price'] as String,
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF1B1B1B)),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        HapticFeedback.lightImpact();
+                                        CartManager().addToCart(matchingProduct);
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(7),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF0F4D3C),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 14),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: item['badgeColor'] as Color,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            item['badge'] as String,
+                            style: TextStyle(
+                              color: (item['badge'] == 'Bestseller' || item['badge'] == 'New') ? const Color(0xFF2D1B12) : Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            WishlistManager().toggleFavorite(matchingProduct);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.favorite_border_rounded, size: 14, color: Colors.black54),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContinueShoppingSection() {
+    final continueProducts = allProducts.take(2).toList();
+    if (continueProducts.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Continue Shopping',
+                style: GoogleFonts.philosopher(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF1B1B1B),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => MainScreen.of(context)?.setIndex(1),
+                child: Row(
+                  children: [
+                    Text(
+                      'See All',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF0F4D3C),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF0F4D3C)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: continueProducts.map<Widget>((product) => Expanded(
+              child: Container(
+                margin: const EdgeInsets.only(right: 10),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: _buildProductImage(product.image),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            product.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1B1B1B)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            '500 g',
+                            style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                product.defaultPrice,
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF0F4D3C)),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  CartManager().addToCart(product);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0F4D3C),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text(
+                                    'Add',
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPopularNearYouSection() {
+    final popularProducts = allProducts.skip(2).take(5).toList();
+    if (popularProducts.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Popular Near You',
+                style: GoogleFonts.philosopher(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF1B1B1B),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => MainScreen.of(context)?.setIndex(1),
+                child: Row(
+                  children: [
+                    Text(
+                      'See All',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF0F4D3C),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF0F4D3C)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 190,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: popularProducts.length,
+            itemBuilder: (context, index) {
+              final product = popularProducts[index];
+              return GestureDetector(
+                onTap: () => AppNavigator.push(context, ProductDetailPage(product: product, allProducts: allProducts)),
+                child: Container(
+                  width: 140,
+                  margin: const EdgeInsets.only(right: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                            child: SizedBox(
+                              height: 105,
+                              width: double.infinity,
+                              child: _buildProductImage(product.image),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product.name,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1B1B1B)),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '200 g',
+                                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  product.defaultPrice,
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF0F4D3C)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      Positioned(
+                        top: 8, right: 8,
+                        child: GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            WishlistManager().toggleFavorite(product);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.favorite_border_rounded, size: 14, color: Colors.black54),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTodaysSpecialsGrid() {
+    final specialProduct = allProducts.firstWhere(
+      (p) => p.name.contains('Allam') || p.name.contains('Podi') || p.isBestSeller,
+      orElse: () => allProducts[0],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        "TODAY'S SPECIAL",
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFFD4AF37),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(width: 30, height: 1, color: const Color(0xFFD4AF37)),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'A Taste Worth Grabbing Today',
+                    style: GoogleFonts.philosopher(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF1B1B1B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    "Handpicked just for today, because good food shouldn't wait.",
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: const Color(0xFF6B7280),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                'Same\nTradition\nMore Love ♡',
+                textAlign: TextAlign.right,
+                style: GoogleFonts.caveat(
+                  color: const Color(0xFFD4AF37),
+                  fontSize: 13,
+                  height: 1.1,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Main Deal Card Container
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6),
+                )
+              ],
+            ),
+            child: Column(
+              children: [
+                // Top Dark Section
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF231610),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  child: Column(
+                    children: [
+                      // Top Row: Badge + Heart Icon
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD4AF37).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.flash_on_rounded, color: Color(0xFFE5C76B), size: 12),
+                                const SizedBox(width: 4),
+                                Text(
+                                  "TODAY'S SPECIAL",
+                                  style: GoogleFonts.poppins(
+                                    color: const Color(0xFFE5C76B),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ListenableBuilder(
+                            listenable: WishlistManager(),
+                            builder: (context, _) {
+                              final isFav = WishlistManager().isFavorite(specialProduct);
+                              return GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.mediumImpact();
+                                  WishlistManager().toggleFavorite(specialProduct);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                    color: isFav ? Colors.red : Colors.grey,
+                                    size: 16,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Content Row: Text Details on Left, Product Image on Right
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 6,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  specialProduct.name,
+                                  style: GoogleFonts.philosopher(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                    height: 1.1,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'A bold blend of ginger, garlic and traditional Andhra spices.',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10,
+                                    color: Colors.white70,
+                                    height: 1.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+
+                                // Feature Circles Row
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildFeatureCircle(Icons.eco_outlined, '100%\nNatural'),
+                                    _buildFeatureCircle(Icons.soup_kitchen_outlined, 'Homemade\nTaste'),
+                                    _buildFeatureCircle(Icons.verified_outlined, 'No\nPreservatives'),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 5,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: SizedBox(
+                                height: 140,
+                                child: _buildProductImage(specialProduct.image),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Bottom Parchment Section (#FFF8E8)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFF8E8),
+                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+                  ),
+                  child: Column(
+                    children: [
+                      // Price Row
+                      Row(
+                        children: [
+                          Text(
+                            '₹350',
+                            style: GoogleFonts.poppins(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF0F4D3C),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '₹400',
+                            style: TextStyle(
+                              fontSize: 12,
+                              decoration: TextDecoration.lineThrough,
+                              color: Colors.grey.shade400,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF3D6),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              '12% OFF',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF8B5E3C),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Lower Row: Countdown Timer & Add to Cart Button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Countdown Timer Box
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF6B7280)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Offer ends in',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10,
+                                      color: const Color(0xFF6B7280),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  _buildTimerBox('08', 'HRS'),
+                                  const SizedBox(width: 6),
+                                  _buildTimerBox('46', 'MINS'),
+                                  const SizedBox(width: 6),
+                                  _buildTimerBox('22', 'SECS'),
+                                ],
+                              ),
+                            ],
+                          ),
+
+                          // Add to Cart Button
+                          GestureDetector(
+                            onTap: () {
+                              HapticFeedback.heavyImpact();
+                              CartManager().addToCart(specialProduct);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F4D3C),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 16),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Add to Cart',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Bottom Page Indicators (— • •)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 20,
+              height: 6,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F4D3C),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFeatureCircle(IconData icon, String label) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white30),
+          ),
+          child: Icon(icon, color: const Color(0xFFE5C76B), size: 14),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 8,
+            height: 1.1,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimerBox(String value, String label) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF3D6),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFF2D1B12),
+            ),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(fontSize: 7, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+        ),
+      ],
     );
   }
 
@@ -837,179 +2050,422 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Section Header
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 60, 20, 25),
-          child: Column(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('ROYAL PRIVILEGES', style: TextStyle(color: const Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 3)),
-              const SizedBox(height: 4),
-              Text('Unlock Exclusive Tastes', style: GoogleFonts.philosopher(fontSize: 24, fontWeight: FontWeight.w900, color: const Color(0xFF18453B))),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'ROYAL PRIVILEGES',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFFD4AF37),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(width: 30, height: 1, color: const Color(0xFFD4AF37)),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Exclusive Offers for You',
+                    style: GoogleFonts.philosopher(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF1B1B1B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Special savings. Authentic flavors. Always.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: const Color(0xFF6B7280),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Clipboard.setData(const ClipboardData(text: 'ROYAL10'));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Coupon ROYAL10 copied!')),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF8E8),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View All',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF0F4D3C),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF0F4D3C)),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-        SizedBox(
-          height: 200,
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: activeCoupons.length,
-            itemBuilder: (context, index) {
-              final c = activeCoupons[index];
-              final String code = c['code']?.toString() ?? '';
-              final String title = c['title']?.toString() ?? '';
-              final String sub = c['sub']?.toString() ?? '';
 
-              return Container(
-                width: 300,
-                height: 180,
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Stack(
-                  children: [
-                    Container(
-                      height: 180,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white,
-                            const Color(0xFFFFF8E8),
-                            Colors.white.withOpacity(0.9),
-                          ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF18453B).withOpacity(0.08),
-                            blurRadius: 30,
-                            offset: const Offset(0, 15),
-                          ),
-                        ],
-                        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.2), width: 1),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(30),
-                        child: Stack(
+        // Main Hero Ticket Coupon Banner
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            height: 195,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0C3D2E),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0C3D2E).withOpacity(0.2),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                )
+              ],
+            ),
+            child: Row(
+              children: [
+                // Left Green Section
+                Expanded(
+                  flex: 5,
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Positioned.fill(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Colors.white.withOpacity(0),
-                                      Colors.white.withOpacity(0.4),
-                                      Colors.white.withOpacity(0),
-                                    ],
-                                    stops: const [0.3, 0.5, 0.7],
-                                  ),
-                                ),
-                              ).animate(onPlay: (c) => c.repeat())
-                               .shimmer(duration: 3.seconds, color: Colors.white.withOpacity(0.5)),
+                            Text(
+                              'WELCOME OFFER',
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFFD4AF37),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.5,
+                              ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.all(25),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF18453B).withOpacity(0.05),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(Icons.auto_awesome, color: Color(0xFFD4AF37), size: 16),
-                                      ),
-                                      Text(
-                                        'OFFER VALID',
-                                        style: TextStyle(color: Colors.grey.shade400, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1),
-                                      ),
-                                    ],
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    title,
-                                    style: GoogleFonts.philosopher(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.w900,
-                                      color: const Color(0xFF18453B),
-                                      height: 1,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    sub.toUpperCase(),
-                                    style: const TextStyle(
-                                      color: Color(0xFFD4AF37),
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  GestureDetector(
-                                    onTap: () {
-                                      HapticFeedback.heavyImpact();
-                                      Clipboard.setData(ClipboardData(text: code));
-                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                        content: Text('Royal code "$code" revealed and copied!'),
-                                        behavior: SnackBarBehavior.floating,
-                                        backgroundColor: const Color(0xFF18453B),
-                                        margin: const EdgeInsets.all(20),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                                      ));
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF18453B),
-                                        borderRadius: BorderRadius.circular(15),
-                                        boxShadow: [
-                                          BoxShadow(color: const Color(0xFF184537).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5)),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            code,
-                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Container(width: 1, height: 12, color: Colors.white24),
-                                          const SizedBox(width: 12),
-                                          const Text(
-                                            'REVEAL',
-                                            style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            const SizedBox(height: 4),
+                            Text(
+                              '10% OFF',
+                              style: GoogleFonts.philosopher(
+                                fontSize: 34,
+                                fontWeight: FontWeight.w900,
+                                color: const Color(0xFFE5C76B),
+                                height: 1.0,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'ON YOUR FIRST ORDER',
+                              style: GoogleFonts.poppins(
+                                fontSize: 9,
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1,
                               ),
                             ),
                           ],
                         ),
-                      ),
+                        Row(
+                          children: [
+                            const Text('🍃 Authentic', style: TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold)),
+                            Text('  |  ', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 8)),
+                            const Text('🛡️ Quality', style: TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold)),
+                            Text('  |  ', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 8)),
+                            const Text('🚚 Fresh', style: TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ],
                     ),
-                    Positioned(
-                      right: -10, top: 40,
-                      child: Opacity(
-                        opacity: 0.05,
-                        child: Icon(Icons.verified_user_rounded, size: 120, color: const Color(0xFF184537)),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ).animate().fadeIn(delay: (index * 150).ms).slideX(begin: 0.2, end: 0, curve: Curves.easeOutQuart);
-            },
+
+                // Center Ticket Stamp Box
+                Expanded(
+                  flex: 4,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF8E8),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'USE CODE',
+                          style: GoogleFonts.poppins(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF6B7280),
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: () {
+                            HapticFeedback.heavyImpact();
+                            Clipboard.setData(const ClipboardData(text: 'ROYAL10'));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Coupon ROYAL10 copied!')),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'ROYAL10',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                    color: const Color(0xFF0F4D3C),
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                const Icon(Icons.copy_rounded, size: 14, color: Color(0xFF0F4D3C)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'A SMALL SAVING\nFOR A BIGGER FEAST',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.caveat(
+                            fontSize: 11,
+                            color: const Color(0xFF8B5E3C),
+                            fontWeight: FontWeight.bold,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Right Image & Wax Seal
+                Expanded(
+                  flex: 3,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(24)),
+                        child: SizedBox(
+                          height: 195,
+                          width: double.infinity,
+                          child: _buildProductImage('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'),
+                        ),
+                      ),
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFD4AF37),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.verified_rounded, color: Color(0xFF0C3D2E), size: 18),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // Sub-Offer Cards Row (3 Horizontal Pastel Cards)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              // Card 1: Free Shipping
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEBF3EA),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.card_giftcard_rounded, color: Color(0xFF0F4D3C), size: 16),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Free Shipping',
+                              style: GoogleFonts.philosopher(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1B1B1B),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'On orders above ₹599',
+                              style: TextStyle(fontSize: 8, color: Colors.grey.shade600),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF0F4D3C)),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Card 2: Flat ₹100 OFF
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.monetization_on_rounded, color: Color(0xFF8B5E3C), size: 16),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Flat ₹100 OFF',
+                              style: GoogleFonts.philosopher(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1B1B1B),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'On orders above ₹999',
+                              style: TextStyle(fontSize: 8, color: Colors.grey.shade600),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF8B5E3C)),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Card 3: Exclusive Combos
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFDE8E8),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.favorite_rounded, color: Colors.red, size: 16),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Exclusive Combos',
+                              style: GoogleFonts.philosopher(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1B1B1B),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Curated savings for you',
+                              style: TextStyle(fontSize: 8, color: Colors.grey.shade600),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.red),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -1113,53 +2569,456 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
+  Widget _buildValuePropsRow() {
+    final props = [
+      {
+        'title': 'Our Origin',
+        'sub': 'From farms to your table',
+        'icon': Icons.eco_rounded,
+        'tag': 'ORIGIN',
+      },
+      {
+        'title': 'Premium Packaging',
+        'sub': 'Freshness sealed',
+        'icon': Icons.inventory_2_rounded,
+        'tag': 'PACKAGING',
+      },
+      {
+        'title': 'Fast Delivery',
+        'sub': 'Straight to your doorstep',
+        'icon': Icons.local_shipping_rounded,
+        'tag': 'DELIVERY',
+      },
+      {
+        'title': 'Best Sellers',
+        'sub': 'Customer favourites',
+        'icon': Icons.star_rounded,
+        'tag': 'BEST',
+      },
+    ];
+
+    return SizedBox(
+      height: 110,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: props.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final item = props[index];
+          return GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              if (item['tag'] == 'BEST') {
+                AppNavigator.push(context, const ProductListingPage(category: 'Pickles'));
+              } else {
+                _handleStoryTap(item['tag'] as String);
+              }
+            },
+            child: Container(
+              width: 125,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(item['icon'] as IconData, color: const Color(0xFF0F4D3C), size: 24),
+                  const SizedBox(height: 6),
+                  Text(
+                    item['title'] as String,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF1B1B1B)),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item['sub'] as String,
+                    style: TextStyle(fontSize: 9, color: Colors.grey.shade500),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPopularCategoriesSection() {
+    final categories = [
+      {'name': 'Mango Pickles', 'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', 'cat': 'Pickles'},
+      {'name': 'Lemon Pickles', 'img': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg', 'cat': 'Pickles'},
+      {'name': 'Spicy Pickles', 'img': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg', 'cat': 'Pickles'},
+      {'name': 'Dry Fruits', 'img': 'assets/images/dry_fruits_laddu_premium_dry_fruits_laddu.jpg', 'cat': 'Sweets'},
+      {'name': 'Snacks', 'img': 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg', 'cat': 'Snacks'},
+    ];
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Popular Categories',
+                style: GoogleFonts.philosopher(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF1B1B1B),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => MainScreen.of(context)?.setIndex(1),
+                child: Row(
+                  children: [
+                    Text(
+                      'See All',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF0F4D3C),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF0F4D3C)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 135,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: categories.length,
+            itemBuilder: (context, index) {
+              final cat = categories[index];
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  AppNavigator.push(context, ProductListingPage(category: cat['cat']!));
+                },
+                child: Container(
+                  width: 105,
+                  margin: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          height: 65,
+                          width: 80,
+                          child: _buildProductImage(cat['img']!),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        cat['name']!,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF1B1B1B)),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildBentoSection() {
-    final bestSellerName = bentoConfig['best_seller_product'] ?? 'Bellam Avakaya';
-    final bestSeller = allProducts.firstWhere((p) => p.name == bestSellerName, orElse: () => allProducts[0]);
-    
+    final bestSellerName = bentoConfig['best_seller_product'] ?? 'Allam Velluli Karam Podi';
+    final bestSeller = allProducts.firstWhere((p) => p.name.contains('Allam') || p.name == bestSellerName, orElse: () => allProducts[0]);
+
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(bentoConfig['section_title'] ?? "Today's Selection", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
-          const SizedBox(height: 15),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Today\'s Selection',
+                style: GoogleFonts.philosopher(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF1B1B1B),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => MainScreen.of(context)?.setIndex(1),
+                child: Row(
+                  children: [
+                    Text(
+                      'See All',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF0F4D3C),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF0F4D3C)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
           SizedBox(
-            height: 280,
+            height: 290,
             child: Row(
               children: [
+                // Left Card (Allam Velluli Karam Podi)
                 Expanded(
-                  flex: 2,
-                  child: _BentoCard(
-                    title: bentoConfig['card1_label'] ?? 'Best Seller',
-                    sub: bestSeller.name,
-                    img: bestSeller.image,
-                    color: const Color(0xFF18453B),
-                    onTap: () => AppNavigator.push(context, ProductDetailPage(product: bestSeller, allProducts: allProducts)),
+                  flex: 6,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF18453B),
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF18453B).withOpacity(0.2),
+                          blurRadius: 15,
+                          offset: const Offset(0, 6),
+                        )
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'BEST SELLER',
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFFD4AF37),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              bestSeller.name,
+                              style: GoogleFonts.philosopher(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                height: 1.1,
+                              ),
+                              maxLines: 2,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Authentic taste\nfrom our roots',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: SizedBox(
+                            height: 100,
+                            width: double.infinity,
+                            child: _buildProductImage(bestSeller.image),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => AppNavigator.push(context, ProductDetailPage(product: bestSeller, allProducts: allProducts)),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE5C76B),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('Shop Now', style: TextStyle(color: Color(0xFF0F4D3C), fontWeight: FontWeight.bold, fontSize: 11)),
+                                SizedBox(width: 4),
+                                Icon(Icons.arrow_forward_rounded, color: Color(0xFF0F4D3C), size: 12),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
+
+                // Right Column Cards
                 Expanded(
+                  flex: 5,
                   child: Column(
                     children: [
+                      // Top Card (ROYAL Spices)
                       Expanded(
-                        child: _BentoCard(
-                          title: bentoConfig['card2_label'] ?? 'Royal',
-                          sub: bentoConfig['card2_sub'] ?? 'Spices',
-                          icon: _getIconData(bentoConfig['card2_icon'] ?? 'auto_awesome'),
-                          color: const Color(0xFFD4AF37),
-                          isDarkText: true,
-                          onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Spices')),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE5C76B),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'ROYAL',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFF0F4D3C),
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Spices',
+                                    style: GoogleFonts.philosopher(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFF0F4D3C),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Spices')),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF0F4D3C),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
+                                    ),
+                                  ),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: SizedBox(
+                                      width: 45,
+                                      height: 45,
+                                      child: _buildProductImage('assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(width: 12, height: 12),
+
+                      // Bottom Card (CRUNCHY Snacks)
                       Expanded(
-                        child: _BentoCard(
-                          title: bentoConfig['card3_label'] ?? 'Crunchy',
-                          sub: bentoConfig['card3_sub'] ?? 'Snacks',
-                          icon: _getIconData(bentoConfig['card3_icon'] ?? 'restaurant_menu_rounded'),
-                          color: const Color(0xFF2D1B12),
-                          onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Snacks')),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2D1B12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'CRUNCHY',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFFD4AF37),
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Snacks',
+                                    style: GoogleFonts.philosopher(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Snacks')),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFD4AF37),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.arrow_forward_rounded, color: Color(0xFF2D1B12), size: 14),
+                                    ),
+                                  ),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: SizedBox(
+                                      width: 45,
+                                      height: 45,
+                                      child: _buildProductImage('assets/images/bundhi_crispy_spiced_gram_flour_droplets.jpg'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -1170,7 +3029,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         ],
       ),
-    ).animate().fadeIn().slideY(begin: 0.1, end: 0);
+    );
   }
 
   Widget _buildCategoryScroll() {
@@ -1225,133 +3084,363 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildPerfectPairings() {
-    List<Map<String, String>> pairings = pairingList;
-    
-    if (pairings.isEmpty) {
-      pairings = [
-        {
-          'title': 'THE COASTAL CLASSIC',
-          'pairing': 'Rice + Ghee + Avakaya',
-          'desc': 'Hot steaming rice melts the ghee, perfectly balancing the tangy jaggery mango.',
-          'product_name': 'Bellam Avakaya',
-          'image_url': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'
-        },
-        {
-          'title': 'THE BREAKFAST RITUAL',
-          'pairing': 'Pesarattu + Allam Pickle',
-          'desc': 'Sharp ginger and garlic notes provide the perfect contrast to earthy moong dal.',
-          'product_name': 'Allam Velluli Pickle',
-          'image_url': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'
-        },
-        {
-          'title': 'CRUNCHY TEA TIME',
-          'pairing': 'Chakinalu + Usiri Pickle',
-          'desc': 'The citrusy amla tartness cuts through the savory sesame crunch of Chakinalu.',
-          'product_name': 'Usiri Pickle',
-          'image_url': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg'
-        }
-      ];
-    }
+    final subPairings = [
+      {
+        'title': 'Idli + Karam\nPodi + Ghee',
+        'sub': 'Simple. Traditional.\nIrresistible.',
+        'img': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg',
+        'badge': Icons.eco_rounded,
+        'prod': 'Allam Velluli Karam Podi',
+      },
+      {
+        'title': 'Dosa + Garlic\nChutney',
+        'sub': 'A classic pairing\nfor every mood.',
+        'img': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
+        'badge': Icons.restaurant,
+        'prod': 'Allam Velluli Pickle',
+      },
+      {
+        'title': 'Upma + Mango\nPickle',
+        'sub': 'Everyday food.\nExtra special.',
+        'img': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg',
+        'badge': Icons.nature_rounded,
+        'prod': 'Usiri Pickle',
+      },
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Section Header
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(width: 4, height: 24, decoration: BoxDecoration(color: const Color(0xFFD4AF37), borderRadius: BorderRadius.circular(2))),
-              const SizedBox(width: 12),
-              Column(
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('CURATED COMBOS', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 2)),
-                  Text('The Art of Pairing', style: GoogleFonts.philosopher(fontSize: 26, fontWeight: FontWeight.w900, color: const Color(0xFF18453B))),
+                  Container(
+                    width: 4,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE5C76B),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'CURATED COMBOS',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFFD4AF37),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'The Art of Pairing',
+                        style: GoogleFonts.philosopher(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF1B1B1B),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Perfect combinations. Richer flavors.',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: const Color(0xFF6B7280),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
+              ),
+              GestureDetector(
+                onTap: () => MainScreen.of(context)?.setIndex(1),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View All',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF0F4D3C),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF0F4D3C)),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
         ),
-        SizedBox(
-          height: 300,
-          child: PageView.builder(
-            controller: PageController(viewportFraction: 0.9),
-            itemCount: pairings.length,
-            itemBuilder: (context, index) {
-              final p = pairings[index];
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                child: Stack(
-                  children: [
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Container(
-                        height: 220,
-                        width: double.infinity,
-                        padding: const EdgeInsets.fromLTRB(20, 20, 140, 20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(35),
-                          boxShadow: [
-                            BoxShadow(color: const Color(0xFF2D1B12).withOpacity(0.06), blurRadius: 30, offset: const Offset(0, 15)),
-                          ],
-                          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.15)),
+
+        // Main Hero Pairing Card ("The Coastal Classic")
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            height: 215,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0C3D2E), Color(0xFF135341)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0C3D2E).withOpacity(0.2),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                )
+              ],
+            ),
+            child: Stack(
+              children: [
+                // Top Right Cursive Tag
+                Positioned(
+                  top: 14,
+                  right: 16,
+                  child: Text(
+                    'Simple Food\nExtraordinary\nHappiness',
+                    textAlign: TextAlign.right,
+                    style: GoogleFonts.caveat(
+                      color: const Color(0xFFE5C76B),
+                      fontSize: 14,
+                      height: 1.1,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                // Card Content
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'THE COASTAL CLASSIC',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFFD4AF37),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
                         ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Rice + Ghee +\nAvakaya',
+                        style: GoogleFonts.philosopher(
+                          color: const Color(0xFFFFF8E8),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: 170,
+                        child: Text(
+                          'A timeless combination that brings out the best of Andhra flavors.',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white70,
+                            fontSize: 11,
+                            height: 1.4,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      GestureDetector(
+                        onTap: () {
+                          final product = allProducts.firstWhere(
+                            (p) => p.name.contains('Bellam') || p.name.contains('Avakaya'),
+                            orElse: () => allProducts[0],
+                          );
+                          AppNavigator.push(context, ProductDetailPage(product: product, allProducts: allProducts));
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE5C76B),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'See Details',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF0F4D3C),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0F4D3C), size: 12),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Right Image
+                Positioned(
+                  right: 12,
+                  bottom: 12,
+                  width: 140,
+                  height: 140,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: _buildProductImage('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'),
+                  ),
+                ),
+
+                // Pagination Dots Bottom Left
+                Positioned(
+                  left: 20,
+                  bottom: 12,
+                  child: Row(
+                    children: List.generate(3, (i) => Container(
+                      margin: const EdgeInsets.only(right: 5),
+                      width: i == 0 ? 14 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: i == 0 ? const Color(0xFFE5C76B) : Colors.white30,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    )),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Sub-Cards Horizontal Row (3 Pairing Cards)
+        SizedBox(
+          height: 215,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: subPairings.length,
+            itemBuilder: (context, index) {
+              final item = subPairings[index];
+              final String prodName = item['prod'] as String;
+              final matchingProduct = allProducts.firstWhere(
+                (p) => p.name.contains(prodName.split(' ').first),
+                orElse: () => allProducts[index % allProducts.length],
+              );
+
+              return GestureDetector(
+                onTap: () => AppNavigator.push(context, ProductDetailPage(product: matchingProduct, allProducts: allProducts)),
+                child: Container(
+                  width: 155,
+                  margin: const EdgeInsets.only(right: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                            child: SizedBox(
+                              height: 110,
+                              width: double.infinity,
+                              child: _buildProductImage(item['img'] as String),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF0F4D3C),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(item['badge'] as IconData, color: Colors.white, size: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(p['pairing'] ?? '', style: GoogleFonts.philosopher(color: const Color(0xFF18453B), fontSize: 18, fontWeight: FontWeight.w900, height: 1.2)),
+                            Text(
+                              item['title'] as String,
+                              style: GoogleFonts.philosopher(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: const Color(0xFF1B1B1B),
+                                height: 1.1,
+                              ),
+                              maxLines: 2,
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              item['sub'] as String,
+                              style: TextStyle(fontSize: 10, color: Colors.grey.shade500, height: 1.2),
+                              maxLines: 2,
+                            ),
                             const SizedBox(height: 8),
-                            Text(p['desc'] ?? '', style: TextStyle(color: Colors.grey.shade600, fontSize: 10, height: 1.6, fontWeight: FontWeight.w500), maxLines: 3),
-                            const SizedBox(height: 15),
                             GestureDetector(
-                              onTap: () {
-                                final product = allProducts.firstWhere((prod) => prod.name == p['product_name'], orElse: () => allProducts[0]);
-                                AppNavigator.push(context, ProductDetailPage(product: product, allProducts: allProducts));
-                              },
-                              child: Row(
-                                children: [
-                                  const Text('SEE DETAILS', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1)),
-                                  const SizedBox(width: 4),
-                                  const Icon(Icons.arrow_forward_rounded, color: Color(0xFFD4AF37), size: 12),
-                                ],
+                              onTap: () => AppNavigator.push(context, ProductDetailPage(product: matchingProduct, allProducts: allProducts)),
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF0F4D3C),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 12),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                    Positioned(
-                      right: 10, top: 0,
-                      child: Container(
-                        height: 180, width: 130,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(25),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(10, 10)),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(25),
-                          child: _buildPairingImage(p['image_url'] ?? ''),
-                        ),
-                      ).animate(onPlay: (c) => c.repeat(reverse: true)).moveY(begin: -5, end: 5, duration: 3.seconds, curve: Curves.easeInOut),
-                    ),
-                    Positioned(
-                      left: 20, top: 25,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF18453B),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(p['title'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ).animate().fadeIn(delay: (index * 200).ms).slideX(begin: 0.2, end: 0, curve: Curves.easeOutQuart);
+              );
             },
           ),
         ),
@@ -1377,12 +3466,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       return const SizedBox.shrink();
     }
     
+    String? sub;
+    if (title == 'Most Loved Pickles') sub = 'Customer favorites, always!';
+    if (title == 'Traditional Snacks') sub = 'Crispy heritage delights';
+    if (title == 'Fresh Ground Spices') sub = 'Pure & aromatic blends';
+    if (title == 'Authentic Sweets') sub = 'Ghee-soaked traditional memories';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(title: title, onSeeAll: () => AppNavigator.push(context, ProductListingPage(category: category))),
+        _SectionTitle(title: title, subtitle: sub, onSeeAll: () => AppNavigator.push(context, ProductListingPage(category: category))),
         SizedBox(
-          height: 360, 
+          height: 440, 
           child: ListView.builder(
             scrollDirection: Axis.horizontal, 
             physics: const BouncingScrollPhysics(), 
@@ -1514,22 +3609,138 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(padding: EdgeInsets.fromLTRB(20, 40, 20, 15), child: Text('New Arrivals', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF18453B)))),
+        // Section Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'NEW ARRIVALS',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFFD4AF37),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(width: 30, height: 1, color: const Color(0xFFD4AF37)),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Fresh Picks, Just for You',
+                    style: GoogleFonts.philosopher(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF1B1B1B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Discover our latest additions, crafted with tradition.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: const Color(0xFF6B7280),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  GestureDetector(
+                    onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Pickles')),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF8E8),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'View All',
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF0F4D3C),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF0F4D3C)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'New Flavors\nSame Tradition ♡',
+                    textAlign: TextAlign.right,
+                    style: GoogleFonts.caveat(
+                      color: const Color(0xFFD4AF37),
+                      fontSize: 12,
+                      height: 1.1,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Horizontal List of Cards
         SizedBox(
-          height: 180,
+          height: 310,
           child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 15),
+            physics: const BouncingScrollPhysics(),
             itemCount: allProducts.length > 6 ? 6 : allProducts.length,
             itemBuilder: (context, index) {
               final product = allProducts[index];
-              return GestureDetector(
-                onTap: () => AppNavigator.push(context, ProductDetailPage(product: product, allProducts: allProducts)),
-                child: Container(width: 120, margin: const EdgeInsets.only(right: 15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [SizedBox(height: 80, width: 80, child: ClipRRect(borderRadius: BorderRadius.circular(10), child: _buildProductImage(product.image))), const SizedBox(height: 12), Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(product.name, maxLines: 1, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis))), Text(product.defaultPrice, style: const TextStyle(fontSize: 13, color: Color(0xFF18453B), fontWeight: FontWeight.w900))])),
+              return _NewArrivalCard(
+                product: product,
+                allProducts: allProducts,
+                index: index,
               );
             },
           ),
         ),
+
+        const SizedBox(height: 10),
+
+        // Bottom Carousel Indicators (— • •)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 20,
+              height: 6,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F4D3C),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, shape: BoxShape.circle)),
+          ],
+        ),
+
+        const SizedBox(height: 20),
       ],
     );
   }
@@ -1645,12 +3856,247 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildMakingProcessSection() {
-    final steps = [{'title': 'Sun Drying', 'desc': 'Ingredients dried under peak coastal sun.', 'icon': Icons.wb_sunny_rounded}, {'title': 'Stone Grinding', 'desc': 'Spices ground in traditional stone mortars.', 'icon': Icons.hardware}, {'title': 'Secret Ratios', 'desc': 'Ancestral recipes passed down since 1982.', 'icon': Icons.auto_awesome}];
+    final steps = [
+      {
+        'num': '01',
+        'title': 'Sun Drying',
+        'desc': 'Ingredients dried under peak coastal sun to lock in natural flavors.',
+        'icon': Icons.wb_sunny_outlined,
+        'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+      },
+      {
+        'num': '02',
+        'title': 'Stone Grinding',
+        'desc': 'Spices ground in traditional stone mortars for authentic taste and aroma.',
+        'icon': Icons.soup_kitchen_outlined,
+        'img': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg',
+      },
+      {
+        'num': '03',
+        'title': 'Natural Fermentation',
+        'desc': 'Blended and matured the traditional way for richer, deeper flavors.',
+        'icon': Icons.inventory_2_outlined,
+        'img': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
+      },
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(padding: EdgeInsets.fromLTRB(20, 50, 20, 15), child: Text('The Art of Pickle Making', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF18453B)))),
-        SizedBox(height: 160, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 15), itemCount: steps.length, itemBuilder: (context, index) => Container(width: 160, margin: const EdgeInsets.only(right: 15), padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), border: Border.all(color: const Color(0xFF18453B).withOpacity(0.05))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(steps[index]['icon'] as IconData, color: const Color(0xFFD4AF37), size: 24), const Spacer(), Text(steps[index]['title'] as String, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF18453B))), const SizedBox(height: 5), Text(steps[index]['desc'] as String, style: TextStyle(fontSize: 10, color: Colors.grey.shade600, height: 1.4))])))),
+        // Section Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'OUR TRADITION',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFFD4AF37),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(width: 30, height: 1, color: const Color(0xFFD4AF37)),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'The Art of\nPickle Making',
+                    style: GoogleFonts.philosopher(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF1B1B1B),
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Time-honored methods. Unmatched flavors.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: const Color(0xFF6B7280),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Same\nTradition\nBigger\nHappiness ♡',
+                    textAlign: TextAlign.right,
+                    style: GoogleFonts.caveat(
+                      color: const Color(0xFFD4AF37),
+                      fontSize: 12,
+                      height: 1.1,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
+                    ),
+                    child: const Icon(Icons.verified_rounded, color: Color(0xFFD4AF37), size: 14),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Process Cards Horizontal List
+        SizedBox(
+          height: 310,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: steps.length,
+            itemBuilder: (context, index) {
+              final step = steps[index];
+              return Container(
+                width: 165,
+                margin: const EdgeInsets.only(right: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8E8),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.2)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Image Area
+                    Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                          child: SizedBox(
+                            height: 140,
+                            width: double.infinity,
+                            child: _buildProductImage(step['img'] as String),
+                          ),
+                        ),
+
+                        // Top Left Step Number Badge (01, 02, 03)
+                        Positioned(
+                          top: 10,
+                          left: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF0F4D3C),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              step['num'] as String,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Card Content
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(step['icon'] as IconData, color: const Color(0xFF8B5E3C), size: 22),
+                          const SizedBox(height: 6),
+                          Text(
+                            step['title'] as String,
+                            style: GoogleFonts.philosopher(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: const Color(0xFF0F4D3C),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            step['desc'] as String,
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Colors.grey.shade600,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
+        // Carousel Indicators (— • • •) & Crafted with Care Tagline
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const SizedBox(width: 40),
+              Row(
+                children: [
+                  Container(
+                    width: 20,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F4D3C),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                  Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                  Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, shape: BoxShape.circle)),
+                ],
+              ),
+              Text(
+                'Crafted\nwith Care',
+                textAlign: TextAlign.right,
+                style: GoogleFonts.caveat(
+                  color: const Color(0xFFD4AF37),
+                  fontSize: 14,
+                  height: 1.1,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
       ],
     );
   }
@@ -1740,6 +4186,392 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           )
         ),
       ],
+    );
+  }
+
+  Widget _buildTrustReassuranceBanner() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E8),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.25)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildReassuranceItem(Icons.eco_rounded, 'Farm Fresh\nIngredients'),
+          Container(width: 1, height: 25, color: const Color(0xFFD4AF37).withOpacity(0.3)),
+          _buildReassuranceItem(Icons.verified_rounded, 'Authentic\nAndhra Recipes'),
+          Container(width: 1, height: 25, color: const Color(0xFFD4AF37).withOpacity(0.3)),
+          _buildReassuranceItem(Icons.favorite_rounded, 'Loved by\nThousands'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReassuranceItem(IconData icon, String label) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF0F4D3C), size: 18),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1B1B1B),
+            height: 1.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSnacksSection() {
+    final snackProducts = allProducts.where((p) {
+      final cat = p.category.trim().toLowerCase();
+      return cat == 'snacks' || cat == 'snack';
+    }).toList();
+
+    if (snackProducts.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'TRADITIONAL SNACKS',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFFD4AF37),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 10,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Snacks with a Story',
+                    style: GoogleFonts.philosopher(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF1B1B1B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Time-honored recipes, perfect for every craving.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: const Color(0xFF6B7280),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Snacks')),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View All',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF0F4D3C),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF0F4D3C)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Trust Reassurance Badges Row
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSnackTrustItem(Icons.eco_rounded, 'Authentic\nIngredients'),
+              Container(width: 1, height: 20, color: Colors.grey.shade300),
+              _buildSnackTrustItem(Icons.soup_kitchen_rounded, 'Traditional\nRecipes'),
+              Container(width: 1, height: 20, color: Colors.grey.shade300),
+              _buildSnackTrustItem(Icons.verified_user_rounded, 'No\nPreservatives'),
+              Container(width: 1, height: 20, color: Colors.grey.shade300),
+              _buildSnackTrustItem(Icons.favorite_rounded, 'Loved by\nThousands'),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
+        // Cards List
+        SizedBox(
+          height: 315,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: snackProducts.length,
+            itemBuilder: (context, index) {
+              final product = snackProducts[index];
+              return _SnackProductCard(
+                product: product,
+                allProducts: allProducts,
+                index: index,
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Widget _buildSnackTrustItem(IconData icon, String label) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF8B5E3C), size: 16),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFF1B1B1B), height: 1.1),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSweetsSection() {
+    final sweetProducts = allProducts.where((p) {
+      final cat = p.category.trim().toLowerCase();
+      return cat == 'sweets' || cat == 'sweet';
+    }).toList();
+
+    if (sweetProducts.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AUTHENTIC SWEETS',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFFD4AF37),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 10,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Traditional Sweets,\nTimeless Joy',
+                    style: GoogleFonts.philosopher(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF1B1B1B),
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Made with pure ingredients, just like home.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: const Color(0xFF6B7280),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Sweets')),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF8E8),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View All',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF0F4D3C),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF0F4D3C)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Trust Reassurance Badges Row
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSweetTrustItem(Icons.eco_rounded, 'Pure\nIngredients'),
+              Container(width: 1, height: 20, color: Colors.grey.shade300),
+              _buildSweetTrustItem(Icons.soup_kitchen_rounded, 'Traditional\nRecipes'),
+              Container(width: 1, height: 20, color: Colors.grey.shade300),
+              _buildSweetTrustItem(Icons.verified_user_rounded, 'No Artificial\nFlavors'),
+              Container(width: 1, height: 20, color: Colors.grey.shade300),
+              _buildSweetTrustItem(Icons.favorite_rounded, 'A Taste of\nHome'),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
+        // Sweets Cards Horizontal List
+        SizedBox(
+          height: 350,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: sweetProducts.length,
+            itemBuilder: (context, index) {
+              final product = sweetProducts[index];
+              return _SweetProductCard(
+                product: product,
+                allProducts: allProducts,
+                index: index,
+              );
+            },
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
+        // Carousel Indicators (— • •)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 20,
+              height: 6,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F4D3C),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.grey.shade300, shape: BoxShape.circle)),
+          ],
+        ),
+
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Widget _buildSweetTrustItem(IconData icon, String label) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF8B5E3C), size: 16),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFF1B1B1B), height: 1.1),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSweetsQuoteBanner() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E8),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              children: [
+                Text(
+                  '"SWEET TRADITIONS BRING HAPPIER DAYS"',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.philosopher(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF8B5E3C),
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(width: 40, height: 1, color: const Color(0xFFD4AF37)),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.local_florist_rounded, size: 14, color: Color(0xFFD4AF37)),
+                    const SizedBox(width: 8),
+                    Container(width: 40, height: 1, color: const Color(0xFFD4AF37)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              width: 80,
+              height: 70,
+              child: _buildProductImage('assets/images/dry_fruits_laddu_premium_dry_fruits_laddu.jpg'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1841,6 +4673,727 @@ class LuxuryStoryPage extends StatelessWidget {
             const SizedBox(height: 20),
             const Icon(Icons.verified_user_rounded, color: Color(0xFF18453B), size: 40),
             const SizedBox(height: 100),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SnackProductCard extends StatefulWidget {
+  final Product product;
+  final List<Product> allProducts;
+  final int index;
+  const _SnackProductCard({required this.product, required this.allProducts, required this.index});
+
+  @override
+  State<_SnackProductCard> createState() => _SnackProductCardState();
+}
+
+class _SnackProductCardState extends State<_SnackProductCard> {
+  late String _selectedWeight;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedWeight = widget.product.defaultWeight;
+  }
+
+  String _getSnackTagline(String name) {
+    if (name.contains('Chakinalu')) return 'Crispy. Traditional. Addictive.';
+    if (name.contains('Bundhi')) return 'Light. Crispy. Timeless.';
+    if (name.contains('Chips') || name.contains('Aratikaya')) return 'Thin. Crispy. Irresistible.';
+    return 'Authentic. Crispy. Fresh.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final weights = widget.product.weightPriceMap.keys.toList();
+    if (!weights.contains(_selectedWeight)) {
+      _selectedWeight = weights.isNotEmpty ? weights.first : '500g';
+    }
+
+    final priceStr = widget.product.getPriceForWeight(_selectedWeight);
+
+    return GestureDetector(
+      onTap: () => AppNavigator.push(context, ProductDetailPage(product: widget.product, allProducts: widget.allProducts)),
+      child: Container(
+        width: 165,
+        margin: const EdgeInsets.only(right: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Image Container
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  child: SizedBox(
+                    height: 140,
+                    width: double.infinity,
+                    child: _buildProductImage(widget.product.image),
+                  ),
+                ),
+
+                // Top Left Bestseller Badge
+                if (widget.index == 0 || widget.product.isBestSeller)
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.star_rounded, color: Color(0xFFE5C76B), size: 10),
+                          const SizedBox(width: 3),
+                          Text(
+                            'Bestseller',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // Top Right Heart Icon
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: ListenableBuilder(
+                    listenable: WishlistManager(),
+                    builder: (context, _) {
+                      final isFav = WishlistManager().isFavorite(widget.product);
+                      return GestureDetector(
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          WishlistManager().toggleFavorite(widget.product);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            color: isFav ? Colors.red : Colors.grey,
+                            size: 14,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            // Card Details
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.product.name,
+                    style: GoogleFonts.philosopher(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: const Color(0xFF0F4D3C),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _getSnackTagline(widget.product.name),
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Weight Dropdown Selector
+                  Container(
+                    height: 32,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedWeight,
+                        isExpanded: true,
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: Color(0xFF1B1B1B)),
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1B1B1B)),
+                        items: weights.map((String v) => DropdownMenuItem<String>(value: v, child: Text(v))).toList(),
+                        onChanged: (v) => setState(() => _selectedWeight = v!),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Price & Plus Button Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        priceStr,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF1B1B1B),
+                        ),
+                      ),
+                      ListenableBuilder(
+                        listenable: CartManager(),
+                        builder: (context, _) {
+                          int qty = CartManager().getProductQuantity(widget.product.name, _selectedWeight);
+                          if (qty > 0) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F4D3C),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '$qty in cart',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 9),
+                              ),
+                            );
+                          }
+                          return GestureDetector(
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              CartManager().addToCart(widget.product, weight: _selectedWeight);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F4D3C),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.add_rounded, color: Colors.white, size: 16),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SweetProductCard extends StatefulWidget {
+  final Product product;
+  final List<Product> allProducts;
+  final int index;
+  const _SweetProductCard({required this.product, required this.allProducts, required this.index});
+
+  @override
+  State<_SweetProductCard> createState() => _SweetProductCardState();
+}
+
+class _SweetProductCardState extends State<_SweetProductCard> {
+  late String _selectedWeight;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedWeight = widget.product.defaultWeight;
+  }
+
+  String _getSweetTagline(String name) {
+    if (name.contains('Dry Fruits') || name.contains('Fruit')) return 'A wholesome blend of nuts, ghee and natural sweetness.';
+    if (name.contains('Gondh')) return 'Ancient recipe for strength and wellness.';
+    if (name.contains('Besan')) return 'Soft, rich and melt-in-mouth aromatic bliss.';
+    return 'Made with pure ghee and ancestral love.';
+  }
+
+  String _getSweetBadge(int idx, String name) {
+    if (idx == 0 || name.contains('Dry Fruits')) return '👑 Bestseller';
+    if (idx == 1 || name.contains('Gondh')) return '🍃 Traditional';
+    return '🍃 Pure Ghee';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final weights = widget.product.weightPriceMap.keys.toList();
+    if (!weights.contains(_selectedWeight)) {
+      _selectedWeight = weights.isNotEmpty ? weights.first : '500g';
+    }
+
+    final priceStr = widget.product.getPriceForWeight(_selectedWeight);
+
+    return GestureDetector(
+      onTap: () => AppNavigator.push(context, ProductDetailPage(product: widget.product, allProducts: widget.allProducts)),
+      child: Container(
+        width: 180,
+        margin: const EdgeInsets.only(right: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Image Area
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  child: SizedBox(
+                    height: 155,
+                    width: double.infinity,
+                    child: _buildProductImage(widget.product.image),
+                  ),
+                ),
+
+                // Top Left Pill Badge
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F4D3C),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _getSweetBadge(widget.index, widget.product.name),
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Top Right Wishlist Icon
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: ListenableBuilder(
+                    listenable: WishlistManager(),
+                    builder: (context, _) {
+                      final isFav = WishlistManager().isFavorite(widget.product);
+                      return GestureDetector(
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          WishlistManager().toggleFavorite(widget.product);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            color: isFav ? Colors.red : Colors.grey,
+                            size: 14,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            // Card Details
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.product.name,
+                    style: GoogleFonts.philosopher(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: const Color(0xFF0F4D3C),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    _getSweetTagline(widget.product.name),
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: Colors.grey.shade500,
+                      height: 1.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Weight Dropdown Selector
+                  Container(
+                    height: 32,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedWeight,
+                        isExpanded: true,
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: Color(0xFF1B1B1B)),
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1B1B1B)),
+                        items: weights.map((String v) => DropdownMenuItem<String>(value: v, child: Text(v))).toList(),
+                        onChanged: (v) => setState(() => _selectedWeight = v!),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Price & Add Button Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        priceStr,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF1B1B1B),
+                        ),
+                      ),
+                      ListenableBuilder(
+                        listenable: CartManager(),
+                        builder: (context, _) {
+                          int qty = CartManager().getProductQuantity(widget.product.name, _selectedWeight);
+                          if (qty > 0) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F4D3C),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '$qty in cart',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 9),
+                              ),
+                            );
+                          }
+                          return GestureDetector(
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              CartManager().addToCart(widget.product, weight: _selectedWeight);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F4D3C),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 12),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Add',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NewArrivalCard extends StatefulWidget {
+  final Product product;
+  final List<Product> allProducts;
+  final int index;
+  const _NewArrivalCard({required this.product, required this.allProducts, required this.index});
+
+  @override
+  State<_NewArrivalCard> createState() => _NewArrivalCardState();
+}
+
+class _NewArrivalCardState extends State<_NewArrivalCard> {
+  late String _selectedWeight;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedWeight = widget.product.defaultWeight;
+  }
+
+  String _getArrivalTagline(String name) {
+    if (name.contains('Bellam')) return 'The classic, now even better.';
+    if (name.contains('Allam') || name.contains('Garlic')) return 'A bold blend of ginger & garlic.';
+    if (name.contains('Usiri') || name.contains('Amla')) return 'Tangy. Healthy. Timeless.';
+    return 'Crafted fresh with ancestral love.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final weights = widget.product.weightPriceMap.keys.toList();
+    if (!weights.contains(_selectedWeight)) {
+      _selectedWeight = weights.isNotEmpty ? weights.first : '500g';
+    }
+
+    final priceStr = widget.product.getPriceForWeight(_selectedWeight);
+
+    return GestureDetector(
+      onTap: () => AppNavigator.push(context, ProductDetailPage(product: widget.product, allProducts: widget.allProducts)),
+      child: Container(
+        width: 165,
+        margin: const EdgeInsets.only(right: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Image Area
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  child: SizedBox(
+                    height: 145,
+                    width: double.infinity,
+                    child: _buildProductImage(widget.product.image),
+                  ),
+                ),
+
+                // Top Left "NEW" Pill Badge
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F4D3C),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.eco_rounded, color: Colors.white, size: 10),
+                        const SizedBox(width: 3),
+                        Text(
+                          'NEW',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Top Right Wishlist Icon
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: ListenableBuilder(
+                    listenable: WishlistManager(),
+                    builder: (context, _) {
+                      final isFav = WishlistManager().isFavorite(widget.product);
+                      return GestureDetector(
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          WishlistManager().toggleFavorite(widget.product);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            color: isFav ? Colors.red : Colors.grey,
+                            size: 14,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            // Card Details
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.product.name,
+                    style: GoogleFonts.philosopher(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: const Color(0xFF0F4D3C),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _getArrivalTagline(widget.product.name),
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Bottom Row: Weight Selector + Price + Square Plus Button
+                  Row(
+                    children: [
+                      // Weight Selector Dropdown
+                      Expanded(
+                        child: Container(
+                          height: 32,
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedWeight,
+                              isExpanded: true,
+                              icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 12, color: Color(0xFF1B1B1B)),
+                              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF1B1B1B)),
+                              items: weights.map((String v) => DropdownMenuItem<String>(value: v, child: Text(v))).toList(),
+                              onChanged: (v) => setState(() => _selectedWeight = v!),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+
+                      Text(
+                        priceStr,
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF1B1B1B),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+
+                      // Square Plus Button
+                      ListenableBuilder(
+                        listenable: CartManager(),
+                        builder: (context, _) {
+                          int qty = CartManager().getProductQuantity(widget.product.name, _selectedWeight);
+                          if (qty > 0) {
+                            return Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F4D3C),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '$qty',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                              ),
+                            );
+                          }
+                          return GestureDetector(
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              CartManager().addToCart(widget.product, weight: _selectedWeight);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F4D3C),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.add_rounded, color: Colors.white, size: 16),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -2023,19 +5576,71 @@ class _CategoryItemState extends State<_CategoryItem> {
 
 class _SectionTitle extends StatelessWidget {
   final String title;
+  final String? subtitle;
   final VoidCallback onSeeAll;
-  const _SectionTitle({required this.title, required this.onSeeAll});
+  const _SectionTitle({required this.title, this.subtitle, required this.onSeeAll});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF18453B))))),
-          const SizedBox(width: 15),
-          GestureDetector(onTap: onSeeAll, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: const Color(0xFFD4AF37).withOpacity(0.15), borderRadius: BorderRadius.circular(15)), child: const Row(children: [Text('View All', style: TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.w900, fontSize: 11)), SizedBox(width: 4), Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Color(0xFF18453B))]))),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.philosopher(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF1B1B1B),
+                  ),
+                ),
+                if (subtitle != null && subtitle!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle!,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: const Color(0xFF6B7280),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: onSeeAll,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'View All',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF0F4D3C),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF0F4D3C)),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -2064,6 +5669,14 @@ class _PremiumProductCardState extends State<_PremiumProductCard> {
 
   @override
   Widget build(BuildContext context) {
+    final weights = widget.product.weightPriceMap.keys.toList();
+    if (!weights.contains(_selectedWeight)) {
+      _selectedWeight = weights.isNotEmpty ? weights.first : '500g';
+    }
+
+    final rawPrice = widget.product.getRawPriceForWeight(_selectedWeight);
+    final oldPrice = (rawPrice * 1.15).round();
+
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
@@ -2076,53 +5689,74 @@ class _PremiumProductCardState extends State<_PremiumProductCard> {
         scale: _isPressed ? 0.96 : 1.0,
         duration: const Duration(milliseconds: 150),
         child: Container(
-          width: 180,
-          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 10))]),
+          width: 235,
+          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 15,
+                offset: const Offset(0, 6),
+              )
+            ],
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AspectRatio(
-                aspectRatio: 1.0,
+              // Top Image Area
+              SizedBox(
+                height: 185,
                 child: Stack(
                   children: [
                     ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-                      child: Container(
-                        color: Colors.white,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                      child: SizedBox(
+                        height: 185,
+                        width: double.infinity,
                         child: Hero(
                           tag: widget.product.name,
                           child: _buildProductImage(widget.product.image),
                         ),
                       ),
                     ),
-                    if (widget.product.isBestSeller)
-                      Positioned(
-                        top: 12, left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFE5C76B)]), borderRadius: BorderRadius.circular(10), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5)]),
-                          child: const Text('BEST SELLER', style: TextStyle(color: Color(0xFF18453B), fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+
+                    // Top Left Bestseller / Badge
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: widget.product.isBestSeller
+                                ? [const Color(0xFFE5C76B), const Color(0xFFD4AF37)]
+                                : [const Color(0xFF0F4D3C), const Color(0xFF185D4A)],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                            )
+                          ],
+                        ),
+                        child: Text(
+                          widget.product.isBestSeller ? '#1 Bestseller' : '♥ Most Loved',
+                          style: TextStyle(
+                            color: widget.product.isBestSeller ? const Color(0xFF2D1B12) : Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
-                    if (widget.product.stockCount > 0 && widget.product.stockCount <= widget.threshold)
-                      Positioned(
-                        bottom: 12, left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade600,
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
-                          ),
-                          child: Text(
-                            'ONLY ${widget.product.stockCount} LEFT!',
-                            style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                          ),
-                        ),
-                      ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds),
+                    ),
+
+                    // Top Right Heart Wishlist Icon
                     Positioned(
-                      top: 12, right: 12,
+                      top: 10,
+                      right: 10,
                       child: ListenableBuilder(
                         listenable: WishlistManager(),
                         builder: (context, _) {
@@ -2133,87 +5767,245 @@ class _PremiumProductCardState extends State<_PremiumProductCard> {
                               WishlistManager().toggleFavorite(widget.product);
                             },
                             child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5)]),
-                              child: Icon(isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: isFav ? Colors.red : Colors.grey, size: 16),
+                              padding: const EdgeInsets.all(7),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                color: isFav ? Colors.red : Colors.grey,
+                                size: 16,
+                              ),
                             ),
                           );
-                        }
+                        },
                       ),
                     ),
-                    if (widget.product.isOutOfStock)
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.6),
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-                          ),
-                          child: Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text('OUT OF STOCK', style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                            ),
-                          ),
+
+                    // Cursive Script Overlay
+                    Positioned(
+                      bottom: 8,
+                      right: 12,
+                      child: Text(
+                        'A Taste of Tradition',
+                        style: GoogleFonts.caveat(
+                          color: const Color(0xFFE5C76B),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            const Shadow(blurRadius: 4, color: Colors.black54),
+                          ],
                         ),
                       ),
+                    ),
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.product.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF2D1B12)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 4),
-                    Row(children: List.generate(5, (idx) => Icon(idx < widget.product.rating.floor() ? Icons.star_rounded : Icons.star_outline_rounded, size: 12, color: const Color(0xFFD4AF37)))),
-                    const SizedBox(height: 8),
-                    Container(height: 34, padding: const EdgeInsets.symmetric(horizontal: 10), decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade200)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: _selectedWeight, isExpanded: true, icon: const Icon(Icons.keyboard_arrow_down, size: 14), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87), items: widget.product.weightPriceMap.keys.map((String v) => DropdownMenuItem<String>(value: v, child: Text(v))).toList(), onChanged: (v) => setState(() => _selectedWeight = v!)))),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: Text(widget.product.getPriceForWeight(_selectedWeight), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF18453B))))),
-                        const SizedBox(width: 4),
-                        ListenableBuilder(
-                          listenable: CartManager(),
-                          builder: (context, _) {
-                            int qty = CartManager().getProductQuantity(widget.product.name, _selectedWeight);
-                            bool isOut = widget.product.isOutOfStock;
-                            return GestureDetector(
-                              onTap: isOut ? null : () {
-                                HapticFeedback.mediumImpact();
-                                CartManager().addToCart(widget.product, weight: _selectedWeight);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                decoration: BoxDecoration(
-                                  gradient: isOut 
-                                    ? LinearGradient(colors: [Colors.grey.shade400, Colors.grey.shade500])
-                                    : const LinearGradient(colors: [Color(0xFF18453B), Color(0xFF276357)]),
-                                  borderRadius: BorderRadius.circular(10),
+
+              // Product Info Area
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.product.name,
+                            style: GoogleFonts.philosopher(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                              color: const Color(0xFF0F4D3C),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'The Royal Sweet & Spicy Classic',
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontStyle: FontStyle.italic,
+                              color: const Color(0xFF8B5E3C),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'A perfect blend of sun-ripened ingredients and traditional Andhra spices.',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade600,
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+
+                          // Trust Badges
+                          Row(
+                            children: [
+                              const Text('🍃 100% Natural', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFF1B1B1B))),
+                              Text('  |  ', style: TextStyle(fontSize: 8, color: Colors.grey.shade400)),
+                              const Text('🥣 No Preservatives', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFF1B1B1B))),
+                            ],
+                          ),
+                        ],
+                      ),
+
+                      // Weight Selector Chips
+                      Row(
+                        children: weights.map((w) {
+                          bool isSel = _selectedWeight == w;
+                          return GestureDetector(
+                            onTap: () => setState(() => _selectedWeight = w),
+                            child: Container(
+                              margin: const EdgeInsets.only(right: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isSel ? const Color(0xFF0F4D3C) : const Color(0xFFFFF8E8),
+                                borderRadius: BorderRadius.circular(10),
+                                border: isSel ? null : Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: Text(
+                                w,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: isSel ? Colors.white : const Color(0xFF1B1B1B),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(isOut ? Icons.block_rounded : Icons.add_rounded, color: Colors.white, size: 16),
-                                    if (qty > 0 && !isOut) ...[
-                                      const SizedBox(width: 4),
-                                      Text('$qty', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                                    ],
-                                  ],
-                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+
+                      // Price Row
+                      Row(
+                        children: [
+                          Text(
+                            '₹${rawPrice.round()}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF1B1B1B),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '₹$oldPrice',
+                            style: TextStyle(
+                              fontSize: 11,
+                              decoration: TextDecoration.lineThrough,
+                              color: Colors.grey.shade400,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF3D6),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              '12% OFF',
+                              style: TextStyle(
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF8B5E3C),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Add to Cart Button
+                      ListenableBuilder(
+                        listenable: CartManager(),
+                        builder: (context, _) {
+                          int qty = CartManager().getProductQuantity(widget.product.name, _selectedWeight);
+                          bool isOut = widget.product.isOutOfStock;
+
+                          if (isOut) {
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade400,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              alignment: Alignment.center,
+                              child: const Text('OUT OF STOCK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                            );
+                          }
+
+                          if (qty > 0) {
+                            return Container(
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F4D3C),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      HapticFeedback.mediumImpact();
+                                      CartManager().decrementProductQuantity(widget.product.name, _selectedWeight);
+                                    },
+                                    child: const Icon(Icons.remove_rounded, color: Colors.white, size: 18),
+                                  ),
+                                  Text(
+                                    '$qty in cart',
+                                    style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 12),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      HapticFeedback.mediumImpact();
+                                      CartManager().addToCart(widget.product, weight: _selectedWeight);
+                                    },
+                                    child: const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                                  ),
+                                ],
                               ),
                             );
                           }
-                        ),
-                      ],
-                    ),
-                  ],
+
+                          return GestureDetector(
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              CartManager().addToCart(widget.product, weight: _selectedWeight);
+                            },
+                            child: Container(
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F4D3C),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              alignment: Alignment.center,
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 16),
+                                  SizedBox(width: 6),
+                                  Text('Add to Cart', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -2222,7 +6014,6 @@ class _PremiumProductCardState extends State<_PremiumProductCard> {
       ),
     );
   }
-
 }
 
 class _BentoCard extends StatelessWidget {

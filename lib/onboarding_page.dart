@@ -19,7 +19,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
   int _selectedTasteIndex = 1;
-  bool _isLoading = true;
 
   List<Map<String, String>> _steps = [];
   List<Map<String, dynamic>> _tasteOptions = [];
@@ -29,6 +28,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   void initState() {
     super.initState();
+    _steps = _defaultSteps;
     _startConfigListeners();
   }
 
@@ -38,7 +38,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
         setState(() {
           if (data.isNotEmpty) {
             _steps = data;
-            _isLoading = false;
           }
         });
       }
@@ -65,23 +64,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
-    // If loading or empty, show a premium splash fallback
-    if (_isLoading && _steps.isEmpty) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF18453B),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset('assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg', width: 100).animate().scale().fadeIn(),
-              const SizedBox(height: 20),
-              const CircularProgressIndicator(color: Color(0xFFD4AF37)),
-            ],
-          ),
-        ),
-      );
-    }
-
     final steps = _steps.isNotEmpty ? _steps : _defaultSteps;
 
     return Scaffold(

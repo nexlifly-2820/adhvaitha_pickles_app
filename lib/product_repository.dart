@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'api_service.dart';
 import 'models.dart';
 
 class ProductRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   static final List<Review> _mockReviews = [
     Review(userName: 'Srinivas R.', comment: 'Authentic Andhra taste! Reminds me of home.', rating: 5.0, date: '2 days ago'),
@@ -430,76 +429,31 @@ class ProductRepository {
     ),
   ];
 
-  Stream<List<Product>> getProductsStream() {
-    return _firestore.collection('products_app').snapshots().map((snapshot) {
-      debugPrint('DEBUG: Firestore products_app snapshot received. Count: ${snapshot.docs.length}');
-      
-      if (snapshot.docs.isEmpty) {
-        debugPrint('DEBUG: Firestore products_app collection is empty, returning local fallback data.');
-        return allProducts;
+  Stream<List<Product>> getProductsStream() async* {
+    yield allProducts; // Instant render
+    try {
+      final list = await ApiService.getProducts();
+      if (list.isNotEmpty) {
+        yield list.map((item) => _mapToProduct(item is Map<String, dynamic> ? item : Map<String, dynamic>.from(item))).toList();
       }
-      
-      return snapshot.docs.map((doc) {
-        debugPrint('DEBUG: Mapping product document: ${doc.id}');
-        try {
-          return _mapToProduct(doc);
-        } catch (e) {
-          debugPrint('DEBUG: CRITICAL ERROR mapping product ${doc.id}: $e');
-          // Return a fallback product so the list doesn't break
-          return Product(
-            name: 'Data Error: ${doc.id}',
-            description: 'Check Firestore field types: $e',
-            weightPriceMap: {'Error': 0},
-            rating: 0,
-            image: '',
-            color: Colors.red,
-            category: 'Error',
-            secretIngredient: IngredientDetail(name: '', description: '', image: ''),
-          );
-        }
-      }).toList();
-    });
-  }
-
-  Review _mapToReview(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return Review(
-      id: doc.id,
-      userName: data['userName'] ?? 'Anonymous',
-      comment: data['comment'] ?? '',
-      rating: (data['rating'] as num?)?.toDouble() ?? 5.0,
-      date: data['date'] ?? 'Recently',
-      status: data['status'] ?? 'approved',
-    );
+    } catch (e) {
+      debugPrint('Error loading products stream: $e');
+    }
   }
 
   Future<List<Product>> getProducts() async {
     try {
-      final snapshot = await _firestore.collection('products_app').get();
-      if (snapshot.docs.isEmpty) {
-        // If Firestore is empty, seed with local data for first run
-        await seedProducts();
-        return allProducts;
+      final list = await ApiService.getProducts();
+      if (list.isNotEmpty) {
+        return list.map((item) => _mapToProduct(item is Map<String, dynamic> ? item : Map<String, dynamic>.from(item))).toList();
       }
-      return snapshot.docs.map((doc) => _mapToProduct(doc)).toList();
     } catch (e) {
       debugPrint('DEBUG: Error fetching products (Future): $e');
-      return allProducts; // Fallback to local data
     }
+    return allProducts; // Fallback to local data
   }
 
-  Future<void> seedProducts() async {
-    final batch = _firestore.batch();
-    for (var product in allProducts) {
-      final docRef = _firestore.collection('products_app').doc(product.name.replaceAll(' ', '_').toLowerCase());
-      batch.set(docRef, _productToMap(product));
-    }
-    await batch.commit();
-  }
-
-  Product _mapToProduct(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    
+  Product _mapToProduct(Map<String, dynamic> data) {
     // 1. SAFE WEIGHT MAP PARSING
     Map<String, double> safeWeightMap = {};
     if (data['weightPriceMap'] != null && data['weightPriceMap'] is Map) {

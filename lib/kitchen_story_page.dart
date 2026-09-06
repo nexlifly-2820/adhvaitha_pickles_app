@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'api_service.dart';
 import 'kitchen_story_model.dart';
 import 'journey_components.dart';
 
@@ -16,8 +16,8 @@ class KitchenStoryPage extends StatefulWidget {
 class _KitchenStoryPageState extends State<KitchenStoryPage> {
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('settings').doc('kitchen_story').snapshots(),
+    return FutureBuilder<Map<String, dynamic>>(
+      future: ApiService.getAppConfig('kitchen_story'),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -27,7 +27,7 @@ class _KitchenStoryPageState extends State<KitchenStoryPage> {
         }
 
         KitchenStoryData data;
-        if (!snapshot.hasData || !snapshot.data!.exists) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
           data = KitchenStoryData(
             appBarTitle: 'OUR JOURNEY',
             beginning: BeginningSection(
@@ -77,7 +77,7 @@ class _KitchenStoryPageState extends State<KitchenStoryPage> {
             ),
           );
         } else {
-          data = KitchenStoryData.fromFirestore(snapshot.data!.data() as Map<String, dynamic>);
+          data = KitchenStoryData.fromFirestore(snapshot.data!);
         }
 
         return Scaffold(

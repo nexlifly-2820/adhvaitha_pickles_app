@@ -1,3 +1,17 @@
+// Clear duplicate ANDROID_PREFS_ROOT environment variable to fix AGP Locations exception
+try {
+    val pe = Class.forName("java.lang.ProcessEnvironment")
+    val fields = arrayOf("theEnvironment", "theUnmodifiableEnvironment", "theCaseInsensitiveEnvironment")
+    for (fieldName in fields) {
+        try {
+            val f = pe.getDeclaredField(fieldName)
+            f.isAccessible = true
+            val m = f.get(null) as? MutableMap<*, *>
+            m?.remove("ANDROID_PREFS_ROOT")
+        } catch (_: Exception) {}
+    }
+} catch (_: Exception) {}
+
 pluginManagement {
     val flutterSdkPath =
         run {

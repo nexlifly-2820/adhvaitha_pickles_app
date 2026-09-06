@@ -2,10 +2,10 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'api_service.dart';
 
 class NotificationManager {
   static final NotificationManager _instance = NotificationManager._internal();
@@ -70,11 +70,10 @@ class NotificationManager {
     try {
       String? token = await _fcm.getToken();
       if (token != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-          'fcmToken': token,
-          'lastTokenUpdate': FieldValue.serverTimestamp(),
-          'platform': 'android',
-        }, SetOptions(merge: true));
+        await ApiService.saveFcmToken(
+          userId: user.uid,
+          token: token,
+        );
       }
     } catch (e) {
       print("Error updating FCM token: $e");

@@ -1,3 +1,6 @@
+// Clear duplicate Android preferences root property to prevent AGP locations conflict
+System.clearProperty("ANDROID_PREFS_ROOT")
+
 allprojects {
     repositories {
         google()

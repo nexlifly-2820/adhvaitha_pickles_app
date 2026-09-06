@@ -196,42 +196,32 @@ class _MainScreenState extends State<MainScreen> {
     bool isSelected = _selectedIndex == index;
     return GestureDetector(
       onTap: () => setIndex(index),
-      child: AnimatedContainer(
-        duration: 350.ms,
-        curve: Curves.easeInOut,
-        padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 16 : 10, 
-          vertical: 10
-        ),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF18453B) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFF0F4D3C) : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
               icon,
-              color: isSelected ? const Color(0xFFD4AF37) : const Color(0xFF18453B).withOpacity(0.3),
+              color: isSelected ? Colors.white : const Color(0xFF9CA3AF),
               size: 24,
             ),
-            if (isSelected) ...[
-              const SizedBox(width: 6),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    color: Color(0xFFD4AF37),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 12,
-                    letterSpacing: 0.5
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? const Color(0xFF0F4D3C) : const Color(0xFF9CA3AF),
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              fontSize: 11,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -247,9 +237,9 @@ class GlobalCartBadge extends StatelessWidget {
       builder: (context, _) {
         int count = CartManager().items.length;
         return Padding(
-          padding: const EdgeInsets.only(right: 8),
+          padding: const EdgeInsets.only(right: 14, top: 8, bottom: 8),
           child: Stack(
-            alignment: Alignment.center,
+            clipBehavior: Clip.none,
             children: [
               GestureDetector(
                 onTap: () {
@@ -257,23 +247,49 @@ class GlobalCartBadge extends StatelessWidget {
                   AppNavigator.push(context, CartPage());
                 },
                 child: Container(
-                  padding: const EdgeInsets.all(6), // Reduced for safety buffer
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      )
+                    ],
                   ),
-                  child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF18453B), size: 20),
+                  child: const Icon(
+                    Icons.shopping_bag_outlined,
+                    color: Color(0xFF18453B),
+                    size: 20,
+                  ),
                 ),
               ),
               if (count > 0)
                 Positioned(
-                  right: -2, top: 2, // Adjusted for smaller container
+                  top: -4,
+                  right: -4,
                   child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                    child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '$count',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ).animate().scale(curve: Curves.elasticOut),
             ],

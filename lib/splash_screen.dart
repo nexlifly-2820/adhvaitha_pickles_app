@@ -211,9 +211,9 @@ class _SplashScreenState extends State<SplashScreen>
                   color: luxuryGreen,
                   child: Center(
                     child: Image.asset(
-                      'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
-                      width: 100,
-                      height: 100,
+                      'assets/images/adhvaitha_logo.png',
+                      width: 120,
+                      height: 120,
                       errorBuilder: (c, e, s) => const Icon(Icons.restaurant, color: brandGold, size: 50),
                     ),
                   ),
@@ -300,7 +300,7 @@ class _SplashScreenState extends State<SplashScreen>
                       child: Padding(
                         padding: const EdgeInsets.all(4.0),
                         child: Image.asset(
-                          'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
+                          'assets/images/adhvaitha_logo.png',
                           fit: BoxFit.cover,
                           errorBuilder: (c, e, s) => const Icon(Icons.restaurant, size: 80, color: luxuryGreen),
                         ),

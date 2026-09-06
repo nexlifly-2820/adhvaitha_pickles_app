@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'api_service.dart';
 import 'models.dart';
 import 'product_manager.dart';
-import 'product_repository.dart';
 
 class OrderManager extends ChangeNotifier {
   static final OrderManager _instance = OrderManager._internal();
@@ -17,53 +16,59 @@ class OrderManager extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  StreamSubscription? _ordersSubscription;
+  Timer? _pollingTimer;
 
   void startOrderListener() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    _isLoading = true;
-    notifyListeners();
-
-    _ordersSubscription?.cancel();
-    _ordersSubscription = FirebaseFirestore.instance
-        .collection('orders')
-        .where('userId', isEqualTo: user.uid)
-        .orderBy('date', descending: true)
-        .snapshots()
-        .listen((snapshot) {
-      _orders = snapshot.docs.map((doc) => _mapToOrder(doc)).toList();
-      _isLoading = false;
-      notifyListeners();
-    }, onError: (e) {
-      print('Error listening to orders: $e');
-      _isLoading = false;
-      notifyListeners();
+    fetchOrders();
+    // Poll for order updates every 30 seconds
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      fetchOrders(showLoading: false);
     });
   }
 
+  Future<void> fetchOrders({bool showLoading = true}) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    if (showLoading) {
+      _isLoading = true;
+      notifyListeners();
+    }
+
+    try {
+      final rawOrders = await ApiService.getUserOrders(user.uid);
+      if (rawOrders.isNotEmpty) {
+        _orders = rawOrders.map((json) => _mapJsonToOrder(json)).toList();
+      }
+    } catch (e) {
+      print('Error fetching orders: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   void stopOrderListener() {
-    _ordersSubscription?.cancel();
-    _ordersSubscription = null;
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
   }
 
   @override
   void dispose() {
-    _ordersSubscription?.cancel();
+    _pollingTimer?.cancel();
     super.dispose();
   }
 
-  Order _mapToOrder(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  Order _mapJsonToOrder(Map<String, dynamic> data) {
+    final List<dynamic> rawItems = data['items'] is List ? data['items'] : [];
     
-    // Map items from raw data
-    final List<CartItem> items = (data['items'] as List).map((itemData) {
-      final productName = itemData['name'];
+    final List<CartItem> items = rawItems.map((itemData) {
+      final productName = itemData['name']?.toString() ?? 'Pickle';
       final product = ProductManager().getProductByName(productName) ?? Product(
         name: productName,
         description: '',
-        weightPriceMap: {itemData['weight'].toString(): (itemData['price'] as num).toDouble()},
+        weightPriceMap: {itemData['weight']?.toString() ?? '500g': (itemData['price'] as num?)?.toDouble() ?? 250.0},
         rating: 5.0,
         image: 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
         color: Colors.green,
@@ -73,30 +78,33 @@ class OrderManager extends ChangeNotifier {
       
       return CartItem(
         product: product,
-        quantity: itemData['quantity'],
-        weight: itemData['weight'].toString(),
-        isTemperingRequested: itemData['tempering'] ?? false,
-        chefNote: itemData['chefNote'],
+        quantity: (itemData['quantity'] as num?)?.toInt() ?? 1,
+        weight: itemData['weight']?.toString() ?? '500g',
+        isTemperingRequested: itemData['tempering'] == true,
+        chefNote: itemData['chefNote']?.toString(),
       );
     }).toList();
 
+    DateTime parsedDate = DateTime.now();
+    if (data['date'] != null) {
+      parsedDate = DateTime.tryParse(data['date'].toString()) ?? DateTime.now();
+    }
+
     return Order(
-      id: data['orderId'],
+      id: data['orderId']?.toString() ?? data['id']?.toString() ?? 'ADH-000',
       items: items,
-      subtotal: (data['subtotal'] as num).toDouble(),
-      deliveryFee: (data['deliveryFee'] as num).toDouble(),
-      discountAmount: (data['discountAmount'] as num).toDouble(),
-      total: (data['total'] as num).toDouble(),
-      date: (data['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      status: data['status'],
-      estimatedDelivery: (data['estimatedDelivery'] as Timestamp?)?.toDate(),
-      shippingAddress: data['shippingAddress'],
-      paymentMethod: data['paymentMethod'],
-      batchId: data['batchId'],
-      preparationDate: (data['preparationDate'] as Timestamp?)?.toDate(),
-      spiceOrigin: data['spiceOrigin'],
-      trackingId: data['trackingId'],
-      courierName: data['courierName'],
+      subtotal: (data['subtotal'] as num?)?.toDouble() ?? 0.0,
+      deliveryFee: (data['deliveryFee'] as num?)?.toDouble() ?? 0.0,
+      discountAmount: (data['discountAmount'] as num?)?.toDouble() ?? 0.0,
+      total: (data['total'] as num?)?.toDouble() ?? 0.0,
+      date: parsedDate,
+      status: data['status']?.toString() ?? 'Placed',
+      shippingAddress: data['shippingAddress']?.toString() ?? '',
+      paymentMethod: data['paymentMethod']?.toString() ?? 'COD',
+      batchId: data['batchId']?.toString() ?? '',
+      spiceOrigin: data['spiceOrigin']?.toString() ?? 'Guntur',
+      trackingId: data['trackingId']?.toString(),
+      courierName: data['courierName']?.toString(),
     );
   }
 }

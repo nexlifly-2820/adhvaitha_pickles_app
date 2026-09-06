@@ -100,6 +100,13 @@ class CartManager extends ChangeNotifier {
     return index != -1 ? _items[index].quantity : 0;
   }
 
+  void decrementProductQuantity(String name, String weight) {
+    int index = _items.indexWhere((item) => item.product.name == name && item.weight == weight);
+    if (index != -1) {
+      updateQuantity(_items[index], -1);
+    }
+  }
+
   double get subtotal {
     double total = 0;
     for (var item in _items) {

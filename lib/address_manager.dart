@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'api_service.dart';
 
 class SavedAddress {
   final String id;
@@ -19,28 +20,22 @@ class AddressManager extends ChangeNotifier {
   List<SavedAddress> get addresses => _addresses;
 
   Future<void> fetchAddresses() async {
-    // In a real app, use auth: const uid = FirebaseAuth.instance.currentUser?.uid;
-    const uid = "demo_user_123";
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? "demo_user_123";
     
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('addresses')
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      _addresses.clear();
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        _addresses.add(SavedAddress(
-          id: doc.id,
-          title: data['title'] ?? 'Address',
-          fullAddress: data['fullAddress'] ?? '',
-          isDefault: data['isDefault'] ?? false,
-        ));
+      final rawAddresses = await ApiService.getUserAddresses(uid);
+      if (rawAddresses.isNotEmpty) {
+        _addresses.clear();
+        for (var data in rawAddresses) {
+          _addresses.add(SavedAddress(
+            id: data['id']?.toString() ?? DateTime.now().toString(),
+            title: data['title']?.toString() ?? 'Address',
+            fullAddress: data['fullAddress']?.toString() ?? data['full_address']?.toString() ?? '',
+            isDefault: data['isDefault'] == true,
+          ));
+        }
+        notifyListeners();
       }
-      notifyListeners();
     } catch (e) {
       print('Error fetching addresses: $e');
     }

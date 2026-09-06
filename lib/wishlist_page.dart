@@ -79,7 +79,7 @@ class _WishlistPageState extends State<WishlistPage> {
             padding: const EdgeInsets.all(20),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.60,
+              childAspectRatio: 0.52,
               crossAxisSpacing: 15,
               mainAxisSpacing: 20,
             ),
@@ -127,34 +127,40 @@ class _WishlistCard extends StatelessWidget {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
-                Text(product.defaultPrice, style: const TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        CartManager().addToCart(product);
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${product.name} added!')));
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF18453B), foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 6), 
-                        textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text('ADD TO CART'),
-                      ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      children: [
+                        Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        const SizedBox(height: 2),
+                        Text(product.defaultPrice, style: const TextStyle(color: Color(0xFF18453B), fontWeight: FontWeight.w900)),
+                      ],
                     ),
-                  )
-                ],
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          CartManager().addToCart(product);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${product.name} added!')));
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF18453B), foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 6), 
+                          textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('ADD TO CART'),
+                        ),
+                      ),
+                    )
+                  ],
+                ),
               ),
             )
           ],

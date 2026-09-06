@@ -1,99 +1,100 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'api_service.dart';
 
 class AppConfigRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
   // 1. Banners & Ad Banners
-  Stream<Map<String, List<Map<String, String>>>> getBannersStream() {
-    return _firestore.collection('app_data').doc('banners').snapshots().map((snapshot) {
-      if (!snapshot.exists) return {'main': [], 'ad': []};
-      final data = snapshot.data() ?? {};
+  Stream<Map<String, List<Map<String, String>>>> getBannersStream() async* {
+    yield {'main': [], 'ad': []};
+    try {
+      final data = await ApiService.getAppConfig('banners');
       final List<dynamic> mainRaw = data['main_banners'] ?? [];
       final List<dynamic> adRaw = data['ad_banners'] ?? [];
-      return {
+      yield {
         'main': mainRaw.map((item) => Map<String, String>.from(item)).toList(),
         'ad': adRaw.map((item) => Map<String, String>.from(item)).toList(),
       };
-    });
+    } catch (_) {}
   }
 
   // 2. Stories Section (Packaging, Origin, etc.)
-  Stream<List<Map<String, dynamic>>> getStoriesStream() {
-    return _firestore.collection('app_data').doc('stories').snapshots().map((snapshot) {
-      if (!snapshot.exists) return [];
-      final List<dynamic> data = snapshot.data()?['list'] ?? [];
-      return data.map((item) => Map<String, dynamic>.from(item)).toList();
-    });
+  Stream<List<Map<String, dynamic>>> getStoriesStream() async* {
+    yield [];
+    try {
+      final data = await ApiService.getAppConfig('stories');
+      final List<dynamic> list = data['list'] ?? [];
+      yield list.map((item) => Map<String, dynamic>.from(item)).toList();
+    } catch (_) {}
   }
 
   // 3. Bento Selection (Today's Selection)
-  Stream<Map<String, dynamic>> getBentoConfigStream() {
-    return _firestore.collection('app_data').doc('bento_selection').snapshots().map((snapshot) {
-      return snapshot.data() ?? {};
-    });
+  Stream<Map<String, dynamic>> getBentoConfigStream() async* {
+    yield {};
+    try {
+      final data = await ApiService.getAppConfig('bento_selection');
+      if (data.isNotEmpty) yield data;
+    } catch (_) {}
   }
 
   // 4. Coupons
-  Stream<List<Map<String, dynamic>>> getCouponsStream() {
-    return _firestore.collection('app_data').doc('coupons').snapshots().map((snapshot) {
-      if (!snapshot.exists) return [];
-      final List<dynamic> data = snapshot.data()?['active_list'] ?? [];
-      return data.map((item) => Map<String, dynamic>.from(item)).toList();
-    });
+  Stream<List<Map<String, dynamic>>> getCouponsStream() async* {
+    yield [];
+    try {
+      final data = await ApiService.getAppConfig('coupons');
+      final List<dynamic> list = data['active_list'] ?? [];
+      yield list.map((item) => Map<String, dynamic>.from(item)).toList();
+    } catch (_) {}
   }
 
   // 5. Deals of the Day
-  Stream<Map<String, dynamic>> getDealsStream() {
-    return _firestore.collection('app_data').doc('deals').snapshots().map((snapshot) {
-      if (!snapshot.exists) return {'product_names': [], 'end_time': Timestamp.now()};
-      return snapshot.data() ?? {'product_names': [], 'end_time': Timestamp.now()};
-    });
+  Stream<Map<String, dynamic>> getDealsStream() async* {
+    yield {'product_names': [], 'end_time': DateTime.now().toString()};
+    try {
+      final data = await ApiService.getAppConfig('deals');
+      if (data.isNotEmpty) yield data;
+    } catch (_) {}
   }
 
   // 6. Royal Packaging Section
-  Stream<List<Map<String, String>>> getPackagingStream() {
-    return _firestore.collection('app_data').doc('packaging').snapshots().map((snapshot) {
-      if (!snapshot.exists) return [];
-      final List<dynamic> data = snapshot.data()?['list'] ?? [];
-      return data.map((item) => Map<String, String>.from(item)).toList();
-    });
+  Stream<List<Map<String, String>>> getPackagingStream() async* {
+    yield [];
+    try {
+      final data = await ApiService.getAppConfig('packaging');
+      final List<dynamic> list = data['list'] ?? [];
+      yield list.map((item) => Map<String, String>.from(item)).toList();
+    } catch (_) {}
   }
 
   // 7. Categories Section
-  Stream<List<Map<String, dynamic>>> getCategoriesStream() {
-    return _firestore.collection('app_data').doc('categories').snapshots().map((snapshot) {
-      List<Map<String, dynamic>> finalCategories = List.from(_defaultCategories);
-      
-      if (snapshot.exists) {
-        final List<dynamic> data = snapshot.data()?['list'] ?? [];
-        if (data.isNotEmpty) {
-          final List<Map<String, dynamic>> firestoreList = data.map((item) {
-            final map = item as Map<String, dynamic>;
-            return {
-              'label': map['label']?.toString() ?? '',
-              'img': map['img']?.toString() ?? '',
-              'tagline': map['tagline']?.toString() ?? '',
-              'badge': map['badge']?.toString() ?? '',
-              'description': map['description']?.toString() ?? '',
-              'banner_img': map['banner_img']?.toString() ?? '',
-            };
-          }).toList();
+  Stream<List<Map<String, dynamic>>> getCategoriesStream() async* {
+    yield List.from(_defaultCategories); // Instant baseline
+    try {
+      final data = await ApiService.getAppConfig('categories');
+      final List<dynamic> list = data['list'] ?? [];
+      if (list.isNotEmpty) {
+        List<Map<String, dynamic>> finalCategories = List.from(_defaultCategories);
+        final List<Map<String, dynamic>> fetchedList = list.map((item) {
+          final map = item as Map<String, dynamic>;
+          return {
+            'label': map['label']?.toString() ?? '',
+            'img': map['img']?.toString() ?? '',
+            'tagline': map['tagline']?.toString() ?? '',
+            'badge': map['badge']?.toString() ?? '',
+            'description': map['description']?.toString() ?? '',
+            'banner_img': map['banner_img']?.toString() ?? '',
+          };
+        }).toList();
 
-          // Merge: Firestore categories override defaults with same label
-          for (var fCat in firestoreList) {
-            int index = finalCategories.indexWhere((dCat) => 
-              dCat['label'].toString().toLowerCase() == fCat['label'].toString().toLowerCase()
-            );
-            if (index != -1) {
-              finalCategories[index] = fCat;
-            } else {
-              finalCategories.add(fCat);
-            }
+        for (var fCat in fetchedList) {
+          int index = finalCategories.indexWhere((dCat) =>
+              dCat['label'].toString().toLowerCase() == fCat['label'].toString().toLowerCase());
+          if (index != -1) {
+            finalCategories[index] = fCat;
+          } else {
+            finalCategories.add(fCat);
           }
         }
+        yield finalCategories;
       }
-      return finalCategories;
-    });
+    } catch (_) {}
   }
 
   static final List<Map<String, dynamic>> _defaultCategories = [
@@ -124,111 +125,119 @@ class AppConfigRepository {
   ];
 
   // 8. Onboarding Section
-  Stream<List<Map<String, String>>> getOnboardingStream() {
-    return _firestore.collection('app_data').doc('onboarding').snapshots().map((snapshot) {
-      if (!snapshot.exists) return [];
-      final List<dynamic> data = snapshot.data()?['steps'] ?? [];
-      return data.map((item) => Map<String, String>.from(item)).toList();
-    });
+  Stream<List<Map<String, String>>> getOnboardingStream() async* {
+    yield [];
+    try {
+      final data = await ApiService.getAppConfig('onboarding');
+      final List<dynamic> list = data['steps'] ?? [];
+      yield list.map((item) => Map<String, String>.from(item)).toList();
+    } catch (_) {}
   }
 
   // 9. Taste Personalizer Options
-  Stream<List<Map<String, dynamic>>> getTasteOptionsStream() {
-    return _firestore.collection('app_data').doc('onboarding').snapshots().map((snapshot) {
-      if (!snapshot.exists) return [];
-      final List<dynamic> data = snapshot.data()?['taste_options'] ?? [];
-      return data.map((item) => Map<String, dynamic>.from(item)).toList();
-    });
+  Stream<List<Map<String, dynamic>>> getTasteOptionsStream() async* {
+    yield [];
+    try {
+      final data = await ApiService.getAppConfig('onboarding');
+      final List<dynamic> list = data['taste_options'] ?? [];
+      yield list.map((item) => Map<String, dynamic>.from(item)).toList();
+    } catch (_) {}
   }
 
   // 10. App State (Maintenance/Version/Inventory)
-  Stream<Map<String, dynamic>> getAppStateStream() {
-    return _firestore.collection('app_data').doc('config').snapshots().map((snapshot) {
-      return snapshot.data() ?? {
-        'maintenance_mode': false, 
-        'min_version': '1.0.0',
-        'inventory_threshold': 10
-      };
-    });
+  Stream<Map<String, dynamic>> getAppStateStream() async* {
+    yield {'maintenance_mode': false, 'min_version': '1.0.0', 'inventory_threshold': 10}; // Instant yield first
+    try {
+      final data = await ApiService.getAppConfig('config');
+      if (data.isNotEmpty) yield data;
+    } catch (_) {}
   }
 
   // 11. Delivery Configuration
-  Stream<Map<String, dynamic>> getDeliveryConfigStream() {
-    return _firestore.collection('app_data').doc('delivery_config').snapshots().map((snapshot) {
-      if (!snapshot.exists) return {'base_fee': 40.0, 'free_threshold': 500.0};
-      return snapshot.data()!;
-    });
+  Stream<Map<String, dynamic>> getDeliveryConfigStream() async* {
+    yield {'base_fee': 40.0, 'free_threshold': 500.0};
+    try {
+      final data = await ApiService.getAppConfig('delivery_config');
+      if (data.isNotEmpty) yield data;
+    } catch (_) {}
   }
 
   // 12. Perfect Pairings
-  Stream<List<Map<String, String>>> getPairingsStream() {
-    return _firestore.collection('app_data').doc('pairings').snapshots().map((snapshot) {
-      if (!snapshot.exists) return [];
-      final List<dynamic> data = snapshot.data()?['list'] ?? [];
-      return data.map((item) => Map<String, String>.from(item)).toList();
-    });
+  Stream<List<Map<String, String>>> getPairingsStream() async* {
+    yield [];
+    try {
+      final data = await ApiService.getAppConfig('pairings');
+      final List<dynamic> list = data['list'] ?? [];
+      yield list.map((item) => Map<String, String>.from(item)).toList();
+    } catch (_) {}
   }
 
   // 13. Heritage Story Banner
-  Stream<Map<String, String>> getHeritageBannerStream() {
-    return _firestore.collection('app_data').doc('heritage_banner').snapshots().map((snapshot) {
-      if (!snapshot.exists) return {};
-      return Map<String, String>.from(snapshot.data() ?? {});
-    });
+  Stream<Map<String, String>> getHeritageBannerStream() async* {
+    yield {};
+    try {
+      final data = await ApiService.getAppConfig('heritage_banner');
+      if (data.isNotEmpty) yield Map<String, String>.from(data);
+    } catch (_) {}
   }
 
   // 14. Trending Searches
-  Stream<List<String>> getTrendingSearchesStream() {
-    return _firestore.collection('app_data').doc('search_config').snapshots().map((snapshot) {
-      if (!snapshot.exists) return ['Mango Special', 'New Snacks', 'Spicy Chicken', 'Ladoo', 'Combos'];
-      final List<dynamic> data = snapshot.data()?['trending_keywords'] ?? [];
-      return data.map((item) => item.toString()).toList();
-    });
+  Stream<List<String>> getTrendingSearchesStream() async* {
+    yield ['Mango Special', 'New Snacks', 'Spicy Chicken', 'Ladoo', 'Combos'];
+    try {
+      final data = await ApiService.getAppConfig('search_config');
+      final List<dynamic> list = data['trending_keywords'] ?? [];
+      if (list.isNotEmpty) yield list.map((e) => e.toString()).toList();
+    } catch (_) {}
   }
 
   // 15. Categories Page Hero Banner
-  Stream<Map<String, dynamic>> getCategoryPageConfigStream() {
-    return _firestore.collection('app_data').doc('category_page_config').snapshots().map((snapshot) {
-      if (!snapshot.exists) return {
-        'hero_title': 'The Royal Summer Festival',
-        'hero_subtitle': 'Authentic sun-dried mango delicacies',
-        'hero_image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-        'hero_tag': 'FEATURED COLLECTION'
-      };
-      return snapshot.data() ?? {};
-    });
+  Stream<Map<String, dynamic>> getCategoryPageConfigStream() async* {
+    yield {
+      'hero_title': 'The Royal Summer Festival',
+      'hero_subtitle': 'Authentic sun-dried mango delicacies',
+      'hero_image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+      'hero_tag': 'FEATURED COLLECTION'
+    };
+    try {
+      final data = await ApiService.getAppConfig('category_page_config');
+      if (data.isNotEmpty) yield data;
+    } catch (_) {}
   }
 
   // 16. Cart Configuration
-  Stream<Map<String, dynamic>> getCartConfigStream() {
-    return _firestore.collection('app_data').doc('cart_config').snapshots().map((snapshot) {
-      if (!snapshot.exists) return {
-        'freshness_tagline': 'FRESHNESS GUARANTEED',
-        'dispatch_reassurance': 'Order in the next 2 hrs for same-day dispatch.',
-        'upsell_section_title': 'COMPLETES THE EXPERIENCE'
-      };
-      return snapshot.data() ?? {};
-    });
+  Stream<Map<String, dynamic>> getCartConfigStream() async* {
+    yield {
+      'freshness_tagline': 'FRESHNESS GUARANTEED',
+      'dispatch_reassurance': 'Order in the next 2 hrs for same-day dispatch.',
+      'upsell_section_title': 'COMPLETES THE EXPERIENCE'
+    };
+    try {
+      final data = await ApiService.getAppConfig('cart_config');
+      if (data.isNotEmpty) yield data;
+    } catch (_) {}
   }
 
   // 17. Serviceable Pincodes
-  Stream<List<String>> getServiceablePincodesStream() {
-    return _firestore.collection('app_data').doc('serviceability').snapshots().map((snapshot) {
-      if (!snapshot.exists) return []; // Empty means ship everywhere for now
-      final List<dynamic> list = snapshot.data()?['pincodes'] ?? [];
-      return list.map((e) => e.toString()).toList();
-    });
+  Stream<List<String>> getServiceablePincodesStream() async* {
+    yield [];
+    try {
+      final data = await ApiService.getAppConfig('serviceability');
+      final List<dynamic> list = data['pincodes'] ?? [];
+      yield list.map((e) => e.toString()).toList();
+    } catch (_) {}
   }
 
   // 18. Billing Page Configuration
-  Stream<Map<String, dynamic>> getBillingConfigStream() {
-    return _firestore.collection('app_data').doc('billing_config').snapshots().map((snapshot) {
-      if (!snapshot.exists) return {
-        'delivery_estimate_text': 'Estimated Delivery: 3-5 Business Days',
-        'support_chat_text': 'Need help? Chat with our heritage kitchen',
-        'savings_highlight_text': 'Total Savings on this order:'
-      };
-      return snapshot.data() ?? {};
-    });
+  Stream<Map<String, dynamic>> getBillingConfigStream() async* {
+    yield {
+      'delivery_estimate_text': 'Estimated Delivery: 3-5 Business Days',
+      'support_chat_text': 'Need help? Chat with our heritage kitchen',
+      'savings_highlight_text': 'Total Savings on this order:'
+    };
+    try {
+      final data = await ApiService.getAppConfig('billing_config');
+      if (data.isNotEmpty) yield data;
+    } catch (_) {}
   }
 }

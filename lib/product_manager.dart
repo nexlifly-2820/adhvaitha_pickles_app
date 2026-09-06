@@ -9,10 +9,10 @@ class ProductManager extends ChangeNotifier {
   factory ProductManager() => _instance;
   ProductManager._internal();
 
-  List<Product> _products = [];
-  List<Product> get products => _products.isEmpty ? ProductRepository.allProducts : _products;
+  List<Product> _products = ProductRepository.allProducts;
+  List<Product> get products => _products;
   
-  bool _isLoading = true;
+  bool _isLoading = false;
   bool get isLoading => _isLoading;
 
   StreamSubscription? _subscription;
@@ -20,18 +20,18 @@ class ProductManager extends ChangeNotifier {
   void init() {
     _subscription?.cancel();
     _subscription = ProductRepository().getProductsStream().listen((firestoreProducts) {
-      debugPrint('DEBUG: ProductManager received ${firestoreProducts.length} products from Firestore.');
+      debugPrint('DEBUG: ProductManager received ${firestoreProducts.length} products.');
       
-      // MERGE LOGIC: Firestore products OVERRIDE hardcoded products with same name
+      // MERGE LOGIC: API products OVERRIDE hardcoded products with same name
       final Map<String, Product> mergedMap = {};
       
-      // 1. Load Hardcoded (Baseline Catalog)
+      // 1. Load Baseline Catalog
       for (var p in ProductRepository.allProducts) {
         final key = p.name.trim().toLowerCase();
         mergedMap[key] = p;
       }
       
-      // 2. Apply Firestore Overrides (Dashboard Edits)
+      // 2. Apply API Overrides
       for (var p in firestoreProducts) {
         if (p.category != 'Error') {
           final key = p.name.trim().toLowerCase();
