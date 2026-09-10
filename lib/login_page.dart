@@ -34,218 +34,160 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F5EC),
+      backgroundColor: const Color(0xFFF7F1E5),
       body: Stack(
         children: [
-          // Background Watermarks
+          // Full Background Template (login_bg.png)
           Positioned.fill(
-            child: Opacity(
-              opacity: 0.12,
-              child: Image.asset(
-                'assets/images/adhvaitha_logo.png',
-                repeat: ImageRepeat.repeat,
-                scale: 4,
-              ),
+            child: Image.asset(
+              'assets/images/login_bg.png',
+              fit: BoxFit.cover,
             ),
           ),
 
+          // Login Content (Centered in the middle of template)
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: Column(
-                children: [
-                  const SizedBox(height: 10),
+            child: Center(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 230),
 
-                  // Top Header Row: Mascot Logo & Cursive Script
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(width: 40),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Image.asset(
-                              'assets/images/adhvaitha_logo.png',
-                              height: 110,
-                              fit: BoxFit.contain,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'AUTHENTIC TASTE. HOMEMADE WITH LOVE',
-                              style: GoogleFonts.poppins(
-                                fontSize: 8,
-                                fontWeight: FontWeight.w900,
-                                color: const Color(0xFF8B5E3C),
-                                letterSpacing: 1.5,
-                              ),
-                            ),
-                          ],
-                        ),
+                    // Welcome Text
+                    Text(
+                      'Welcome to\nAdhvaitha Foods',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.philosopher(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF0F5C45),
+                        height: 1.1,
                       ),
-                      Text(
-                        'Taste\nTradition\nEveryday ♡',
-                        textAlign: TextAlign.right,
-                        style: GoogleFonts.caveat(
-                          color: const Color(0xFFD4AF37),
-                          fontSize: 13,
-                          height: 1.1,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
+
+                    const SizedBox(height: 8),
+
+                    Text(
+                      _selectedMode == LoginMode.email
+                          ? 'Sign in to explore authentic\nhomemade flavors crafted with love.'
+                          : 'Enter your mobile number to receive\nan SMS OTP verification code.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF2C2C2C).withOpacity(0.8),
+                        fontSize: 12,
+                        height: 1.4,
+                        fontWeight: FontWeight.w500,
                       ),
-                    ],
-                  ).animate().fadeIn().scale(),
+                    ).animate().fadeIn(delay: 300.ms),
 
-                  const SizedBox(height: 35),
+                    const SizedBox(height: 25),
 
-                  // Header Title
-                  Text(
-                    'Welcome to\nAdhvaitha Foods',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.philosopher(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF0F4D3C),
-                      height: 1.1,
-                    ),
-                  ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
-
-                  const SizedBox(height: 10),
-
-                  Text(
-                    _selectedMode == LoginMode.email
-                        ? 'Sign in to explore authentic\nhomemade flavors crafted with love.'
-                        : 'Enter your mobile number to receive\nan SMS OTP verification code.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFF6B7280),
-                      fontSize: 12,
-                      height: 1.4,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ).animate().fadeIn(delay: 300.ms),
-
-                  const SizedBox(height: 30),
-
-                  // Mode Switcher Tabs
-                  Container(
-                    width: 220,
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        _buildTabButton(LoginMode.email, 'Email OTP'),
-                        _buildTabButton(LoginMode.phone, 'Phone OTP'),
-                      ],
-                    ),
-                  ).animate().fadeIn(delay: 400.ms),
-
-                  const SizedBox(height: 25),
-
-                  // Input Form Field
-                  if (_selectedMode == LoginMode.email) _buildEmailForm(),
-                  if (_selectedMode == LoginMode.phone) _buildPhoneForm(),
-
-                  const SizedBox(height: 20),
-
-                  // Send OTP Button
-                  GestureDetector(
-                    onTap: _isLoading ? null : _handlePrimarySubmit,
-                    child: Container(
-                      height: 56,
-                      width: double.infinity,
+                    // Mode Switcher Tabs
+                    Container(
+                      width: 220,
+                      padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0F4D3C),
-                        borderRadius: BorderRadius.circular(30),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.grey.shade300),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0F4D3C).withOpacity(0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 6),
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 10,
                           )
                         ],
                       ),
-                      alignment: Alignment.center,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                color: Color(0xFFE5C76B),
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  _selectedMode == LoginMode.email
-                                      ? 'SEND OTP'
-                                      : 'GET SMS OTP',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.5,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
-                              ],
-                            ),
-                    ),
-                  ).animate().fadeIn(delay: 600.ms),
-
-                  const SizedBox(height: 12),
-
-                  // Security Note
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.lock_outline_rounded, color: Color(0xFF6B7280), size: 13),
-                      const SizedBox(width: 4),
-                      Text(
-                        _selectedMode == LoginMode.email
-                            ? "We'll send a 6-digit code to your email"
-                            : "We'll send a 6-digit code via SMS",
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFF6B7280),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: Row(
+                        children: [
+                          _buildTabButton(LoginMode.email, 'Email OTP'),
+                          _buildTabButton(LoginMode.phone, 'Phone OTP'),
+                        ],
                       ),
-                    ],
-                  ),
+                    ).animate().fadeIn(delay: 400.ms),
 
-                  const SizedBox(height: 35),
+                    const SizedBox(height: 20),
 
-                  // Trust Badges Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildTrustBadge(Icons.eco_outlined, 'Homemade\nRecipes'),
-                      _buildTrustBadge(Icons.soup_kitchen_outlined, 'Traditional\nMethods'),
-                      _buildTrustBadge(Icons.verified_outlined, 'Premium\nQuality'),
-                      _buildTrustBadge(Icons.local_shipping_outlined, 'Fast\nDelivery'),
-                    ],
-                  ).animate().fadeIn(delay: 800.ms),
+                    // Input Form Field
+                    if (_selectedMode == LoginMode.email) _buildEmailForm(),
+                    if (_selectedMode == LoginMode.phone) _buildPhoneForm(),
 
-                  const SizedBox(height: 30),
+                    const SizedBox(height: 20),
 
-                  // Bottom Cursive Tagline
-                  Text(
-                    'From Our Kitchen to Your Home ♡',
-                    style: GoogleFonts.caveat(
-                      color: const Color(0xFF8B5E3C),
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    // Send OTP Button
+                    GestureDetector(
+                      onTap: _isLoading ? null : _handlePrimarySubmit,
+                      child: Container(
+                        height: 56,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F5C45),
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF0F5C45).withOpacity(0.35),
+                              blurRadius: 15,
+                              offset: const Offset(0, 6),
+                            )
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFFD4AF37),
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _selectedMode == LoginMode.email
+                                        ? 'SEND OTP'
+                                        : 'GET SMS OTP',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.5,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                                ],
+                              ),
+                      ),
+                    ).animate().fadeIn(delay: 600.ms),
+
+                    const SizedBox(height: 12),
+
+                    // Security Note
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.lock_outline_rounded, color: Color(0xFF8B5A2B), size: 13),
+                        const SizedBox(width: 4),
+                        Text(
+                          _selectedMode == LoginMode.email
+                              ? "We'll send a 6-digit code to your email"
+                              : "We'll send a 6-digit code via SMS",
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF2C2C2C).withOpacity(0.7),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 180),
+                  ],
+                ),
               ),
             ),
           ),
@@ -266,7 +208,7 @@ class _LoginPageState extends State<LoginPage> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF0F4D3C) : Colors.transparent,
+            color: isSelected ? const Color(0xFF0F5C45) : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
           ),
           alignment: Alignment.center,
@@ -292,7 +234,7 @@ class _LoginPageState extends State<LoginPage> {
         border: Border.all(color: Colors.grey.shade300),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -301,11 +243,11 @@ class _LoginPageState extends State<LoginPage> {
       child: TextField(
         controller: _emailController,
         keyboardType: TextInputType.emailAddress,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1B1B1B)),
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2C2C2C)),
         decoration: InputDecoration(
           hintText: 'Enter your email address',
           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13, fontWeight: FontWeight.normal),
-          prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF0F4D3C), size: 20),
+          prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF0F5C45), size: 20),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 18),
         ),
@@ -322,7 +264,7 @@ class _LoginPageState extends State<LoginPage> {
         border: Border.all(color: Colors.grey.shade300),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -331,7 +273,7 @@ class _LoginPageState extends State<LoginPage> {
       child: TextField(
         controller: _phoneController,
         keyboardType: TextInputType.phone,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 2, color: Color(0xFF1B1B1B)),
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 2, color: Color(0xFF2C2C2C)),
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
           LengthLimitingTextInputFormatter(10)
@@ -345,7 +287,7 @@ class _LoginPageState extends State<LoginPage> {
               '+91',
               style: TextStyle(
                 fontWeight: FontWeight.w900,
-                color: Color(0xFF0F4D3C),
+                color: Color(0xFF0F5C45),
                 fontSize: 15,
               ),
             ),
@@ -354,33 +296,6 @@ class _LoginPageState extends State<LoginPage> {
           contentPadding: const EdgeInsets.symmetric(vertical: 18),
         ),
       ),
-    );
-  }
-
-  Widget _buildTrustBadge(IconData icon, String label) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFF8E8),
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
-          ),
-          child: Icon(icon, color: const Color(0xFF0F4D3C), size: 18),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.poppins(
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF1B1B1B),
-            height: 1.2,
-          ),
-        ),
-      ],
     );
   }
 

@@ -1,19 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'main.dart';
 import 'onboarding_page.dart';
 import 'app_config_repository.dart';
 import 'app_update_page.dart';
-
-// ----------------------------------------------------------------
-// Adhvaitha Foods — Premium Splash Screen
-// Sequence: Brand Mark drops & wobbles -> Liquid fill ->
-// Wordmark stagger reveal -> Tagline -> Circular wipe transition
-// ----------------------------------------------------------------
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -22,82 +16,40 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
-  // Brand Colors
-  static const Color luxuryGreen = Color(0xFF18453B);
-  static const Color premiumCream = Color(0xFFFFF8E8);
-  static const Color brandGold = Color(0xFFD4AF37);
-  static const Color darkText = Color(0xFF2D1B12);
-
-  late AnimationController _entranceController; // 0.0 - 1.2s : logo drop + bounce
-  late AnimationController _fillController;     // 1.2 - 2.2s : gold fill effect
-  late AnimationController _textController;     // 2.2 - 3.2s : wordmark + tagline
-  late AnimationController _wipeController;     // 3.5 - 4.2s : circular wipe
-
+class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-
-    _fillController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    );
-
-    _textController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    );
-
-    _wipeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-
-    _runSequence();
+    _startSequence();
   }
 
-  Future<void> _runSequence() async {
-    // 1. Logo drops and bounces
-    await _entranceController.forward();
-
-    // 2. Gold fill animation
-    await _fillController.forward();
-
-    // 3. Text reveal
-    await _textController.forward();
-
-    // Hold for impact
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    // 4. Circular wipe transition
-    await _wipeController.forward();
+  Future<void> _startSequence() async {
+    // Hold 3.5s for cinematic sequence
+    await Future.delayed(const Duration(milliseconds: 3500));
 
     if (mounted) {
-      // 5. Fetch App Status (Maintenance / Update)
-      final config = await AppConfigRepository().getAppStateStream().first;
-      
-      if (config['maintenance_mode'] == true) {
-        _showMaintenanceOverlay();
-        return;
+      // Fetch App Status (Maintenance / Update)
+      try {
+        final config = await AppConfigRepository().getAppStateStream().first;
+        if (config['maintenance_mode'] == true) {
+          _showMaintenanceOverlay();
+          return;
+        }
+
+        const currentVersion = "1.0.0";
+        final minVersion = config['min_version'] ?? "1.0.0";
+
+        if (_isVersionLower(currentVersion, minVersion)) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const AppUpdatePage()),
+          );
+          return;
+        }
+      } catch (e) {
+        debugPrint("Splash config error: $e");
       }
 
-      const currentVersion = "1.0.0"; // Should match your pubspec.yaml
-      final minVersion = config['min_version'] ?? "1.0.0";
-      
-      if (_isVersionLower(currentVersion, minVersion)) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const AppUpdatePage())
-        );
-        return;
-      }
-
-      // 6. Navigate to Auth or Home
+      // Navigate
       Widget nextScreen;
       if (FirebaseAuth.instance.currentUser != null) {
         nextScreen = const MainScreen();
@@ -107,7 +59,8 @@ class _SplashScreenState extends State<SplashScreen>
 
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          transitionDuration: Duration.zero,
+          transitionDuration: const Duration(milliseconds: 500),
+          transitionsBuilder: (_, a, __, c) => FadeTransition(opacity: a, child: c),
           pageBuilder: (_, __, ___) => nextScreen,
         ),
       );
@@ -131,12 +84,12 @@ class _SplashScreenState extends State<SplashScreen>
       builder: (context) => PopScope(
         canPop: false,
         child: AlertDialog(
-          backgroundColor: luxuryGreen,
+          backgroundColor: const Color(0xFF0F5C45),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.handyman_rounded, color: brandGold, size: 60),
+              const Icon(Icons.handyman_rounded, color: Color(0xFFD4AF37), size: 60),
               const SizedBox(height: 20),
               Text('ROYAL KITCHEN\nRESTORATION', textAlign: TextAlign.center, style: GoogleFonts.philosopher(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
               const SizedBox(height: 15),
@@ -148,7 +101,7 @@ class _SplashScreenState extends State<SplashScreen>
               const SizedBox(height: 30),
               TextButton(
                 onPressed: () => SystemNavigator.pop(),
-                child: const Text('CLOSE APP', style: TextStyle(color: brandGold, fontWeight: FontWeight.bold)),
+                child: const Text('CLOSE APP', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -158,252 +111,131 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   @override
-  void dispose() {
-    _entranceController.dispose();
-    _fillController.dispose();
-    _textController.dispose();
-    _wipeController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
-      backgroundColor: premiumCream,
+      backgroundColor: const Color(0xFFFFF8E8),
       body: Stack(
         alignment: Alignment.center,
         children: [
-          // Background Branding (Subtle)
+          // Background Image with gentle scale pulse
           Positioned.fill(
-            child: Opacity(
-              opacity: 0.03,
-              child: Image.asset(
-                'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
-                fit: BoxFit.cover,
+            child: Image.asset(
+              'assets/images/splash_background.png',
+              fit: BoxFit.cover,
+              errorBuilder: (c, e, s) => Image.asset('assets/images/login_bg.png', fit: BoxFit.cover),
+            )
+                .animate(
+                  onPlay: (controller) => controller.repeat(reverse: true),
+                )
+                .scale(
+                  begin: const Offset(1.0, 1.0),
+                  end: const Offset(1.05, 1.05),
+                  duration: 10000.ms,
+                ),
+          ),
+
+          // Center Animated Content
+          Center(
+            child: SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo + Gold Glow Stack
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // GOLD GLOW
+                      Container(
+                        width: 320,
+                        height: 320,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              Color(0x55D4AF37),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      )
+                          .animate(
+                            onPlay: (controller) => controller.repeat(reverse: true),
+                          )
+                          .scale(
+                            begin: const Offset(0.9, 0.9),
+                            end: const Offset(1.15, 1.15),
+                            duration: 3500.ms,
+                          ),
+
+                      // LOGO
+                      Image.asset(
+                        'assets/images/logo_no_bg.png',
+                        width: 240,
+                        errorBuilder: (c, e, s) => Image.asset('assets/images/adhvaitha_logo.png', width: 240),
+                      )
+                          .animate()
+                          .fadeIn(
+                            duration: 900.ms,
+                          )
+                          .scale(
+                            begin: const Offset(0.65, 0.65),
+                            end: const Offset(1, 1),
+                            curve: Curves.easeOutBack,
+                            duration: 1400.ms,
+                          )
+                          .then()
+                          .moveY(
+                            begin: -4,
+                            end: 4,
+                            duration: 2500.ms,
+                            curve: Curves.easeInOut,
+                          ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Brand Name
+                  Text(
+                    "ADHVAITHA FOODS",
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.cinzel(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2.5,
+                      color: const Color(0xFF0F5C45),
+                    ),
+                  )
+                      .animate()
+                      .fadeIn(delay: 900.ms)
+                      .slideY(
+                        begin: 0.3,
+                        end: 0,
+                        duration: 900.ms,
+                      ),
+
+                  const SizedBox(height: 12),
+
+                  // Tagline
+                  Text(
+                    "AUTHENTIC TASTE • HOMEMADE WITH LOVE",
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 2.5,
+                      color: const Color(0xFFD4AF37),
+                    ),
+                  )
+                      .animate()
+                      .fadeIn(delay: 1500.ms),
+                ],
               ),
             ),
-          ),
-
-          // Main Animation Core
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildAnimatedLogo(),
-                const SizedBox(height: 40),
-                _buildWordmark(),
-                const SizedBox(height: 12),
-                _buildTagline(),
-              ],
-            ),
-          ),
-
-          // Circular Wipe Overlay
-          AnimatedBuilder(
-            animation: _wipeController,
-            builder: (context, child) {
-              if (_wipeController.value == 0) return const SizedBox.shrink();
-              return ClipPath(
-                clipper: _CircleRevealClipper(_wipeController.value, size),
-                child: Container(
-                  color: luxuryGreen,
-                  child: Center(
-                    child: Image.asset(
-                      'assets/images/adhvaitha_logo.png',
-                      width: 120,
-                      height: 120,
-                      errorBuilder: (c, e, s) => const Icon(Icons.restaurant, color: brandGold, size: 50),
-                    ),
-                  ),
-                ),
-              );
-            },
           ),
         ],
       ),
     );
   }
-
-  Widget _buildAnimatedLogo() {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_entranceController, _fillController]),
-      builder: (context, child) {
-        final entrance = _entranceController.value;
-        final fill = _fillController.value;
-
-        double scale;
-        double translateY;
-        double rotation;
-
-        // Entrance Logic
-        if (entrance < 0.5) {
-          final t = entrance / 0.5;
-          scale = 0.2 + 0.8 * Curves.easeOutBack.transform(t);
-          translateY = -100 * (1 - Curves.bounceOut.transform(t));
-          rotation = 0;
-        } else {
-          final t = (entrance - 0.5) / 0.5;
-          final elastic = Curves.elasticOut.transform(t);
-          scale = 1.0 + (elastic - 1.0) * 0.05;
-          translateY = (1 - elastic) * 10;
-          rotation = (1 - elastic) * 0.05;
-        }
-
-        return Transform.translate(
-          offset: Offset(0, translateY),
-          child: Transform.rotate(
-            angle: rotation,
-            child: Transform.scale(
-              scale: scale,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: brandGold.withOpacity(0.15 * fill),
-                      blurRadius: 30 * fill,
-                      spreadRadius: 5 * fill,
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    )
-                  ],
-                ),
-                child: Stack(
-                  children: [
-                    // Liquid Fill Mask
-                    ClipOval(
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Container(
-                          height: 220 * fill,
-                          width: 220,
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [brandGold, Color(0xFFFFE5B4)],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Logo Image
-                    ClipOval(
-                      child: Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: Image.asset(
-                          'assets/images/adhvaitha_logo.png',
-                          fit: BoxFit.cover,
-                          errorBuilder: (c, e, s) => const Icon(Icons.restaurant, size: 80, color: luxuryGreen),
-                        ),
-                      ),
-                    ),
-                    // Outer Ring
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: brandGold.withOpacity(0.5 + (0.5 * fill)),
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildWordmark() {
-    const text = "ADHVAITHA FOODS";
-    return AnimatedBuilder(
-      animation: _textController,
-      builder: (context, child) {
-        return FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(text.length, (i) {
-                final start = (i * 0.03).clamp(0.0, 1.0);
-                final end = (start + 0.4).clamp(0.0, 1.0);
-                final t = Interval(start, end, curve: Curves.easeOutQuart)
-                    .transform(_textController.value);
-    
-                return Transform.translate(
-                  offset: Offset(0, 12 * (1 - t)),
-                  child: Opacity(
-                    opacity: t,
-                    child: Text(
-                      text[i],
-                      style: GoogleFonts.philosopher(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: luxuryGreen,
-                        letterSpacing: i == text.length - 1 ? 0 : 2,
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildTagline() {
-    return AnimatedBuilder(
-      animation: _textController,
-      builder: (context, child) {
-        final t = Interval(0.7, 1.0, curve: Curves.easeIn)
-            .transform(_textController.value);
-        return Opacity(
-          opacity: t,
-          child: Text(
-            "AUTHENTIC TASTE • HOMEMADE WITH LOVE",
-            style: GoogleFonts.poppins(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: brandGold,
-              letterSpacing: 2,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _CircleRevealClipper extends CustomClipper<Path> {
-  final double progress;
-  final Size screenSize;
-
-  _CircleRevealClipper(this.progress, this.screenSize);
-
-  @override
-  Path getClip(Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final maxRadius = screenSize.longestSide * 1.2;
-    final radius = maxRadius * progress;
-
-    return Path()..addOval(Rect.fromCircle(center: center, radius: radius));
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => true;
 }
