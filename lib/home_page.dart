@@ -474,8 +474,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildStickyHeader() {
     return SliverAppBar(
-      expandedHeight: 145,
-      toolbarHeight: 72,
+      expandedHeight: 165,
+      toolbarHeight: 90,
       floating: false,
       pinned: true,
       elevation: 0,
@@ -516,51 +516,47 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.location_on_rounded, color: Color(0xFFD4AF37), size: 14),
+                      const Icon(Icons.location_on_rounded, color: Color(0xFFD4AF37), size: 13),
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
                           _currentAddress.isNotEmpty ? _currentAddress : "HSR Layout, Bengaluru",
                           style: const TextStyle(
                             color: Color(0xFF1B1B1B),
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                           ),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),
                       ),
-                      const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF1B1B1B), size: 16),
+                      const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF1B1B1B), size: 14),
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Text(
-                        'Good Afternoon 👋',
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFF6B7280),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 1),
+                  Text(
+                    'Good Afternoon 👋',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFF6B7280),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   Text(
                     formattedName,
                     style: GoogleFonts.philosopher(
                       fontWeight: FontWeight.w900,
-                      fontSize: 26,
+                      fontSize: 20,
                       color: const Color(0xFF0F4D3C),
                       height: 1.1,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 1),
                   Text(
                     'Good food brings good mood!',
                     style: GoogleFonts.poppins(
                       color: const Color(0xFF9CA3AF),
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -730,7 +726,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Container(
-        height: 200,
+        height: 205,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           gradient: const LinearGradient(
@@ -748,103 +744,119 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ),
         child: Stack(
           children: [
-            Positioned(
-              top: 16,
-              right: 18,
-              child: Text(
-                'Pure\nTraditional\nHomemade',
-                textAlign: TextAlign.right,
-                style: GoogleFonts.caveat(
-                  color: const Color(0xFFE5C76B),
-                  fontSize: 14,
-                  height: 1.1,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
             Padding(
-              padding: const EdgeInsets.all(22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+              padding: const EdgeInsets.all(18),
+              child: Row(
                 children: [
-                  Text(
-                    'AUTHENTIC ANDHRA',
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFFD4AF37),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Handmade\nPickles',
-                    style: GoogleFonts.philosopher(
-                      color: const Color(0xFFFFF8E8),
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Traditional Taste Since 1982',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white70,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      AppNavigator.push(context, const ProductListingPage(category: 'Pickles'));
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE5C76B),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Shop Now',
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF0F4D3C),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                  Expanded(
+                    flex: 6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'AUTHENTIC ANDHRA',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFFD4AF37),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Handmade\nPickles',
+                          style: GoogleFonts.philosopher(
+                            color: const Color(0xFFFFF8E8),
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Traditional Taste Since 1982',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white70,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            AppNavigator.push(context, const ProductListingPage(category: 'Pickles'));
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE5C76B),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Shop Now',
+                                  style: GoogleFonts.poppins(
+                                    color: const Color(0xFF0F4D3C),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0F4D3C), size: 12),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0F4D3C), size: 14),
-                        ],
-                      ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  Expanded(
+                    flex: 5,
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: SizedBox(
+                            height: 145,
+                            width: double.infinity,
+                            child: _buildProductImage('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'),
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Text(
+                            'Pure\nTraditional\nHomemade',
+                            textAlign: TextAlign.right,
+                            style: GoogleFonts.caveat(
+                              color: const Color(0xFFE5C76B),
+                              fontSize: 12,
+                              height: 1.1,
+                              fontWeight: FontWeight.bold,
+                              shadows: const [Shadow(blurRadius: 4, color: Colors.black54)],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
             Positioned(
-              right: 12,
+              left: 20,
               bottom: 12,
-              width: 145,
-              height: 135,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: _buildProductImage('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'),
-              ),
-            ),
-            Positioned(
-              left: 22,
-              bottom: 14,
               child: Row(
                 children: List.generate(4, (i) => Container(
                   margin: const EdgeInsets.only(right: 5),
-                  width: i == 0 ? 16 : 6,
+                  width: i == 0 ? 14 : 6,
                   height: 6,
                   decoration: BoxDecoration(
                     color: i == 0 ? const Color(0xFFE5C76B) : Colors.white30,
@@ -1210,7 +1222,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             children: continueProducts.map<Widget>((product) => Expanded(
               child: Container(
                 margin: const EdgeInsets.only(right: 10),
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
@@ -1227,52 +1239,55 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: SizedBox(
-                        width: 60,
-                        height: 60,
+                        width: 55,
+                        height: 55,
                         child: _buildProductImage(product.image),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             product.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1B1B1B)),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF1B1B1B)),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             '500 g',
-                            style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 9, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                product.defaultPrice,
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF0F4D3C)),
-                              ),
-                              GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  CartManager().addToCart(product);
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF0F4D3C),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Text(
-                                    'Add',
-                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              children: [
+                                Text(
+                                  product.defaultPrice,
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF0F4D3C)),
+                                ),
+                                const SizedBox(width: 4),
+                                GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    CartManager().addToCart(product);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0F4D3C),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Text(
+                                      'Add',
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 9),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -1434,50 +1449,53 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        "TODAY'S SPECIAL",
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFFD4AF37),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 10,
-                          letterSpacing: 2,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          "TODAY'S SPECIAL",
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFFD4AF37),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 10,
+                            letterSpacing: 2,
+                          ),
                         ),
+                        const SizedBox(width: 8),
+                        Container(width: 30, height: 1, color: const Color(0xFFD4AF37)),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'A Taste Worth Grabbing Today',
+                      style: GoogleFonts.philosopher(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF1B1B1B),
                       ),
-                      const SizedBox(width: 8),
-                      Container(width: 30, height: 1, color: const Color(0xFFD4AF37)),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'A Taste Worth Grabbing Today',
-                    style: GoogleFonts.philosopher(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF1B1B1B),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    "Handpicked just for today, because good food shouldn't wait.",
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: const Color(0xFF6B7280),
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 2),
+                    Text(
+                      "Handpicked just for today, because good food shouldn't wait.",
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: const Color(0xFF6B7280),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 'Same\nTradition\nMore Love ♡',
                 textAlign: TextAlign.right,
                 style: GoogleFonts.caveat(
                   color: const Color(0xFFD4AF37),
-                  fontSize: 13,
+                  fontSize: 12,
                   height: 1.1,
                   fontWeight: FontWeight.bold,
                 ),
@@ -2057,44 +2075,47 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'ROYAL PRIVILEGES',
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFFD4AF37),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 10,
-                          letterSpacing: 2,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'ROYAL PRIVILEGES',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFFD4AF37),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 10,
+                            letterSpacing: 2,
+                          ),
                         ),
+                        const SizedBox(width: 8),
+                        Container(width: 30, height: 1, color: const Color(0xFFD4AF37)),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Exclusive Offers for You',
+                      style: GoogleFonts.philosopher(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF1B1B1B),
                       ),
-                      const SizedBox(width: 8),
-                      Container(width: 30, height: 1, color: const Color(0xFFD4AF37)),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Exclusive Offers for You',
-                    style: GoogleFonts.philosopher(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF1B1B1B),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Special savings. Authentic flavors. Always.',
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: const Color(0xFF6B7280),
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 2),
+                    Text(
+                      'Special savings. Authentic flavors. Always.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: const Color(0xFF6B7280),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -2104,7 +2125,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   );
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFF8E8),
                     borderRadius: BorderRadius.circular(20),
@@ -2153,7 +2174,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 Expanded(
                   flex: 5,
                   child: Padding(
-                    padding: const EdgeInsets.all(18),
+                    padding: const EdgeInsets.all(12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2165,41 +2186,44 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               'WELCOME OFFER',
                               style: GoogleFonts.poppins(
                                 color: const Color(0xFFD4AF37),
-                                fontSize: 10,
+                                fontSize: 9,
                                 fontWeight: FontWeight.w900,
-                                letterSpacing: 1.5,
+                                letterSpacing: 1.2,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             Text(
                               '10% OFF',
                               style: GoogleFonts.philosopher(
-                                fontSize: 34,
+                                fontSize: 28,
                                 fontWeight: FontWeight.w900,
                                 color: const Color(0xFFE5C76B),
                                 height: 1.0,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             Text(
                               'ON YOUR FIRST ORDER',
                               style: GoogleFonts.poppins(
-                                fontSize: 9,
+                                fontSize: 8,
                                 color: Colors.white70,
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: 1,
+                                letterSpacing: 0.8,
                               ),
                             ),
                           ],
                         ),
-                        Row(
-                          children: [
-                            const Text('🍃 Authentic', style: TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold)),
-                            Text('  |  ', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 8)),
-                            const Text('🛡️ Quality', style: TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold)),
-                            Text('  |  ', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 8)),
-                            const Text('🚚 Fresh', style: TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold)),
-                          ],
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            children: [
+                              const Text('🍃 Authentic', style: TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold)),
+                              Text(' | ', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 8)),
+                              const Text('🛡️ Quality', style: TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold)),
+                              Text(' | ', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 8)),
+                              const Text('🚚 Fresh', style: TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -2210,8 +2234,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 Expanded(
                   flex: 4,
                   child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 12),
-                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFF8E8),
                       borderRadius: BorderRadius.circular(16),
@@ -2223,52 +2247,55 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         Text(
                           'USE CODE',
                           style: GoogleFonts.poppins(
-                            fontSize: 9,
+                            fontSize: 8,
                             fontWeight: FontWeight.w900,
                             color: const Color(0xFF6B7280),
-                            letterSpacing: 1.5,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: GestureDetector(
+                            onTap: () {
+                              HapticFeedback.heavyImpact();
+                              Clipboard.setData(const ClipboardData(text: 'ROYAL10'));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Coupon ROYAL10 copied!')),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'ROYAL10',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFF0F4D3C),
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.copy_rounded, size: 12, color: Color(0xFF0F4D3C)),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 6),
-                        GestureDetector(
-                          onTap: () {
-                            HapticFeedback.heavyImpact();
-                            Clipboard.setData(const ClipboardData(text: 'ROYAL10'));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Coupon ROYAL10 copied!')),
-                            );
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'ROYAL10',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w900,
-                                    color: const Color(0xFF0F4D3C),
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                const Icon(Icons.copy_rounded, size: 14, color: Color(0xFF0F4D3C)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
                         Text(
                           'A SMALL SAVING\nFOR A BIGGER FEAST',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.caveat(
-                            fontSize: 11,
+                            fontSize: 10,
                             color: const Color(0xFF8B5E3C),
                             fontWeight: FontWeight.bold,
                             height: 1.1,
@@ -2294,15 +2321,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                       ),
                       Positioned(
-                        top: 12,
-                        right: 12,
+                        top: 10,
+                        right: 10,
                         child: Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(6),
                           decoration: const BoxDecoration(
                             color: Color(0xFFD4AF37),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.verified_rounded, color: Color(0xFF0C3D2E), size: 18),
+                          child: const Icon(Icons.verified_rounded, color: Color(0xFF0C3D2E), size: 16),
                         ),
                       ),
                     ],
@@ -2598,7 +2625,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     ];
 
     return SizedBox(
-      height: 110,
+      height: 125,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         scrollDirection: Axis.horizontal,
@@ -2618,7 +2645,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             },
             child: Container(
               width: 125,
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
@@ -2633,8 +2660,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(item['icon'] as IconData, color: const Color(0xFF0F4D3C), size: 24),
-                  const SizedBox(height: 6),
+                  Icon(item['icon'] as IconData, color: const Color(0xFF0F4D3C), size: 22),
+                  const SizedBox(height: 4),
                   Text(
                     item['title'] as String,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF1B1B1B)),
@@ -2642,12 +2669,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     maxLines: 1,
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    item['sub'] as String,
-                    style: TextStyle(fontSize: 9, color: Colors.grey.shade500),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  Expanded(
+                    child: Text(
+                      item['sub'] as String,
+                      style: TextStyle(fontSize: 9, color: Colors.grey.shade500),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -3198,7 +3227,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Container(
-            height: 215,
+            height: 205,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
               gradient: const LinearGradient(
@@ -3216,110 +3245,122 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
             child: Stack(
               children: [
-                // Top Right Cursive Tag
-                Positioned(
-                  top: 14,
-                  right: 16,
-                  child: Text(
-                    'Simple Food\nExtraordinary\nHappiness',
-                    textAlign: TextAlign.right,
-                    style: GoogleFonts.caveat(
-                      color: const Color(0xFFE5C76B),
-                      fontSize: 14,
-                      height: 1.1,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                // Card Content
                 Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
                     children: [
-                      Text(
-                        'THE COASTAL CLASSIC',
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFFD4AF37),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Rice + Ghee +\nAvakaya',
-                        style: GoogleFonts.philosopher(
-                          color: const Color(0xFFFFF8E8),
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          height: 1.1,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: 170,
-                        child: Text(
-                          'A timeless combination that brings out the best of Andhra flavors.',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white70,
-                            fontSize: 11,
-                            height: 1.4,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      GestureDetector(
-                        onTap: () {
-                          final product = allProducts.firstWhere(
-                            (p) => p.name.contains('Bellam') || p.name.contains('Avakaya'),
-                            orElse: () => allProducts[0],
-                          );
-                          AppNavigator.push(context, ProductDetailPage(product: product, allProducts: allProducts));
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE5C76B),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'See Details',
-                                style: GoogleFonts.poppins(
-                                  color: const Color(0xFF0F4D3C),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
+                      // Left Column Text
+                      Expanded(
+                        flex: 6,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'THE COASTAL CLASSIC',
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFFD4AF37),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Rice + Ghee +\nAvakaya',
+                              style: GoogleFonts.philosopher(
+                                color: const Color(0xFFFFF8E8),
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'A timeless combination that brings out the best of Andhra flavors.',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white70,
+                                fontSize: 10,
+                                height: 1.3,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 12),
+                            GestureDetector(
+                              onTap: () {
+                                final product = allProducts.firstWhere(
+                                  (p) => p.name.contains('Bellam') || p.name.contains('Avakaya'),
+                                  orElse: () => allProducts[0],
+                                );
+                                AppNavigator.push(context, ProductDetailPage(product: product, allProducts: allProducts));
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE5C76B),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'See Details',
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFF0F4D3C),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0F4D3C), size: 12),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0F4D3C), size: 12),
-                            ],
-                          ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(width: 8),
+
+                      // Right Image
+                      Expanded(
+                        flex: 5,
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(18),
+                              child: SizedBox(
+                                height: 145,
+                                width: double.infinity,
+                                child: _buildProductImage('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'),
+                              ),
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Text(
+                                'Simple Food\nExtraordinary\nHappiness',
+                                textAlign: TextAlign.right,
+                                style: GoogleFonts.caveat(
+                                  color: const Color(0xFFE5C76B),
+                                  fontSize: 12,
+                                  height: 1.1,
+                                  fontWeight: FontWeight.bold,
+                                  shadows: const [Shadow(blurRadius: 4, color: Colors.black54)],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                // Right Image
-                Positioned(
-                  right: 12,
-                  bottom: 12,
-                  width: 140,
-                  height: 140,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: _buildProductImage('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'),
-                  ),
-                ),
-
-                // Pagination Dots Bottom Left
+                // Pagination Dots
                 Positioned(
                   left: 20,
                   bottom: 12,
@@ -3616,51 +3657,54 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'NEW ARRIVALS',
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFFD4AF37),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 10,
-                          letterSpacing: 2,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'NEW ARRIVALS',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFFD4AF37),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 10,
+                            letterSpacing: 2,
+                          ),
                         ),
+                        const SizedBox(width: 8),
+                        Container(width: 30, height: 1, color: const Color(0xFFD4AF37)),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Fresh Picks, Just for You',
+                      style: GoogleFonts.philosopher(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF1B1B1B),
                       ),
-                      const SizedBox(width: 8),
-                      Container(width: 30, height: 1, color: const Color(0xFFD4AF37)),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Fresh Picks, Just for You',
-                    style: GoogleFonts.philosopher(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF1B1B1B),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Discover our latest additions, crafted with tradition.',
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: const Color(0xFF6B7280),
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 2),
+                    Text(
+                      'Discover our latest additions, crafted with tradition.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: const Color(0xFF6B7280),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   GestureDetector(
                     onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Pickles')),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFF8E8),
                         borderRadius: BorderRadius.circular(20),
@@ -4247,42 +4291,45 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'TRADITIONAL SNACKS',
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFFD4AF37),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 10,
-                      letterSpacing: 2,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TRADITIONAL SNACKS',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFFD4AF37),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 10,
+                        letterSpacing: 2,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Snacks with a Story',
-                    style: GoogleFonts.philosopher(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF1B1B1B),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Snacks with a Story',
+                      style: GoogleFonts.philosopher(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF1B1B1B),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Time-honored recipes, perfect for every craving.',
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: const Color(0xFF6B7280),
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 2),
+                    Text(
+                      'Time-honored recipes, perfect for every craving.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: const Color(0xFF6B7280),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Snacks')),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
@@ -4313,15 +4360,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildSnackTrustItem(Icons.eco_rounded, 'Authentic\nIngredients'),
+              Expanded(child: FittedBox(fit: BoxFit.scaleDown, child: _buildSnackTrustItem(Icons.eco_rounded, 'Authentic\nIngredients'))),
               Container(width: 1, height: 20, color: Colors.grey.shade300),
-              _buildSnackTrustItem(Icons.soup_kitchen_rounded, 'Traditional\nRecipes'),
+              Expanded(child: FittedBox(fit: BoxFit.scaleDown, child: _buildSnackTrustItem(Icons.soup_kitchen_rounded, 'Traditional\nRecipes'))),
               Container(width: 1, height: 20, color: Colors.grey.shade300),
-              _buildSnackTrustItem(Icons.verified_user_rounded, 'No\nPreservatives'),
+              Expanded(child: FittedBox(fit: BoxFit.scaleDown, child: _buildSnackTrustItem(Icons.verified_user_rounded, 'No\nPreservatives'))),
               Container(width: 1, height: 20, color: Colors.grey.shade300),
-              _buildSnackTrustItem(Icons.favorite_rounded, 'Loved by\nThousands'),
+              Expanded(child: FittedBox(fit: BoxFit.scaleDown, child: _buildSnackTrustItem(Icons.favorite_rounded, 'Loved by\nThousands'))),
             ],
           ),
         ),
@@ -4382,43 +4428,50 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'AUTHENTIC SWEETS',
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFFD4AF37),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 10,
-                      letterSpacing: 2,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'AUTHENTIC SWEETS',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFFD4AF37),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 10,
+                        letterSpacing: 2,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Traditional Sweets,\nTimeless Joy',
-                    style: GoogleFonts.philosopher(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF1B1B1B),
-                      height: 1.1,
+                    const SizedBox(height: 2),
+                    Text(
+                      'Traditional Sweets,\nTimeless Joy',
+                      style: GoogleFonts.philosopher(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF1B1B1B),
+                        height: 1.1,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Made with pure ingredients, just like home.',
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: const Color(0xFF6B7280),
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 2),
+                    Text(
+                      'Made with pure ingredients, just like home.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: const Color(0xFF6B7280),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Sweets')),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFF8E8),
                     borderRadius: BorderRadius.circular(20),
@@ -4449,15 +4502,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildSweetTrustItem(Icons.eco_rounded, 'Pure\nIngredients'),
+              Expanded(child: FittedBox(fit: BoxFit.scaleDown, child: _buildSweetTrustItem(Icons.eco_rounded, 'Pure\nIngredients'))),
               Container(width: 1, height: 20, color: Colors.grey.shade300),
-              _buildSweetTrustItem(Icons.soup_kitchen_rounded, 'Traditional\nRecipes'),
+              Expanded(child: FittedBox(fit: BoxFit.scaleDown, child: _buildSweetTrustItem(Icons.soup_kitchen_rounded, 'Traditional\nRecipes'))),
               Container(width: 1, height: 20, color: Colors.grey.shade300),
-              _buildSweetTrustItem(Icons.verified_user_rounded, 'No Artificial\nFlavors'),
+              Expanded(child: FittedBox(fit: BoxFit.scaleDown, child: _buildSweetTrustItem(Icons.verified_user_rounded, 'No Artificial\nFlavors'))),
               Container(width: 1, height: 20, color: Colors.grey.shade300),
-              _buildSweetTrustItem(Icons.favorite_rounded, 'A Taste of\nHome'),
+              Expanded(child: FittedBox(fit: BoxFit.scaleDown, child: _buildSweetTrustItem(Icons.favorite_rounded, 'A Taste of\nHome'))),
             ],
           ),
         ),
