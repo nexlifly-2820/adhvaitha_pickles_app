@@ -160,71 +160,302 @@ class _MainScreenState extends State<MainScreen> {
             _buildTab(4, const ProfilePage()),
           ],
         ),
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 30,
-                offset: const Offset(0, -10),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(0, Icons.home_rounded, 'Home'),
-                  _buildNavItem(1, Icons.grid_view_rounded, 'Shop'),
-                  _buildNavItem(2, Icons.favorite_rounded, 'Wishlist'),
-                  _buildNavItem(3, Icons.local_shipping_rounded, 'Orders'),
-                  _buildNavItem(4, Icons.person_rounded, 'Profile'),
-                ],
-              ),
+        bottomNavigationBar: CustomBottomNavBar(
+          selectedIndex: _selectedIndex,
+          onTabSelected: setIndex,
+        ),
+      ),
+    );
+  }
+}
+
+class CustomBottomNavBar extends StatelessWidget {
+  final int selectedIndex;
+  final Function(int) onTabSelected;
+
+  const CustomBottomNavBar({
+    super.key,
+    required this.selectedIndex,
+    required this.onTabSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final navItems = [
+      {'label': 'Home', 'icon': Icons.home_outlined, 'activeIcon': Icons.home_rounded},
+      {'label': 'Shop', 'icon': Icons.grid_view_outlined, 'activeIcon': Icons.widgets_rounded},
+      {'label': 'Wishlist', 'icon': Icons.favorite_border_rounded, 'activeIcon': Icons.favorite_rounded},
+      {'label': 'Orders', 'icon': Icons.local_shipping_outlined, 'activeIcon': Icons.local_shipping_rounded},
+      {'label': 'Profile', 'icon': Icons.person_outline_rounded, 'activeIcon': Icons.person_rounded},
+    ];
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    const horizontalMargin = 16.0;
+    final barWidth = screenWidth - (horizontalMargin * 2);
+    final itemWidth = barWidth / 5;
+    const buttonRadius = 37.0; // Button diameter = 74.0
+    final activeLeft = (itemWidth * selectedIndex) + (itemWidth / 2) - buttonRadius;
+
+    return Container(
+      color: Colors.transparent,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(horizontalMargin, 0, horizontalMargin, 12),
+          child: SizedBox(
+            height: 84,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // 1. MAIN PILL BAR CONTAINER (Positioned at bottom)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 64,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFFFFFDF8),
+                          Color(0xFFFFF9EE),
+                          Color(0xFFFFFDF8),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(36),
+                      border: Border.all(
+                        color: const Color(0xFFE2C482).withValues(alpha: 0.8),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF18453B).withValues(alpha: 0.10),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(36),
+                      child: Stack(
+                        children: [
+                          // Left Decorative Leaf Art
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: 50,
+                            child: CustomPaint(
+                              painter: LeafFlourishPainter(isLeft: true),
+                            ),
+                          ),
+
+                          // Right Decorative Leaf Art
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: 50,
+                            child: CustomPaint(
+                              painter: LeafFlourishPainter(isLeft: false),
+                            ),
+                          ),
+
+                          // Row of Inactive / Tap Items
+                          Row(
+                            children: List.generate(5, (index) {
+                              final item = navItems[index];
+                              final isSelected = index == selectedIndex;
+
+                              return Expanded(
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => onTabSelected(index),
+                                  child: AnimatedOpacity(
+                                    duration: const Duration(milliseconds: 200),
+                                    opacity: isSelected ? 0.0 : 1.0,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          item['icon'] as IconData,
+                                          color: const Color(0xFF18453B),
+                                          size: 24,
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          item['label'] as String,
+                                          style: GoogleFonts.poppins(
+                                            color: const Color(0xFF18453B),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 2. ACTIVE FLOATING POP-OUT CIRCLE BUTTON
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.easeOutCubic,
+                  left: activeLeft,
+                  top: 0, // Pops out above the main bar top!
+                  child: GestureDetector(
+                    onTap: () => onTabSelected(selectedIndex),
+                    child: Container(
+                      width: buttonRadius * 2,
+                      height: buttonRadius * 2,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF0F382C), // Deep forest green
+                        border: Border.all(
+                          color: const Color(0xFFE5C778), // Golden ring
+                          width: 2.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFD4AF37).withValues(alpha: 0.45),
+                            blurRadius: 15,
+                            spreadRadius: 1,
+                            offset: const Offset(0, 4),
+                          ),
+                          BoxShadow(
+                            color: const Color(0xFF0F382C).withValues(alpha: 0.35),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Container(
+                        margin: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 2),
+                            Icon(
+                              navItems[selectedIndex]['activeIcon'] as IconData,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              navItems[selectedIndex]['label'] as String,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10.5,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            // Golden Indicator Line underneath text inside circle
+                            Container(
+                              width: 18,
+                              height: 2.5,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE5C778),
+                                borderRadius: BorderRadius.circular(2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFD4AF37).withValues(alpha: 0.8),
+                                    blurRadius: 4,
+                                  )
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
-    bool isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () => setIndex(index),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF0F4D3C) : Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(
-              icon,
-              color: isSelected ? Colors.white : const Color(0xFF9CA3AF),
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? const Color(0xFF0F4D3C) : const Color(0xFF9CA3AF),
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              fontSize: 11,
-            ),
-          ),
-        ],
-      ),
+class LeafFlourishPainter extends CustomPainter {
+  final bool isLeft;
+  LeafFlourishPainter({required this.isLeft});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFC8AC6C).withValues(alpha: 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+
+    final fillPaint = Paint()
+      ..color = const Color(0xFFD4AF37).withValues(alpha: 0.12)
+      ..style = PaintingStyle.fill;
+
+    canvas.save();
+    if (!isLeft) {
+      canvas.translate(size.width, 0);
+      canvas.scale(-1, 1);
+    }
+
+    // Stem path
+    final stemPath = Path();
+    stemPath.moveTo(8, size.height * 0.75);
+    stemPath.quadraticBezierTo(
+      size.width * 0.5, size.height * 0.6,
+      size.width * 0.8, size.height * 0.25,
     );
+    canvas.drawPath(stemPath, paint);
+
+    // Leaf 1
+    final leaf1 = Path()
+      ..moveTo(size.width * 0.35, size.height * 0.58)
+      ..quadraticBezierTo(size.width * 0.2, size.height * 0.35, size.width * 0.45, size.height * 0.25)
+      ..quadraticBezierTo(size.width * 0.5, size.height * 0.45, size.width * 0.35, size.height * 0.58);
+    canvas.drawPath(leaf1, fillPaint);
+    canvas.drawPath(leaf1, paint);
+
+    // Leaf 2
+    final leaf2 = Path()
+      ..moveTo(size.width * 0.55, size.height * 0.42)
+      ..quadraticBezierTo(size.width * 0.7, size.height * 0.2, size.width * 0.82, size.height * 0.28)
+      ..quadraticBezierTo(size.width * 0.68, size.height * 0.48, size.width * 0.55, size.height * 0.42);
+    canvas.drawPath(leaf2, fillPaint);
+    canvas.drawPath(leaf2, paint);
+
+    // Small accent dot
+    canvas.drawCircle(Offset(size.width * 0.25, size.height * 0.42), 1.5, paint..style = PaintingStyle.fill);
+
+    canvas.restore();
   }
+
+  @override
+  bool shouldRepaint(covariant LeafFlourishPainter oldDelegate) => oldDelegate.isLeft != isLeft;
 }
 
 class GlobalCartBadge extends StatelessWidget {
@@ -253,7 +484,7 @@ class GlobalCartBadge extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
+                        color: Colors.black.withValues(alpha: 0.06),
                         blurRadius: 10,
                         offset: const Offset(0, 2),
                       )
