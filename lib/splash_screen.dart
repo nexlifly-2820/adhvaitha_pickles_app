@@ -40,6 +40,7 @@ class _SplashScreenState extends State<SplashScreen> {
         final minVersion = config['min_version'] ?? "1.0.0";
 
         if (_isVersionLower(currentVersion, minVersion)) {
+          if (!mounted) return;
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const AppUpdatePage()),
           );
@@ -57,11 +58,12 @@ class _SplashScreenState extends State<SplashScreen> {
         nextScreen = const OnboardingPage();
       }
 
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 500),
-          transitionsBuilder: (_, a, __, c) => FadeTransition(opacity: a, child: c),
-          pageBuilder: (_, __, ___) => nextScreen,
+          transitionsBuilder: (_, a, secondaryAnimation, c) => FadeTransition(opacity: a, child: c),
+          pageBuilder: (_, animation, secondaryAnimation) => nextScreen,
         ),
       );
     }
@@ -113,128 +115,39 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8E8),
-      body: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Background Image with gentle scale pulse
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/splash_background.png',
-              fit: BoxFit.cover,
-              errorBuilder: (c, e, s) => Image.asset('assets/images/login_bg.png', fit: BoxFit.cover),
-            )
-                .animate(
-                  onPlay: (controller) => controller.repeat(reverse: true),
-                )
-                .scale(
-                  begin: const Offset(1.0, 1.0),
-                  end: const Offset(1.05, 1.05),
-                  duration: 10000.ms,
-                ),
-          ),
-
-          // Center Animated Content
-          Center(
-            child: SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Logo + Gold Glow Stack
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // GOLD GLOW
-                      Container(
-                        width: 320,
-                        height: 320,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              Color(0x55D4AF37),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      )
-                          .animate(
-                            onPlay: (controller) => controller.repeat(reverse: true),
-                          )
-                          .scale(
-                            begin: const Offset(0.9, 0.9),
-                            end: const Offset(1.15, 1.15),
-                            duration: 3500.ms,
-                          ),
-
-                      // LOGO
-                      Image.asset(
-                        'assets/images/logo_no_bg.png',
-                        width: 240,
-                        errorBuilder: (c, e, s) => Image.asset('assets/images/adhvaitha_logo.png', width: 240),
-                      )
-                          .animate()
-                          .fadeIn(
-                            duration: 900.ms,
-                          )
-                          .scale(
-                            begin: const Offset(0.65, 0.65),
-                            end: const Offset(1, 1),
-                            curve: Curves.easeOutBack,
-                            duration: 1400.ms,
-                          )
-                          .then()
-                          .moveY(
-                            begin: -4,
-                            end: 4,
-                            duration: 2500.ms,
-                            curve: Curves.easeInOut,
-                          ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  // Brand Name
-                  Text(
-                    "ADHVAITHA FOODS",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.cinzel(
-                      fontSize: 34,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2.5,
-                      color: const Color(0xFF0F5C45),
-                    ),
-                  )
-                      .animate()
-                      .fadeIn(delay: 900.ms)
-                      .slideY(
-                        begin: 0.3,
-                        end: 0,
-                        duration: 900.ms,
-                      ),
-
-                  const SizedBox(height: 12),
-
-                  // Tagline
-                  Text(
-                    "AUTHENTIC TASTE • HOMEMADE WITH LOVE",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 2.5,
-                      color: const Color(0xFFD4AF37),
-                    ),
-                  )
-                      .animate()
-                      .fadeIn(delay: 1500.ms),
-                ],
+      backgroundColor: const Color(0xFF073E2E),
+      body: Center(
+        child: Container(
+          width: 210,
+          height: 210,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(52),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
+            ],
+          ),
+          child: Center(
+            child: Image.asset(
+              'assets/images/adhvaitha_logo.png',
+              fit: BoxFit.contain,
+              errorBuilder: (c, e, s) => Image.asset('assets/images/logo_no_bg.png', fit: BoxFit.contain),
             ),
           ),
-        ],
+        )
+            .animate()
+            .fadeIn(duration: 800.ms)
+            .scale(
+              begin: const Offset(0.85, 0.85),
+              end: const Offset(1.0, 1.0),
+              curve: Curves.easeOutBack,
+              duration: 1000.ms,
+            ),
       ),
     );
   }
