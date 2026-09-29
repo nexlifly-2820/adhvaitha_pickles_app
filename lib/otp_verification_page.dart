@@ -129,16 +129,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                           ),
                         ),
                       ),
-                      Text(
-                        'Good\nFood\nHappier\nDays ♡',
-                        textAlign: TextAlign.right,
-                        style: GoogleFonts.caveat(
-                          color: const Color(0xFF0F4D3C),
-                          fontSize: 15,
-                          height: 1.1,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const SizedBox.shrink(), // Removed Good Food text to match new design
                     ],
                   ),
                 ),
@@ -153,34 +144,12 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                       children: [
                         // Main Brand Logo
                         Image.asset(
-                          'assets/images/adhvaitha_logo.png',
-                          height: 110,
+                          'assets/images/AMBHUJAKSHI  logo.png',
+                          height: 220,
                           fit: BoxFit.contain,
                         ).animate().fadeIn().scale(),
 
-                        const SizedBox(height: 4),
-
-                        // SINCE 1985 Divider
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(width: 25, height: 1, color: const Color(0xFF0F4D3C).withValues(alpha: 0.4)),
-                            const SizedBox(width: 8),
-                            Text(
-                              'SINCE 1985',
-                              style: GoogleFonts.poppins(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 2.0,
-                                color: const Color(0xFF0F4D3C),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(width: 25, height: 1, color: const Color(0xFF0F4D3C).withValues(alpha: 0.4)),
-                          ],
-                        ),
-
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
 
                         // Title
                         Text(
@@ -197,7 +166,10 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
 
                         // Subtitle
                         Text(
-                          "We've sent a 6-digit code to",
+                          widget.isEmailOtp
+                              ? "We've sent a 6-digit code to\nyour email address."
+                              : "We've sent a 6-digit code to\nyour mobile number.",
+                          textAlign: TextAlign.center,
                           style: GoogleFonts.poppins(
                             color: const Color(0xFF4A5568),
                             fontSize: 13,
@@ -306,18 +278,19 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                                 Text(
                                   "Didn't receive the code?",
                                   style: GoogleFonts.poppins(
-                                    color: const Color(0xFF4A5568),
+                                    color: Colors.black87,
                                     fontSize: 12,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 _resendSeconds > 0
                                     ? Text(
-                                        'Resend in 00:${_resendSeconds.toString().padLeft(2, '0')}',
-                                        style: GoogleFonts.poppins(
-                                          color: const Color(0xFF0F4D3C),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
+                                      'Resend in 00:${_resendSeconds.toString().padLeft(2, '0')}',
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFF0F4D3C),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
                                       )
                                     : GestureDetector(
                                         onTap: () {
@@ -600,11 +573,11 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
         decoration: InputDecoration(
           border: InputBorder.none,
           contentPadding: EdgeInsets.zero,
-          hintText: (!hasValue && hasFocus) ? '|' : '',
+          hintText: '-',
           hintStyle: GoogleFonts.poppins(
-            color: const Color(0xFF0F4D3C).withValues(alpha: 0.5),
-            fontSize: 18,
-            fontWeight: FontWeight.w300,
+            color: const Color(0xFF0F4D3C).withValues(alpha: 0.3),
+            fontSize: 22,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ),

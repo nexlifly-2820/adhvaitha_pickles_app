@@ -66,7 +66,7 @@ class ProductRepository {
     // PICKLES
     Product(
       name: 'Bellam Avakaya', 
-      description: 'The King of Pickles. A sweet and tangy masterpiece made with premium mango chunks, high-quality jaggery, and our secret spice blend.', 
+      description: 'The King of Pickles crafted from premium sun-dried mango chunks.\nPreserved in wood-pressed oils with organic jaggery and secret spices.\nDelivers an unforgettable sweet and tangy traditional Andhra taste.', 
       weightPriceMap: {'250g': 140, '500g': 260, '1kg': 500},
       rating: 4.9, image: 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', 
       color: const Color(0xFF18453B), category: 'Pickles', isBestSeller: true, reviews: _mockReviews,
@@ -89,7 +89,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Allam Velluli Pickle', 
-      description: 'A spicy and aromatic ginger-garlic pickle that provides an instant flavor explosion. Perfect for those who love bold, sharp tastes.', 
+      description: 'A spicy and aromatic ginger-garlic pickle with an instant flavor explosion.\nCrushed in traditional stone mortars with pure tamarind and cold-pressed oils.\nPerfect for adding bold, sharp, and authentic flavor to every meal.', 
       weightPriceMap: {'250g': 120, '500g': 220, '1kg': 420},
       rating: 4.9, image: 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg', 
       color: const Color(0xFF18453B), category: 'Pickles', isBestSeller: true, reviews: _mockReviews,
@@ -107,7 +107,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Usiri Pickle', 
-      description: 'Amla gooseberry pickle', 
+      description: 'A traditional Amla gooseberry pickle rich in vitamin C and antioxidants.\nSourced from wild forests and sun-dried to perfection for an authentic tangy kick.\nProvides an unforgettable traditional flavor that elevates hot rice and ghee.', 
       weightPriceMap: {'250g': 130, '500g': 240, '1kg': 450},
       rating: 4.9, image: 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg', 
       color: const Color(0xFF18453B), category: 'Pickles', reviews: _mockReviews,
@@ -120,7 +120,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Uppava', 
-      description: 'Traditional salted pickle', 
+      description: 'A classic traditional salted raw mango pickle aged gracefully in brine.\nCrafted using time-honored family methods for an unmatched village taste.\nBrings the nostalgic, authentic flavor of coastal Andhra kitchens to your table.', 
       weightPriceMap: {'250g': 100, '500g': 180, '1kg': 340},
       rating: 4.7, image: 'assets/images/uppava_traditional_salted_pickle.jpg', 
       color: const Color(0xFF18453B), category: 'Pickles', reviews: _mockReviews,
@@ -131,7 +131,7 @@ class ProductRepository {
     // SNACKS
     Product(
       name: 'Chakinalu', 
-      description: 'Traditional spiral snacks', 
+      description: 'Crunchy traditional Sankranti spiral snacks crafted from 12-month aged rice flour.\nDeep-fried in small batches with fragrant carom seeds and pure oils.\nProvides an addictive savory crunch that makes every tea time special.', 
       weightPriceMap: {'250g': 100, '500g': 180, '1kg': 350},
       rating: 4.8, image: 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg', 
       color: const Color(0xFF18453B), category: 'Snacks', reviews: _mockReviews,
@@ -144,7 +144,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Bundhi', 
-      description: 'Crispy gram flour droplets', 
+      description: 'Crispy, spiced gram flour droplets fried golden and seasoned with fresh curry leaves.\nAn irresistible tea-time companion packed with authentic homemade flavors.\nOffers a light, savory crunch that pairs wonderfully with meals and snacks.', 
       weightPriceMap: {'250g': 45, '500g': 80, '1kg': 150},
       rating: 4.6, image: 'assets/images/bundhi_crispy_spiced_gram_flour_droplets.jpg',
       color: const Color(0xFF18453B), category: 'Snacks', reviews: _mockReviews,
@@ -153,7 +153,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Allu Chips', 
-      description: 'Indian potato chips', 
+      description: 'Thinly sliced Indian potato chips fried golden and sprinkled with special spices.\nCrispy, light, and perfectly salted for your daily snacking cravings.\nPrepared with utmost hygiene and care using premium farm potatoes.', 
       weightPriceMap: {'250g': 55, '500g': 99, '1kg': 190},
       rating: 4.7, image: 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg', 
       color: const Color(0xFF18453B), category: 'Snacks', reviews: _mockReviews,
@@ -162,7 +162,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Karam Janthukalu', 
-      description: 'Murukku strings snack', 
+      description: 'Crispy spiral murukku strings made with rice flour and roasted gram.\nInfused with fiery red chilli and cumin for a delightful traditional crunch.\nA classic festival snack loved by spice enthusiasts of all ages.', 
       weightPriceMap: {'250g': 90, '500g': 160, '1kg': 300},
       rating: 4.8, image: 'assets/images/karam_janthukalu_murukku_strings_snack.jpg', 
       color: const Color(0xFF18453B), category: 'Snacks', reviews: _mockReviews,
@@ -171,7 +171,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Khara Mixture', 
-      description: 'Crunchy savory mix', 
+      description: 'An assorted crunchy savory mix of fried lentils, sev, peanuts, and curry leaves.\nTossed in authentic spices for a satisfying medley of textures and flavors.\nThe ultimate snack mix to elevate your evening tea or family gatherings.', 
       weightPriceMap: {'250g': 70, '500g': 120, '1kg': 230},
       rating: 4.7, image: 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg', 
       color: const Color(0xFF18453B), category: 'Snacks', reviews: _mockReviews,
@@ -180,7 +180,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Nuvvula Papad', 
-      description: 'Sesame coated papads', 
+      description: 'Crispy sun-dried papads generously coated with unhulled black sesame seeds.\nOffers a robust nutty aroma and superior crunch when roasted or fried.\nAn exceptional traditional accompaniment for rice, dal, and authentic meals.', 
       weightPriceMap: {'250g': 80, '500g': 140, '1kg': 260},
       rating: 4.7, image: 'assets/images/nuvvula_papad_sesame_coated_crispy_papads.jpg', 
       color: const Color(0xFF18453B), category: 'Snacks', reviews: _mockReviews,
@@ -193,7 +193,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Onion Whills', 
-      description: 'Onion flavored crisp wheels', 
+      description: 'Crisp, savory wheel snacks flavored with rich onion extracts and mild spices.\nDelightfully light and crunchy, making them a favorite across all age groups.\nCrafted in small batches to ensure consistent texture and superior taste.', 
       weightPriceMap: {'200g': 80, '400g': 150, '1kg': 350},
       rating: 4.5, image: 'assets/images/onion_whills_onion_flavored_crisp_wheels.jpg', 
       color: const Color(0xFF18453B), category: 'Snacks', reviews: _mockReviews,
@@ -202,7 +202,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Rice Papad', 
-      description: 'Crispy rice flour papadums', 
+      description: 'Traditional crispy rice flour papadums sun-dried under peak weather conditions.\nExpands beautifully when fried, providing a light and crunchy accompaniment.\nMade with pure rice batter and traditional sun-drying techniques.', 
       weightPriceMap: {'250g': 60, '500g': 100, '1kg': 190},
       rating: 4.6, image: 'assets/images/rice_papad_crispy_rice_flour_papadums.jpg', 
       color: const Color(0xFF18453B), category: 'Snacks', reviews: _mockReviews,
@@ -211,7 +211,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Tomato Chilli Papad', 
-      description: 'Tangy and spicy papads', 
+      description: 'Sun-dried papadums infused with tangy tomato pulp and fiery green chillies.\nDelivers a burst of lip-smacking flavor and crispiness with every bite.\nA vibrant twist on traditional papads that excites your palate instantly.', 
       weightPriceMap: {'250g': 70, '500g': 120, '1kg': 230},
       rating: 4.6, image: 'assets/images/tomato_chilli_papad_tangy_and_spicy_papads.jpg', 
       color: const Color(0xFF18453B), category: 'Snacks', reviews: _mockReviews,
@@ -222,7 +222,7 @@ class ProductRepository {
     // SPICES
     Product(
       name: 'Allam Velluli Karam Podi', 
-      description: 'Ginger garlic spice powder', 
+      description: 'A robust ginger garlic spice powder ground with roasted lentils and red chillies.\nBest enjoyed mixed with hot rice and a generous pour of desi ghee.\nProvides a warming, aromatic spice kick that comforts the soul.', 
       weightPriceMap: {'250g': 149, '500g': 280, '1kg': 540},
       rating: 4.8, image: 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg', 
       color: const Color(0xFF18453B), category: 'Spices', reviews: _mockReviews,
@@ -231,7 +231,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Chicken Masala Powder', 
-      description: 'Chicken curry spice blend', 
+      description: 'An aromatic chicken curry spice blend crafted from whole roasted spices.\nElevates home-cooked chicken dishes with restaurant-quality depth and aroma.\nImparts a rich gravy texture and authentic traditional flavor profile.', 
       weightPriceMap: {'100g': 120, '250g': 280, '500g': 540},
       rating: 4.7, image: 'assets/images/chicken_masala_powder_chicken_curry_spice_blend.jpg', 
       color: const Color(0xFF18453B), category: 'Spices', reviews: _mockReviews,
@@ -240,7 +240,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Daniya Powder', 
-      description: 'Coriander powder', 
+      description: 'Freshly ground coriander powder produced from bright green seeds of Kurnool.\nAdds an earthy fragrance and a delicate body to traditional Indian curries.\nGround with precision to retain natural essential oils and vibrant color.', 
       weightPriceMap: {'200g': 80, '500g': 190, '1kg': 360},
       rating: 4.5, image: 'assets/images/daniya_powder_freshly_ground_coriander_powder.jpg', 
       color: const Color(0xFF18453B), category: 'Spices', reviews: _mockReviews,
@@ -253,7 +253,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Garam Masala', 
-      description: 'Traditional warm spice blend', 
+      description: 'A traditional warm spice blend combining cardamom, cloves, cinnamon, and nutmeg.\nImparts an exquisite aroma and deep flavorful complexity to every dish.\nExpertly proportioned for authentic homemade culinary excellence.', 
       weightPriceMap: {'100g': 150, '250g': 360, '500g': 680},
       rating: 4.8, image: 'assets/images/garam_masala_powder_traditional_warm_spice_blend.jpg', 
       color: const Color(0xFF18453B), category: 'Spices', reviews: _mockReviews,
@@ -262,7 +262,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Haldi Powder', 
-      description: 'Pure turmeric powder', 
+      description: 'Pure, unadulterated Salem turmeric powder with over 5% natural curcumin.\nRenowned for its vibrant golden hue, earthy aroma, and wellness properties.\nSourced directly from trusted farmers and ground without additives.', 
       weightPriceMap: {'250g': 90, '500g': 170, '1kg': 320},
       rating: 4.7, image: 'assets/images/haldi_powder_pure_turmeric_powder.jpg', 
       color: const Color(0xFF18453B), category: 'Spices', reviews: _mockReviews,
@@ -275,7 +275,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Karvepaku Karam Podi', 
-      description: 'Curry leaves powder', 
+      description: 'Fragrant curry leaves powder made from tender, pesticide-free foliage.\nPacked with iron and antioxidants, perfect for idlis, dosas, and rice.\nBrings the goodness of fresh green herbs straight to your dining table.', 
       weightPriceMap: {'250g': 130, '500g': 240, '1kg': 460},
       rating: 4.9, image: 'assets/images/karvepaku_karam_podi_curry_leaves_powder.jpg', 
       color: const Color(0xFF18453B), category: 'Spices', reviews: _mockReviews,
@@ -288,7 +288,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Menthi Podi', 
-      description: 'Fenugreek powder', 
+      description: 'Finely ground roasted fenugreek powder with a distinct bitter-sweet profile.\nAn essential spice for authentic pickle making and digestive health benefits.\nRoasted to perfection to eliminate bitterness and unlock nutty aromas.', 
       weightPriceMap: {'200g': 110, '500g': 260, '1kg': 500},
       rating: 4.6, image: 'assets/images/menthi_podi_fenugreek_powder.jpg', 
       color: const Color(0xFF18453B), category: 'Spices', reviews: _mockReviews,
@@ -297,7 +297,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Munagaku Karam Podi', 
-      description: 'Moringa leaves spice powder', 
+      description: 'Nutrient-dense Moringa leaves spice powder shade-dried for rich green color.\nA powerhouse of vitamins and minerals to boost your daily family meals.\nCrafted with care to preserve maximum nutritional value and taste.', 
       weightPriceMap: {'250g': 160, '500g': 300, '1kg': 580},
       rating: 4.9, image: 'assets/images/munagaku_karam_podi_moringa_leaves_spice_powder.jpg', 
       color: const Color(0xFF18453B), category: 'Spices', reviews: _mockReviews,
@@ -310,7 +310,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Mutton Masala Powder', 
-      description: 'Mutton recipe spice blend', 
+      description: 'A robust, heavy-duty spice blend specially formulated for rich mutton curries.\nFeatures coarsely ground whole spices that lock in deep savory flavor.\nGuarantees tender, aromatic, and restaurant-style meat preparations at home.', 
       weightPriceMap: {'100g': 160, '250g': 380, '500g': 720},
       rating: 4.8, image: 'assets/images/mutton_masala_powder_mutton_recipe_spice_blend.jpg', 
       color: const Color(0xFF18453B), category: 'Spices', reviews: _mockReviews,
@@ -319,7 +319,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Putnala Karam Podi', 
-      description: 'Roasted gram spice powder', 
+      description: 'Smooth roasted gram spice powder blended with garlic and dried red chillies.\nA comforting accompaniment for soft idlis, dosas, and hot steamed rice.\nDelivers a smooth, protein-rich nutty flavor in every spoonful.', 
       weightPriceMap: {'250g': 110, '500g': 200, '1kg': 380},
       rating: 4.7, image: 'assets/images/putnala_karam_podi_roasted_gram_spice_powder.jpg', 
       color: const Color(0xFF18453B), category: 'Spices', reviews: _mockReviews,
@@ -328,7 +328,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Sambhar Masala Powder', 
-      description: 'Sambhar spice blend', 
+      description: 'Authentic sambhar spice blend crafted with roasted lentils and fenugreek.\nDelivers the quintessential South Indian restaurant flavor profile at home.\nTransforms ordinary lentil stews into aromatic, restaurant-grade feasts.', 
       weightPriceMap: {'200g': 140, '500g': 330, '1kg': 640},
       rating: 4.8, image: 'assets/images/sambhar_masala_powder_authentic_sambhar_spice_blend.jpg', 
       color: const Color(0xFF18453B), category: 'Spices', reviews: _mockReviews,
@@ -337,7 +337,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Special Idli Karam Podi', 
-      description: 'Gun powder spice for idlis', 
+      description: 'Legendary gun powder spice mix for idlis and dosas with chana dal and garlic.\nBest served bubbling hot with a generous puddle of sesame oil or ghee.\nAn essential morning staple for every traditional South Indian breakfast.', 
       weightPriceMap: {'250g': 150, '500g': 280, '1kg': 540},
       rating: 4.9, image: 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg', 
       color: const Color(0xFF18453B), category: 'Spices', reviews: _mockReviews,
@@ -346,7 +346,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Special Kura Karam Podi', 
-      description: 'All-purpose curry powder', 
+      description: 'Versatile all-purpose curry powder designed to elevate everyday vegetable stir-fries.\nBrings an instant burst of homemade spice, warmth, and rich aroma.\nSimplifies cooking while delivering authentic, traditional flavors.', 
       weightPriceMap: {'250g': 180, '500g': 340, '1kg': 650},
       rating: 4.8, image: 'assets/images/special_kura_karam_podi_all-purpose_curry_powder.jpg', 
       color: const Color(0xFF18453B), category: 'Spices', reviews: _mockReviews,
@@ -357,7 +357,7 @@ class ProductRepository {
     // SWEETS
     Product(
       name: 'Dry Fruits Laddu', 
-      description: 'Premium dry fruits laddu', 
+      description: 'A luxurious energy-dense laddu packed with almonds, cashews, and pistachios.\nBound together with pure desi cow ghee without any added refined sugar.\nProvides sustained natural vitality and rich artisanal sweetness.', 
       weightPriceMap: {'250g': 240, '500g': 450, '1kg': 880},
       rating: 5.0, image: 'assets/images/dry_fruits_laddu_premium_dry_fruits_laddu.jpg', 
       color: const Color(0xFF18453B), category: 'Sweets', reviews: _mockReviews,
@@ -366,7 +366,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Gondh Laddu', 
-      description: 'Edible gum laddu', 
+      description: 'Traditional edible gum (gondh) laddu roasted in pure desi cow ghee and wheat.\nExcellent for winter nourishment, bone strength, and sustained natural energy.\nCrafted using ancestral recipes for authentic health and taste.', 
       weightPriceMap: {'250g': 200, '500g': 380, '1kg': 740},
       rating: 5.0, image: 'assets/images/gondh_laddu_edible_gum_laddu.jpg', 
       color: const Color(0xFF18453B), category: 'Sweets', isBestSeller: true, reviews: _mockReviews,
@@ -375,7 +375,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Kova Gulam Jamun', 
-      description: 'Gulab jamun sweet', 
+      description: 'Rich, succulent gulab jamuns made from pure milk khoya and sugar syrup.\nMelts instantly in your mouth with exquisite royal sweetness and aroma.\nThe ultimate dessert centerpiece for celebrations and festive gatherings.', 
       weightPriceMap: {'250g': 150, '500g': 280, '1kg': 540},
       rating: 4.9, image: 'assets/images/kova_gulam_jamun_rich_gulab_jamun_sweet.jpg', 
       color: const Color(0xFF18453B), category: 'Sweets', reviews: _mockReviews,
@@ -384,7 +384,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Millets Laddu', 
-      description: 'Multi-millet laddu', 
+      description: 'Wholesome multi-millet laddu crafted from nutrient-rich ragi and jowar flours.\nSweetened naturally with organic jaggery and enriched with cow ghee.\nA nutritious superfood sweet that delights children and adults alike.', 
       weightPriceMap: {'250g': 190, '500g': 350, '1kg': 680},
       rating: 4.9, image: 'assets/images/millets_laddu_wholesome_multi-millet_laddu.jpg', 
       color: const Color(0xFF18453B), category: 'Sweets', reviews: _mockReviews,
@@ -393,7 +393,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Palli Patti', 
-      description: 'Peanut and jaggery chikki', 
+      description: 'Crunchy peanut and jaggery chikki made from farm-fresh roasted peanuts.\nA traditional high-protein snack loaded with nostalgic sweet and nutty flavor.\nBoiled to a crisp perfection for an unforgettable snacking experience.', 
       weightPriceMap: {'250g': 65, '500g': 120, '1kg': 230},
       rating: 4.8, image: 'assets/images/palli_patti_peanut_and_jaggery_chikki.jpg', 
       color: const Color(0xFF18453B), category: 'Sweets', reviews: _mockReviews,
@@ -402,7 +402,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Sunnunda Laddu', 
-      description: 'Roasted urad dal laddu', 
+      description: 'Classic Andhra roasted urad dal laddu bound with organic jaggery and ghee.\nPacked with plant protein and rich caramel undertones in every single bite.\nA legendary festive sweet cherished across generations in Andhra families.', 
       weightPriceMap: {'250g': 170, '500g': 320, '1kg': 620},
       rating: 4.9, image: 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg', 
       color: const Color(0xFF18453B), category: 'Sweets', reviews: _mockReviews,
@@ -411,7 +411,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Sweet Chekki', 
-      description: 'Traditional sweet brittle', 
+      description: 'Traditional sweet brittle crafted with crunchy nuts and caramelized sugar syrup.\nOffers a satisfying snap and a rich buttery sweetness that lingers.\nA classic heritage confection made with pure ingredients and love.', 
       weightPriceMap: {'250g': 55, '500g': 100, '1kg': 190},
       rating: 4.7, image: 'assets/images/sweet_chekki_traditional_sweet_brittle.jpg', 
       color: const Color(0xFF18453B), category: 'Sweets', reviews: _mockReviews,
@@ -420,7 +420,7 @@ class ProductRepository {
     ),
     Product(
       name: 'Thill Patti', 
-      description: 'Sesame seed and jaggery sweet', 
+      description: 'Wholesome sesame seed and jaggery brittle packed with calcium and warmth.\nA traditional winter delicacy offering a delightful and nutritious nutty crunch.\nExpertly crafted for clean, wholesome, and authentic sweet indulgence.', 
       weightPriceMap: {'250g': 70, '500g': 130, '1kg': 250},
       rating: 4.8, image: 'assets/images/thill_patti_sesame_seed_and_jaggery_sweet.jpg', 
       color: const Color(0xFF18453B), category: 'Sweets', reviews: _mockReviews,
@@ -462,7 +462,13 @@ class ProductRepository {
       });
     }
     if (safeWeightMap.isEmpty) {
-      safeWeightMap = {"500g": 350.0};
+      // Find local product to get actual weights
+      final localProduct = allProducts.where((p) => p.name == (data['name']?.toString() ?? '')).firstOrNull;
+      if (localProduct != null) {
+        safeWeightMap = localProduct.weightPriceMap;
+      } else {
+        safeWeightMap = {"250g": 180.0, "500g": 350.0, "1kg": 680.0};
+      }
     }
 
     // 2. SAFE SOMMELIER PAIRINGS

@@ -7,8 +7,6 @@ import 'api_service.dart';
 import 'otp_verification_page.dart';
 import 'main.dart';
 
-enum LoginMode { email, phone }
-
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -17,36 +15,32 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  LoginMode _selectedMode = LoginMode.email;
-
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
 
   bool _isLoading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F1E5),
-      body: Stack(
-        children: [
-          // Full Background Template (login_bg.png)
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/login_bg.png',
-              fit: BoxFit.cover,
-            ),
+    return Stack(
+      children: [
+        // Full Background Template
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/otp_bg_screen.png',
+            fit: BoxFit.cover,
           ),
+        ),
 
-          // Login Content (Centered in the middle of template)
-          SafeArea(
+        // Scaffold on top to handle keyboard inset without resizing the background
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          body: SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -54,65 +48,65 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 230),
+                    const SizedBox(height: 100),
+
+                    // Logo
+                    Image.asset(
+                      'assets/images/AMBHUJAKSHI  logo.png',
+                      height: 180,
+                    ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1, end: 0),
+
+                    const SizedBox(height: 4),
 
                     // Welcome Text
                     Text(
-                      'Welcome to\nAdhvaitha Foods',
+                      'Welcome to',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.philosopher(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0F5C45),
-                        height: 1.1,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F4D3C),
                       ),
                     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
 
-                    const SizedBox(height: 8),
-
                     Text(
-                      _selectedMode == LoginMode.email
-                          ? 'Sign in to explore authentic\nhomemade flavors crafted with love.'
-                          : 'Enter your mobile number to receive\nan SMS OTP verification code.',
+                      'AmbhuJakshi®',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFF2C2C2C).withOpacity(0.8),
-                        fontSize: 12,
-                        height: 1.4,
-                        fontWeight: FontWeight.w500,
+                      style: GoogleFonts.philosopher(
+                        fontSize: 44,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF0F4D3C),
+                        height: 1.0,
                       ),
-                    ).animate().fadeIn(delay: 300.ms),
+                    ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1, end: 0),
 
-                    const SizedBox(height: 25),
+                    const SizedBox(height: 12),
 
-                    // Mode Switcher Tabs
-                    Container(
-                      width: 220,
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.grey.shade300),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
-                            blurRadius: 10,
-                          )
-                        ],
-                      ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _buildTabButton(LoginMode.email, 'Email OTP'),
-                          _buildTabButton(LoginMode.phone, 'Phone OTP'),
+                          Container(width: 35, height: 1.5, color: const Color(0xFF5A4426)),
+                          const SizedBox(width: 10),
+                          Text(
+                            'An Adhvaitha Foods Brand',
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF5A4426),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Container(width: 35, height: 1.5, color: const Color(0xFF5A4426)),
                         ],
                       ),
                     ).animate().fadeIn(delay: 400.ms),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
                     // Input Form Field
-                    if (_selectedMode == LoginMode.email) _buildEmailForm(),
-                    if (_selectedMode == LoginMode.phone) _buildPhoneForm(),
+                    _buildEmailForm(),
 
                     const SizedBox(height: 20),
 
@@ -147,9 +141,7 @@ class _LoginPageState extends State<LoginPage> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    _selectedMode == LoginMode.email
-                                        ? 'SEND OTP'
-                                        : 'GET SMS OTP',
+                                    'SEND OTP',
                                     style: GoogleFonts.poppins(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w900,
@@ -167,22 +159,40 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 12),
 
                     // Security Note
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.lock_outline_rounded, color: Color(0xFF8B5A2B), size: 13),
-                        const SizedBox(width: 4),
-                        Text(
-                          _selectedMode == LoginMode.email
-                              ? "We'll send a 6-digit code to your email"
-                              : "We'll send a 6-digit code via SMS",
-                          style: GoogleFonts.poppins(
-                            color: const Color(0xFF2C2C2C).withOpacity(0.7),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.lock_outline_rounded, color: Color(0xFF3E2723), size: 15),
+                              const SizedBox(width: 6),
+                              Text(
+                                "We'll send a 6-digit code to your email",
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF1A1A1A),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
 
                     const SizedBox(height: 180),
@@ -191,37 +201,8 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabButton(LoginMode mode, String label) {
-    bool isSelected = _selectedMode == mode;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.lightImpact();
-          setState(() => _selectedMode = mode);
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF0F5C45) : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.grey.shade600,
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
-            ),
-          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -255,56 +236,8 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildPhoneForm() {
-    return Container(
-      height: 56,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: TextField(
-        controller: _phoneController,
-        keyboardType: TextInputType.phone,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 2, color: Color(0xFF2C2C2C)),
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(10)
-        ],
-        decoration: InputDecoration(
-          hintText: 'Enter 10-digit number',
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13, letterSpacing: 1, fontWeight: FontWeight.normal),
-          prefixIcon: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Text(
-              '+91',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF0F5C45),
-                fontSize: 15,
-              ),
-            ),
-          ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 18),
-        ),
-      ),
-    );
-  }
-
   void _handlePrimarySubmit() {
-    if (_selectedMode == LoginMode.email) {
-      _sendEmailOtp();
-    } else {
-      _sendPhoneOtp();
-    }
+    _sendEmailOtp();
   }
 
   // 1. Send Email OTP via BigRock API
@@ -344,91 +277,6 @@ class _LoginPageState extends State<LoginPage> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error sending Email OTP: $e')),
-        );
-      }
-    }
-  }
-
-  // 2. Send Phone SMS OTP via Firebase Auth
-  void _sendPhoneOtp() async {
-    if (_phoneController.text.length != 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid 10-digit number.')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    HapticFeedback.mediumImpact();
-
-    try {
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: '+91${_phoneController.text}',
-        timeout: const Duration(seconds: 30),
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          UserCredential userCredential =
-              await FirebaseAuth.instance.signInWithCredential(credential);
-          User? user = userCredential.user;
-
-          if (user != null) {
-            await ApiService.saveUser(
-              userId: user.uid,
-              phone: _phoneController.text,
-            );
-
-            if (mounted) {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const MainScreen()),
-                (route) => false,
-              );
-            }
-          }
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          if (mounted) {
-            setState(() => _isLoading = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  e.message ?? 'Verification Failed. Check SHA-1 in Firebase Console.',
-                ),
-                duration: const Duration(seconds: 5),
-              ),
-            );
-          }
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          if (mounted) {
-            setState(() => _isLoading = false);
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => OtpVerificationPage(
-                  phone: _phoneController.text,
-                  verificationId: verificationId,
-                  isEmailOtp: false,
-                ),
-              ),
-            );
-          }
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          if (mounted && _isLoading) {
-            setState(() => _isLoading = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('OTP timeout. Please check your phone or try again.'),
-              ),
-            );
-          }
-        },
-      );
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
         );
       }
     }

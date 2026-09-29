@@ -29,14 +29,25 @@ class CartManager extends ChangeNotifier {
   }
 
   bool applyPromoCode(String code) {
-    if (code.toUpperCase() == "FIRST30") {
+    final c = code.toUpperCase();
+    if (c == "FIRST30") {
       _discountAmount = subtotal * 0.30;
       _appliedPromoCode = "FIRST30";
       notifyListeners();
       return true;
-    } else if (code.toUpperCase() == "PICKLE100") {
+    } else if (c == "PICKLE100") {
       _discountAmount = 100;
       _appliedPromoCode = "PICKLE100";
+      notifyListeners();
+      return true;
+    } else if (c == "FESTIVE20") {
+      _discountAmount = subtotal * 0.20;
+      _appliedPromoCode = "FESTIVE20";
+      notifyListeners();
+      return true;
+    } else if (c == "FREESHIP") {
+      _discountAmount = deliveryFee;
+      _appliedPromoCode = "FREESHIP";
       notifyListeners();
       return true;
     }
@@ -74,8 +85,11 @@ class CartManager extends ChangeNotifier {
 
   void removeFromCart(CartItem item) {
     _items.remove(item);
-    if (_items.isEmpty) removePromoCode();
-    else if (_appliedPromoCode.isNotEmpty) applyPromoCode(_appliedPromoCode);
+    if (_items.isEmpty) {
+      removePromoCode();
+    } else if (_appliedPromoCode.isNotEmpty) {
+      applyPromoCode(_appliedPromoCode);
+    }
     notifyListeners();
   }
 
@@ -84,8 +98,11 @@ class CartManager extends ChangeNotifier {
     if (item.quantity <= 0) {
       _items.remove(item);
     }
-    if (_items.isEmpty) removePromoCode();
-    else if (_appliedPromoCode.isNotEmpty) applyPromoCode(_appliedPromoCode);
+    if (_items.isEmpty) {
+      removePromoCode();
+    } else if (_appliedPromoCode.isNotEmpty) {
+      applyPromoCode(_appliedPromoCode);
+    }
     notifyListeners();
   }
 

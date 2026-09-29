@@ -134,7 +134,7 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
           child: Center(
             child: Image.asset(
-              'assets/images/adhvaitha_logo.png',
+              'assets/images/AMBHUJAKSHI  logo.png',
               fit: BoxFit.contain,
               errorBuilder: (c, e, s) => Image.asset('assets/images/logo_no_bg.png', fit: BoxFit.contain),
             ),

@@ -394,21 +394,6 @@ class _WishlistCard extends StatelessWidget {
   final Product product;
   const _WishlistCard({required this.product});
 
-  String get _quote {
-    switch (product.category.toLowerCase()) {
-      case 'pickles':
-        return 'Traditional\nTaste\nAlways\nSpecial ♡';
-      case 'snacks':
-        return 'Crispy\nBites\nfor Happy\nDays ♡';
-      case 'sweets':
-        return 'Sweet\nMoments\nAlways\nStay ♡';
-      case 'spices':
-        return 'Bold\nFlavours\nBetter\nMeals ♡';
-      default:
-        return 'A Little\nCrunch\nA Lot of\nHappiness ♡';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -439,24 +424,6 @@ class _WishlistCard extends StatelessWidget {
                   child: AspectRatio(
                     aspectRatio: 1.15,
                     child: _buildImage(product.image),
-                  ),
-                ),
-
-                // Cursive quote text overlay on top left background of image
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: Text(
-                    _quote,
-                    style: GoogleFonts.alexBrush(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF18453B),
-                      height: 1.1,
-                      shadows: [
-                        const Shadow(color: Colors.white, blurRadius: 4),
-                      ],
-                    ),
                   ),
                 ),
 

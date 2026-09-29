@@ -929,7 +929,7 @@ class _ProductListingPageState extends State<ProductListingPage> {
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.52,
+          childAspectRatio: 0.49,
           crossAxisSpacing: 14,
           mainAxisSpacing: 18,
         ),
@@ -950,7 +950,7 @@ class _ProductListingPageState extends State<ProductListingPage> {
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.52,
+          childAspectRatio: 0.49,
           crossAxisSpacing: 14,
           mainAxisSpacing: 18,
         ),
@@ -1385,59 +1385,50 @@ class _ProductCardState extends State<_ProductCard> {
                   const SizedBox(height: 6),
 
                   // Price
-                  Text(
-                    widget.product.getPriceForWeight(_selectedWeight),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                      color: Color(0xFF1A1A1A),
+                  // Weight Chips Row
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: widget.product.weightPriceMap.keys.map((w) {
+                        bool isSel = _selectedWeight == w;
+                        return GestureDetector(
+                          onTap: () => setState(() => _selectedWeight = w),
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isSel ? const Color(0xFF0F4D3C) : const Color(0xFFF5F5F5),
+                              borderRadius: BorderRadius.circular(8),
+                              border: isSel ? null : Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Text(
+                              w,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isSel ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                   const SizedBox(height: 8),
 
-                  // Weight Dropdown & Add Button Row
+                  // Price & Add Button Row
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Dropdown
-                      Expanded(
-                        child: Container(
-                          height: 32,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedWeight,
-                              isExpanded: true,
-                              icon: const Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                size: 16,
-                                color: Colors.black87,
-                              ),
-                              style: const TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                              items: widget.product.weightPriceMap.keys
-                                  .map(
-                                    (w) => DropdownMenuItem(
-                                      value: w,
-                                      child: Text(w),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (val) =>
-                                  setState(() => _selectedWeight = val!),
-                            ),
-                          ),
+                      // Price
+                      Text(
+                        widget.product.getPriceForWeight(_selectedWeight),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          color: Color(0xFF1A1A1A),
                         ),
                       ),
-                      const SizedBox(width: 8),
-
                       // Add Button
                       GestureDetector(
                         onTap: () {
@@ -1456,16 +1447,16 @@ class _ProductCardState extends State<_ProductCard> {
                             color: const Color(0xFF0D372B),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Row(
+                          child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.shopping_cart_outlined,
                                 color: Colors.white,
                                 size: 12,
                               ),
-                              const SizedBox(width: 4),
-                              const Text(
+                              SizedBox(width: 4),
+                              Text(
                                 'Add',
                                 style: TextStyle(
                                   color: Colors.white,
@@ -1487,6 +1478,7 @@ class _ProductCardState extends State<_ProductCard> {
       ),
     );
   }
+
 
   Widget _buildImage(String path) {
     if (path.isEmpty) {

@@ -32,7 +32,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   bool _isLoading = true;
-  
+  int _currentBannerIndex = 0;
+  int _currentPairingIndex = 0;
+
   List<Product> get allProducts => ProductManager().products;
 
   final ScrollController _scrollController = ScrollController();
@@ -287,21 +289,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildValuePropsRow(),
                 _buildHeroBanner(),
                 _buildPerfectPairings(),
                 _buildSection('Most Loved Pickles', 'Pickles'),
                 _buildTrustReassuranceBanner(),
                 _buildActiveCoupons(),
                 _buildRoyalCollectionsSection(),
-                _buildBestSellersSection(),
-                _buildPopularCategoriesSection(),
+                _buildSection('Best Sellers', 'Best Sellers', subtitle: 'Our most loved and purchased flavors.'),
+        
                 _buildContinueShoppingSection(),
                 _buildTodaysSpecialsGrid(),
-                _buildNewArrivalsRow(),
+                _buildSection('Fresh Picks, Just for You', 'Fresh Picks', subtitle: 'Discover our latest additions, crafted with tradition.'),
                 _buildSnacksSection(),
-                _buildSection('Fresh Ground Spices', 'Spices'),
-                _buildSweetsSection(),
+                _buildSection('Fresh Ground Spices', 'Spices', subtitle: 'Pure & aromatic blends'),
+                _buildSection('Traditional Sweets, Timeless Joy', 'Sweets', subtitle: 'Made with pure ingredients, just like home.'),
                 _buildSweetsQuoteBanner(),
                 _buildHeritageStory(),
                 _buildMakingProcessSection(),
@@ -551,15 +552,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       height: 1.1,
                     ),
                   ),
-                  const SizedBox(height: 1),
-                  Text(
-                    'Good food brings good mood!',
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFF9CA3AF),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -723,20 +715,45 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildHeroBanner() {
+    final List<Map<String, dynamic>> banners = [
+      {
+        'title': 'AUTHENTIC ANDHRA',
+        'subtitle': 'Handmade\nPickles',
+        'desc': 'Traditional Taste Since 1982',
+        'tagline': 'Pure\nTraditional\nHomemade',
+        'category': 'Pickles',
+        'image': 'assets/images/homeFirst.png',
+        'colors': [const Color(0xFF0C3D2E), const Color(0xFF135341)],
+      },
+      {
+        'title': 'TRADITIONAL SNACKS',
+        'subtitle': 'Crispy\nDelights',
+        'desc': 'Perfect for tea time',
+        'tagline': 'Crunchy\nFresh\nAuthentic',
+        'category': 'Snacks',
+        'image': 'assets/images/homeSecond.png',
+        'colors': [const Color(0xFF8B5A2B), const Color(0xFFA0522D)],
+      },
+      {
+        'title': 'PURE SPICES',
+        'subtitle': 'Aromatic\nBlends',
+        'desc': 'Stone grounded perfection',
+        'tagline': 'Rich\nAromatic\nFlavorful',
+        'category': 'Spices',
+        'image': 'assets/images/homeThird.png',
+        'colors': [const Color(0xFF800000), const Color(0xFFA52A2A)],
+      },
+    ];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Container(
         height: 205,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0C3D2E), Color(0xFF135341)],
-          ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF0C3D2E).withOpacity(0.25),
+              color: Colors.black.withOpacity(0.15),
               blurRadius: 20,
               offset: const Offset(0, 10),
             )
@@ -744,125 +761,49 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ),
         child: Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(18),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 6,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'AUTHENTIC ANDHRA',
-                          style: GoogleFonts.poppins(
-                            color: const Color(0xFFD4AF37),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Handmade\nPickles',
-                          style: GoogleFonts.philosopher(
-                            color: const Color(0xFFFFF8E8),
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            height: 1.1,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Traditional Taste Since 1982',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white70,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        GestureDetector(
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            AppNavigator.push(context, const ProductListingPage(category: 'Pickles'));
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE5C76B),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Shop Now',
-                                  style: GoogleFonts.poppins(
-                                    color: const Color(0xFF0F4D3C),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0F4D3C), size: 12),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+            PageView.builder(
+              physics: const BouncingScrollPhysics(),
+              onPageChanged: (index) {
+                setState(() {
+                  _currentBannerIndex = index;
+                });
+              },
+              itemCount: banners.length,
+              itemBuilder: (context, index) {
+                final banner = banners[index];
+                return GestureDetector(
+                  onTap: () {
+                    // Navigate to the category page or perform action
+                    final category = banner['category'] as String;
+                    MainScreen.of(context)?.setIndex(1); // Usually 1 is for Shop/Category
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(banner['image'] as String, fit: BoxFit.fill, width: double.infinity, height: double.infinity), // Replaced text/gradient with just the image
                   ),
-
-                  const SizedBox(width: 8),
-
-                  Expanded(
-                    flex: 5,
-                    child: Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(18),
-                          child: SizedBox(
-                            height: 145,
-                            width: double.infinity,
-                            child: _buildProductImage('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'),
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Text(
-                            'Pure\nTraditional\nHomemade',
-                            textAlign: TextAlign.right,
-                            style: GoogleFonts.caveat(
-                              color: const Color(0xFFE5C76B),
-                              fontSize: 12,
-                              height: 1.1,
-                              fontWeight: FontWeight.bold,
-                              shadows: const [Shadow(blurRadius: 4, color: Colors.black54)],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
+            // Positioned dots indicator at the bottom
             Positioned(
-              left: 20,
               bottom: 12,
+              left: 20,
               child: Row(
-                children: List.generate(4, (i) => Container(
-                  margin: const EdgeInsets.only(right: 5),
-                  width: i == 0 ? 14 : 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: i == 0 ? const Color(0xFFE5C76B) : Colors.white30,
-                    borderRadius: BorderRadius.circular(10),
+                children: List.generate(
+                  banners.length,
+                  (index) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.only(right: 6),
+                    height: 6,
+                    width: _currentBannerIndex == index ? 20 : 6,
+                    decoration: BoxDecoration(
+                      color: _currentBannerIndex == index
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
-                )),
+                ),
               ),
             ),
           ],
@@ -873,119 +814,210 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildRoyalCollectionsSection() {
     final collections = [
-      {'title': 'Pickles', 'sub': '12+ varieties', 'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', 'cat': 'Pickles'},
-      {'title': 'Snacks', 'sub': '9+ varieties', 'img': 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg', 'cat': 'Snacks'},
-      {'title': 'Spices', 'sub': '8+ varieties', 'img': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg', 'cat': 'Spices'},
-      {'title': 'Combos', 'sub': 'Special Packs', 'img': 'assets/images/gondh_laddu_edible_gum_laddu.jpg', 'cat': 'Sweets'},
+      {'title': 'Pickles', 'sub': '12+ varieties', 'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', 'cat': 'Pickles', 'color': const Color(0xFF0F4D3C)},
+      {'title': 'Snacks', 'sub': '9+ varieties', 'img': 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg', 'cat': 'Snacks', 'color': const Color(0xFF8B2B2B)},
+      {'title': 'Spices', 'sub': '8+ varieties', 'img': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg', 'cat': 'Spices', 'color': const Color(0xFF0F4D3C)},
+      {'title': 'Sweets', 'sub': '6+ varieties', 'img': 'assets/images/gondh_laddu_edible_gum_laddu.jpg', 'cat': 'Sweets', 'color': const Color(0xFF8B2B2B)},
+      {'title': 'Powders', 'sub': '10+ varieties', 'img': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg', 'cat': 'Powders', 'color': const Color(0xFF0F4D3C)},
+      {'title': 'Combo Packs', 'sub': '5+ varieties', 'img': 'assets/images/dry_fruits_laddu_premium_dry_fruits_laddu.jpg', 'cat': 'Combos', 'color': const Color(0xFF8B2B2B)},
     ];
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Royal Collections',
-                style: GoogleFonts.philosopher(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF1B1B1B),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'Royal ',
+                                style: GoogleFonts.philosopher(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF0F4D3C),
+                                  height: 1.1,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'Collections',
+                                style: GoogleFonts.philosopher(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF621010),
+                                  height: 1.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Positioned(
+                          top: -14,
+                          left: 36,
+                          child: Icon(Icons.workspace_premium, color: Color(0xFFD4AF37), size: 26),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Traditional Andhra Flavours for Every Home',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: const Color(0xFF621010).withOpacity(0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               GestureDetector(
                 onTap: () => MainScreen.of(context)?.setIndex(1),
-                child: Row(
-                  children: [
-                    Text(
-                      'View All',
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFF0F4D3C),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9F3E5),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View All',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF0F4D3C),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 2),
-                    const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF0F4D3C)),
-                  ],
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF0F4D3C)),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
-        SizedBox(
-          height: 175,
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              childAspectRatio: 0.85,
+            ),
             itemCount: collections.length,
             itemBuilder: (context, index) {
               final item = collections[index];
+              final Color bgColor = item['color'] as Color;
               return GestureDetector(
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  AppNavigator.push(context, ProductListingPage(category: item['cat']!));
+                  AppNavigator.push(context, ProductListingPage(category: item['cat'] as String));
                 },
-                child: Container(
-                  width: 130,
-                  margin: const EdgeInsets.only(right: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      )
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                    ),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          flex: 5,
+                          child: ClipPath(
+                            clipper: ImageWaveClipper(),
                             child: SizedBox(
-                              height: 110,
                               width: double.infinity,
-                              child: _buildProductImage(item['img']!),
+                              child: _buildProductImage(item['img'] as String),
                             ),
                           ),
-                          Positioned(
-                            bottom: 8,
-                            right: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF0F4D3C),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 12),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item['title']!,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1B1B1B)),
-                            ),
-                            Text(
-                              item['sub']!,
-                              style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
-                            ),
-                          ],
                         ),
-                      ),
-                    ],
+                        Expanded(
+                          flex: 4,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item['title'] as String,
+                                        style: GoogleFonts.philosopher(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        item['sub'] as String,
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white.withOpacity(0.9),
+                                          fontSize: 11,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(height: 1, width: 12, color: const Color(0xFFD4AF37).withOpacity(0.8)),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                                            child: Transform.rotate(
+                                              angle: 0.785,
+                                              child: Container(width: 4, height: 4, color: const Color(0xFFD4AF37)),
+                                            ),
+                                          ),
+                                          Container(height: 1, width: 12, color: const Color(0xFFD4AF37).withOpacity(0.8)),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  margin: const EdgeInsets.only(bottom: 2),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF9F3E5),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: bgColor,
+                                    size: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -998,182 +1030,405 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildBestSellersSection() {
     final bestSellers = [
-      {'name': 'Mango Pickle', 'weight': '500 g', 'price': '₹199', 'badge': 'Bestseller', 'badgeColor': const Color(0xFFE5C76B), 'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'},
-      {'name': 'Gongura Pickle', 'weight': '500 g', 'price': '₹219', 'badge': 'Spicy', 'badgeColor': Colors.red.shade600, 'img': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'},
-      {'name': 'Garlic Pickle', 'weight': '500 g', 'price': '₹199', 'badge': 'Popular', 'badgeColor': const Color(0xFF0F4D3C), 'img': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg'},
-      {'name': 'Mixed Pickle', 'weight': '500 g', 'price': '₹249', 'badge': 'New', 'badgeColor': const Color(0xFFD4AF37), 'img': 'assets/images/uppava_traditional_salted_pickle.jpg'},
+      {
+        'name': 'Mango Pickle', 
+        'weight': '500 g', 
+        'price': '₹199', 
+        'originalPrice': '₹250',
+        'discount': '20% OFF',
+        'rating': '4.8',
+        'orders': '1.2K+ orders',
+        'badgeText': 'Bestseller', 
+        'badgeIcon': Icons.workspace_premium,
+        'badgeColor': const Color(0xFFF9A825), // Yellow
+        'themeColor': const Color(0xFF0F4D3C), // Dark green
+        'tags': [
+          {'text': 'Traditional', 'bg': const Color(0xFFE6F2ED), 'color': const Color(0xFF0F4D3C)},
+          {'text': 'Homemade', 'bg': const Color(0xFFF9F3E5), 'color': const Color(0xFF7A5C1F)},
+          {'text': 'Andhra Style', 'bg': const Color(0xFFFDECEB), 'color': const Color(0xFF9E2A2B)},
+        ],
+        'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'
+      },
+      {
+        'name': 'Gongura Pickle', 
+        'weight': '500 g', 
+        'price': '₹219', 
+        'originalPrice': '₹280',
+        'discount': '22% OFF',
+        'rating': '4.7',
+        'orders': '980+ orders',
+        'badgeText': 'Spicy', 
+        'badgeIcon': Icons.local_fire_department,
+        'badgeColor': Colors.red.shade600, 
+        'themeColor': const Color(0xFF7A0000), // Dark red
+        'tags': [
+          {'text': 'Spicy', 'bg': const Color(0xFFFDECEB), 'color': const Color(0xFF9E2A2B)},
+          {'text': 'Andhra Special', 'bg': const Color(0xFFF9F3E5), 'color': const Color(0xFF7A5C1F)},
+          {'text': 'Homemade', 'bg': const Color(0xFFE6F2ED), 'color': const Color(0xFF0F4D3C)},
+        ],
+        'img': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'
+      },
+      {
+        'name': 'Chakinalu', 
+        'weight': '250 g', 
+        'price': '₹149', 
+        'originalPrice': '₹180',
+        'discount': '17% OFF',
+        'rating': '4.6',
+        'orders': '650+ orders',
+        'badgeText': 'Popular', 
+        'badgeIcon': Icons.star,
+        'badgeColor': const Color(0xFFF9A825), 
+        'themeColor': const Color(0xFF5C3A21), // Dark brown
+        'tags': [
+          {'text': 'Crispy', 'bg': const Color(0xFFF9F3E5), 'color': const Color(0xFF7A5C1F)},
+          {'text': 'Traditional', 'bg': const Color(0xFFE6F2ED), 'color': const Color(0xFF0F4D3C)},
+          {'text': 'Festive Snack', 'bg': const Color(0xFFFDECEB), 'color': const Color(0xFF9E2A2B)},
+        ],
+        'img': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg'
+      },
     ];
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Best Sellers',
-                style: GoogleFonts.philosopher(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF1B1B1B),
-                ),
-              ),
-              GestureDetector(
-                onTap: () => MainScreen.of(context)?.setIndex(1),
-                child: Row(
-                  children: [
-                    Text(
-                      'View All',
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFF0F4D3C),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF0F4D3C)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 205,
-          child: ListView.builder(
+    return Container(
+      color: const Color(0xFFFAF8F5), // Light beige background for the section
+      padding: const EdgeInsets.only(top: 24, bottom: 24),
+      child: Column(
+        children: [
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: bestSellers.length,
-            itemBuilder: (context, index) {
-              final item = bestSellers[index];
-              final String nameStr = item['name'] as String;
-              final String imgStr = item['img'] as String;
-              final matchingProduct = allProducts.firstWhere(
-                (p) => p.name.contains(nameStr.split(' ').first),
-                orElse: () => allProducts[index % allProducts.length],
-              );
-
-              return GestureDetector(
-                onTap: () => AppNavigator.push(context, ProductDetailPage(product: matchingProduct, allProducts: allProducts)),
-                child: Container(
-                  width: 145,
-                  margin: const EdgeInsets.only(right: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      )
-                    ],
-                  ),
-                  child: Stack(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                            child: SizedBox(
-                              height: 110,
-                              width: double.infinity,
-                              child: _buildProductImage(imgStr),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  nameStr,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1B1B1B)),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  item['weight'] as String,
-                                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      item['price'] as String,
-                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF1B1B1B)),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () {
-                                        HapticFeedback.lightImpact();
-                                        CartManager().addToCart(matchingProduct);
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(7),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF0F4D3C),
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 14),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.workspace_premium, color: Color(0xFFF9A825), size: 32),
+                    const SizedBox(width: 8),
+                    RichText(
+                      text: TextSpan(
+                        style: GoogleFonts.philosopher(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                        ),
+                        children: const [
+                          TextSpan(text: 'Best ', style: TextStyle(color: Color(0xFF0F4D3C))),
+                          TextSpan(text: 'Sellers', style: TextStyle(color: Color(0xFF7A0000))),
                         ],
                       ),
-                      Positioned(
-                        top: 8,
-                        left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: item['badgeColor'] as Color,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            item['badge'] as String,
-                            style: TextStyle(
-                              color: (item['badge'] == 'Bestseller' || item['badge'] == 'New') ? const Color(0xFF2D1B12) : Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () => MainScreen.of(context)?.setIndex(1),
+                  child: Row(
+                    children: [
+                      Text(
+                        'View All',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF0F4D3C),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
                       ),
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: GestureDetector(
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            WishlistManager().toggleFavorite(matchingProduct);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(5),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.favorite_border_rounded, size: 14, color: Colors.black54),
-                          ),
-                        ),
-                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_forward_rounded, size: 16, color: Color(0xFF0F4D3C)),
                     ],
                   ),
                 ),
-              );
-            },
+              ],
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 260, // Increased slightly to fix 2.0px overflow
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: bestSellers.length,
+              itemBuilder: (context, index) {
+                final item = bestSellers[index];
+                final String nameStr = item['name'] as String;
+                final String imgStr = item['img'] as String;
+                final Color themeColor = item['themeColor'] as Color;
+                final Color badgeColor = item['badgeColor'] as Color;
+                final List<Map<String, dynamic>> tags = item['tags'] as List<Map<String, dynamic>>;
+                
+                final matchingProduct = allProducts.firstWhere(
+                  (p) => p.name.contains(nameStr.split(' ').first),
+                  orElse: () => allProducts[index % allProducts.length],
+                );
+
+                return GestureDetector(
+                  onTap: () => AppNavigator.push(context, ProductDetailPage(product: matchingProduct, allProducts: allProducts)),
+                  child: Container(
+                    width: 180, // Reduced width
+                    margin: const EdgeInsets.only(right: 14, bottom: 8, top: 8),
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: themeColor.withOpacity(0.15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        )
+                      ],
+                    ),
+                    child: Stack(
+                      children: [
+                        // Border Background (Outer Clipper)
+                        ClipPath(
+                          clipper: BestSellerCardClipper(),
+                          child: Container(
+                            width: 180,
+                            height: double.infinity,
+                            color: themeColor.withOpacity(0.8),
+                          ),
+                        ),
+                        // Inner content (Inner Clipper)
+                        Positioned(
+                          top: 2, // Thinner border
+                          bottom: 2,
+                          left: 2,
+                          right: 2,
+                          child: ClipPath(
+                            clipper: BestSellerCardClipper(),
+                            child: Container(
+                              color: Colors.white,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Top Image Section
+                                  Stack(
+                                    children: [
+                                      SizedBox(
+                                        height: 80, // Reduced image height to prevent overflow
+                                        width: double.infinity,
+                                        child: _buildProductImage(imgStr),
+                                      ),
+                                      // Top left badge
+                                      Positioned(
+                                        top: 8,
+                                        left: 8,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: badgeColor,
+                                            borderRadius: BorderRadius.circular(12),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.2),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 2),
+                                              )
+                                            ],
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(item['badgeIcon'] as IconData, size: 12, color: Colors.white),
+                                              const SizedBox(width: 2),
+                                              Text(
+                                                item['badgeText'] as String,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      // Top right heart (white circle)
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            HapticFeedback.lightImpact();
+                                            WishlistManager().toggleFavorite(matchingProduct);
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              shape: BoxShape.circle,
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withOpacity(0.1),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 2),
+                                                )
+                                              ],
+                                            ),
+                                            child: const Icon(Icons.favorite_border_rounded, size: 14, color: Colors.black87),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  // Bottom Content Section
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            nameStr,
+                                            style: GoogleFonts.philosopher(
+                                              fontWeight: FontWeight.bold, 
+                                              fontSize: 14, 
+                                              color: themeColor,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          Text(
+                                            item['weight'] as String,
+                                            style: TextStyle(fontSize: 9, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          // Rating & Orders
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.star, color: Color(0xFFF9A825), size: 12),
+                                              const SizedBox(width: 2),
+                                              Text(
+                                                item['rating'] as String,
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Color(0xFF1B1B1B)),
+                                              ),
+                                              Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                                child: Text('|', style: TextStyle(color: Colors.grey.shade400, fontSize: 10)),
+                                              ),
+                                              Text(
+                                                item['orders'] as String,
+                                                style: TextStyle(color: Colors.grey.shade600, fontSize: 10, fontWeight: FontWeight.w500),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          // Tags
+                                          Wrap(
+                                            spacing: 4,
+                                            runSpacing: 4,
+                                            children: tags.take(1).map((t) => Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: t['bg'] as Color,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                t['text'] as String,
+                                                style: TextStyle(
+                                                  color: t['color'] as Color,
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            )).toList(),
+                                          ),
+                                          const Spacer(),
+                                          // Price row
+                                          Row(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            children: [
+                                              Text(
+                                                item['price'] as String,
+                                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1B1B1B)),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Padding(
+                                                padding: const EdgeInsets.only(bottom: 2),
+                                                child: Text(
+                                                  item['originalPrice'] as String,
+                                                  style: TextStyle(
+                                                    fontSize: 10, 
+                                                    color: Colors.grey.shade500, 
+                                                    decoration: TextDecoration.lineThrough,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                              const Spacer(),
+                                              Padding(
+                                                padding: const EdgeInsets.only(bottom: 2),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFFE6F2ED),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    item['discount'] as String,
+                                                    style: const TextStyle(color: Color(0xFF0F4D3C), fontSize: 8, fontWeight: FontWeight.w800),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          // Bottom action row
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: ElevatedButton.icon(
+                                                  onPressed: () {
+                                                    HapticFeedback.lightImpact();
+                                                    CartManager().addToCart(matchingProduct);
+                                                  },
+                                                  icon: const Icon(Icons.shopping_cart_outlined, size: 14),
+                                                  label: const Text(
+                                                    'Add',
+                                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                                  ),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: themeColor,
+                                                    foregroundColor: Colors.white,
+                                                    elevation: 0,
+                                                    padding: EdgeInsets.zero, // Reduced padding
+                                                    minimumSize: const Size(0, 26), // Reduced button height
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(16),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              GestureDetector(
+                                                onTap: () {
+                                                    HapticFeedback.lightImpact();
+                                                    WishlistManager().toggleFavorite(matchingProduct);
+                                                },
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(6), // Reduced padding
+                                                  decoration: BoxDecoration(
+                                                    color: themeColor.withOpacity(0.08),
+                                                      shape: BoxShape.circle,
+                                                  ),
+                                                  child: Icon(Icons.favorite_border_rounded, color: themeColor, size: 14), // Reduced icon size
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2152,344 +2407,35 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         ),
 
-        // Main Hero Ticket Coupon Banner
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Container(
-            height: 195,
-            decoration: BoxDecoration(
-              color: const Color(0xFF0C3D2E),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF0C3D2E).withOpacity(0.2),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                )
-              ],
-            ),
-            child: Row(
-              children: [
-                // Left Green Section
-                Expanded(
-                  flex: 5,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'WELCOME OFFER',
-                              style: GoogleFonts.poppins(
-                                color: const Color(0xFFD4AF37),
-                                fontSize: 9,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '10% OFF',
-                              style: GoogleFonts.philosopher(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
-                                color: const Color(0xFFE5C76B),
-                                height: 1.0,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'ON YOUR FIRST ORDER',
-                              style: GoogleFonts.poppins(
-                                fontSize: 8,
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                          ],
-                        ),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
-                            children: [
-                              const Text('🍃 Authentic', style: TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold)),
-                              Text(' | ', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 8)),
-                              const Text('🛡️ Quality', style: TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold)),
-                              Text(' | ', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 8)),
-                              const Text('🚚 Fresh', style: TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Center Ticket Stamp Box
-                Expanded(
-                  flex: 4,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 10),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF8E8),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'USE CODE',
-                          style: GoogleFonts.poppins(
-                            fontSize: 8,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF6B7280),
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: GestureDetector(
-                            onTap: () {
-                              HapticFeedback.heavyImpact();
-                              Clipboard.setData(const ClipboardData(text: 'ROYAL10'));
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Coupon ROYAL10 copied!')),
-                              );
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'ROYAL10',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w900,
-                                      color: const Color(0xFF0F4D3C),
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Icon(Icons.copy_rounded, size: 12, color: Color(0xFF0F4D3C)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'A SMALL SAVING\nFOR A BIGGER FEAST',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.caveat(
-                            fontSize: 10,
-                            color: const Color(0xFF8B5E3C),
-                            fontWeight: FontWeight.bold,
-                            height: 1.1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Right Image & Wax Seal
-                Expanded(
-                  flex: 3,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(24)),
-                        child: SizedBox(
-                          height: 195,
-                          width: double.infinity,
-                          child: _buildProductImage('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'),
-                        ),
-                      ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFD4AF37),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.verified_rounded, color: Color(0xFF0C3D2E), size: 16),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 14),
-
-        // Sub-Offer Cards Row (3 Horizontal Pastel Cards)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
+        // Coupon Images Scrollable Row
+        SizedBox(
+          height: 180,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             children: [
-              // Card 1: Free Shipping
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEBF3EA),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.card_giftcard_rounded, color: Color(0xFF0F4D3C), size: 16),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Free Shipping',
-                              style: GoogleFonts.philosopher(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF1B1B1B),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              'On orders above ₹599',
-                              style: TextStyle(fontSize: 8, color: Colors.grey.shade600),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF0F4D3C)),
-                    ],
-                  ),
+              Container(
+                width: 320,
+                margin: const EdgeInsets.only(right: 12),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Image.asset('assets/images/homecoupon1.png', fit: BoxFit.fill),
                 ),
               ),
-
-              // Card 2: Flat ₹100 OFF
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF3E0),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.monetization_on_rounded, color: Color(0xFF8B5E3C), size: 16),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Flat ₹100 OFF',
-                              style: GoogleFonts.philosopher(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF1B1B1B),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              'On orders above ₹999',
-                              style: TextStyle(fontSize: 8, color: Colors.grey.shade600),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF8B5E3C)),
-                    ],
-                  ),
+              Container(
+                width: 320,
+                margin: const EdgeInsets.only(right: 12),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Image.asset('assets/images/homecoupon2.png', fit: BoxFit.fill),
                 ),
               ),
-
-              // Card 3: Exclusive Combos
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFDE8E8),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.favorite_rounded, color: Colors.red, size: 16),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Exclusive Combos',
-                              style: GoogleFonts.philosopher(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF1B1B1B),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              'Curated savings for you',
-                              style: TextStyle(fontSize: 8, color: Colors.grey.shade600),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right_rounded, size: 16, color: Colors.red),
-                    ],
-                  ),
+              Container(
+                width: 320,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Image.asset('assets/images/homecoupon3.png', fit: BoxFit.fill),
                 ),
               ),
             ],
@@ -2625,60 +2571,40 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     ];
 
     return SizedBox(
-      height: 125,
+      height: 180, // Increased height to accommodate the banner images properly
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        itemCount: props.length,
+        itemCount: 3,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
-          final item = props[index];
+          final images = [
+            'assets/images/top1.png',
+            'assets/images/top2.png',
+            'assets/images/top3.png'
+          ];
+
           return GestureDetector(
             onTap: () {
               HapticFeedback.lightImpact();
-              if (item['tag'] == 'BEST') {
-                AppNavigator.push(context, const ProductListingPage(category: 'Pickles'));
-              } else {
-                _handleStoryTap(item['tag'] as String);
-              }
+              // Add navigation action if required for the new images
             },
             child: Container(
-              width: 125,
-              padding: const EdgeInsets.all(10),
+              width: 320, // Match width logic with coupons, adjust if needed to fit beautifully
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: Colors.black.withOpacity(0.04),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   )
                 ],
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(item['icon'] as IconData, color: const Color(0xFF0F4D3C), size: 22),
-                  const SizedBox(height: 4),
-                  Text(
-                    item['title'] as String,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF1B1B1B)),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                  ),
-                  const SizedBox(height: 2),
-                  Expanded(
-                    child: Text(
-                      item['sub'] as String,
-                      style: TextStyle(fontSize: 9, color: Colors.grey.shade500),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.asset(images[index], fit: BoxFit.fill),
               ),
             ),
           );
@@ -3113,29 +3039,143 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildPerfectPairings() {
-    final subPairings = [
+    final List<Map<String, dynamic>> mainPairings = [
       {
-        'title': 'Idli + Karam\nPodi + Ghee',
-        'sub': 'Simple. Traditional.\nIrresistible.',
-        'img': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg',
-        'badge': Icons.eco_rounded,
-        'prod': 'Allam Velluli Karam Podi',
+        'isImageOnly': true,
+        'title': 'THE COASTAL CLASSIC',
+        'subtitle': 'Rice + Ghee +\nAvakaya',
+        'desc': 'A timeless combination that brings out the best of Andhra flavors.',
+        'tagline': 'Simple Food\nExtraordinary\nHappiness',
+        'img': 'assets/images/art1.png',
+        'colors': [const Color(0xFF0C3D2E), const Color(0xFF135341)],
+        'searchKey': 'Avakaya',
+        'subs': [
+          {
+            'isImageOnly': true,
+            'title': 'Curd Rice +\nMango Pickle',
+            'sub': 'Cooling curd meets\ntangy spice.',
+            'img': 'assets/images/artsib1.png',
+            'badge': Icons.spa_rounded,
+            'prod': 'Avakaya',
+          },
+          {
+            'isImageOnly': true,
+            'title': 'Pappu +\nAvakaya',
+            'sub': 'The ultimate\ncomfort meal.',
+            'img': 'assets/images/artsib2.png',
+            'badge': Icons.favorite_rounded,
+            'prod': 'Avakaya',
+          },
+          {
+            'isImageOnly': true,
+            'title': 'Pappu +\nAvakaya',
+            'sub': 'The ultimate\ncomfort meal.',
+            'img': 'assets/images/artsib3.png',
+            'badge': Icons.favorite_rounded,
+            'prod': 'Avakaya',
+          },
+          {
+            'isImageOnly': true,
+            'title': 'Pappu +\nAvakaya',
+            'sub': 'The ultimate\ncomfort meal.',
+            'img': 'assets/images/artsib4.png',
+            'badge': Icons.favorite_rounded,
+            'prod': 'Avakaya',
+          }
+        ]
       },
       {
-        'title': 'Dosa + Garlic\nChutney',
-        'sub': 'A classic pairing\nfor every mood.',
-        'img': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
-        'badge': Icons.restaurant,
-        'prod': 'Allam Velluli Pickle',
+        'isImageOnly': true,
+        'title': 'THE TIFFIN TIME',
+        'subtitle': 'Dosa +\nKaram Podi',
+        'desc': 'Transform your morning breakfast with a sprinkle of magic.',
+        'tagline': 'Crispy\nSpicy\nPerfect',
+        'img': 'assets/images/art2.png',
+        'colors': [const Color(0xFF8B5A2B), const Color(0xFFA0522D)],
+        'searchKey': 'Karam Podi',
+        'subs': [
+          {
+            'isImageOnly': true,
+            'title': 'Idli + Karam\nPodi + Ghee',
+            'sub': 'Simple. Traditional.\nIrresistible.',
+            'img': 'assets/images/art2sib1.png',
+            'badge': Icons.eco_rounded,
+            'prod': 'Karam Podi',
+          },
+          {
+            'isImageOnly': true,
+            'title': 'Upma + Mango\nPickle',
+            'sub': 'Everyday food.\nExtra special.',
+            'img': 'assets/images/art2sib2.png',
+            'badge': Icons.nature_rounded,
+            'prod': 'Usiri Pickle',
+          },
+          {
+            'isImageOnly': true,
+            'title': 'Upma + Mango\nPickle',
+            'sub': 'Everyday food.\nExtra special.',
+            'img': 'assets/images/art2sib3.png',
+            'badge': Icons.nature_rounded,
+            'prod': 'Usiri Pickle',
+          },
+          {
+            'isImageOnly': true,
+            'title': 'Upma + Mango\nPickle',
+            'sub': 'Everyday food.\nExtra special.',
+            'img': 'assets/images/art2sib4.png',
+            'badge': Icons.nature_rounded,
+            'prod': 'Usiri Pickle',
+          }
+        ]
       },
       {
-        'title': 'Upma + Mango\nPickle',
-        'sub': 'Everyday food.\nExtra special.',
-        'img': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg',
-        'badge': Icons.nature_rounded,
-        'prod': 'Usiri Pickle',
+        'isImageOnly': true,
+        'title': 'THE EVENING CHAI',
+        'subtitle': 'Tea +\nChakinalu',
+        'desc': 'Crunchy traditional bites to elevate your evening tea.',
+        'tagline': 'Crunchy\nSavoury\nWarm',
+        'img': 'assets/images/art3.png',
+        'colors': [const Color(0xFF800000), const Color(0xFFA52A2A)],
+        'searchKey': 'Chakinalu',
+        'subs': [
+          {
+            'isImageOnly': true,
+            'title': 'Coffee +\nMurukulu',
+            'sub': 'The perfect\nevening crunch.',
+            'img': 'assets/images/art3sib1.png',
+            'badge': Icons.coffee_rounded,
+            'prod': 'Murukulu',
+          },
+          {
+            'isImageOnly': true,
+            'title': 'Tea +\nGondh Laddu',
+            'sub': 'A sweet balance\nto your brew.',
+            'img': 'assets/images/art3sib2.png',
+            'badge': Icons.wb_sunny_rounded,
+            'prod': 'Laddu',
+          },
+          {
+            'isImageOnly': true,
+            'title': 'Tea +\nGondh Laddu',
+            'sub': 'A sweet balance\nto your brew.',
+            'img': 'assets/images/art3sib3.png',
+            'badge': Icons.wb_sunny_rounded,
+            'prod': 'Laddu',
+          },
+          {
+            'isImageOnly': true,
+            'title': 'Tea +\nGondh Laddu',
+            'sub': 'A sweet balance\nto your brew.',
+            'img': 'assets/images/art3sib4.png',
+            'badge': Icons.wb_sunny_rounded,
+            'prod': 'Laddu',
+          }
+        ]
       },
     ];
+
+    final currentMain = mainPairings[_currentPairingIndex];
+    final List<Map<String, dynamic>> subPairings = currentMain['subs'];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3223,21 +3263,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         ),
 
-        // Main Hero Pairing Card ("The Coastal Classic")
+        // Main Hero Pairing Card Carousel
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Container(
             height: 205,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF0C3D2E), Color(0xFF135341)],
-              ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0C3D2E).withOpacity(0.2),
+                  color: Colors.black.withOpacity(0.15),
                   blurRadius: 15,
                   offset: const Offset(0, 8),
                 )
@@ -3245,119 +3280,147 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
             child: Stack(
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Row(
-                    children: [
-                      // Left Column Text
-                      Expanded(
-                        flex: 6,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                PageView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentPairingIndex = index;
+                    });
+                  },
+                  itemCount: mainPairings.length,
+                  itemBuilder: (context, index) {
+                    final pairing = mainPairings[index];
+                    final isImageOnly = pairing['isImageOnly'] == true;
+                    return Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        gradient: isImageOnly ? null : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: pairing['colors'],
+                        ),
+                      ),
+                      child: isImageOnly
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(24),
+                              child: Image.asset(pairing['img'], fit: BoxFit.fill, width: double.infinity, height: double.infinity),
+                            )
+                          : Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Row(
                           children: [
-                            Text(
-                              'THE COASTAL CLASSIC',
-                              style: GoogleFonts.poppins(
-                                color: const Color(0xFFD4AF37),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.5,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Rice + Ghee +\nAvakaya',
-                              style: GoogleFonts.philosopher(
-                                color: const Color(0xFFFFF8E8),
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                height: 1.1,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'A timeless combination that brings out the best of Andhra flavors.',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white70,
-                                fontSize: 10,
-                                height: 1.3,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 12),
-                            GestureDetector(
-                              onTap: () {
-                                final product = allProducts.firstWhere(
-                                  (p) => p.name.contains('Bellam') || p.name.contains('Avakaya'),
-                                  orElse: () => allProducts[0],
-                                );
-                                AppNavigator.push(context, ProductDetailPage(product: product, allProducts: allProducts));
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE5C76B),
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      'See Details',
-                                      style: GoogleFonts.poppins(
-                                        color: const Color(0xFF0F4D3C),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 11,
+                            // Left Column Text
+                            Expanded(
+                              flex: 6,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    pairing['title'],
+                                    style: GoogleFonts.poppins(
+                                      color: const Color(0xFFD4AF37),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    pairing['subtitle'],
+                                    style: GoogleFonts.philosopher(
+                                      color: const Color(0xFFFFF8E8),
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w900,
+                                      height: 1.1,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    pairing['desc'],
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white70,
+                                      fontSize: 10,
+                                      height: 1.3,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  GestureDetector(
+                                    onTap: () {
+                                      final product = allProducts.firstWhere(
+                                        (p) => p.name.contains(pairing['searchKey']),
+                                        orElse: () => allProducts[0],
+                                      );
+                                      AppNavigator.push(context, ProductDetailPage(product: product, allProducts: allProducts));
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE5C76B),
+                                        borderRadius: BorderRadius.circular(18),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'See Details',
+                                            style: GoogleFonts.poppins(
+                                              color: const Color(0xFF0F4D3C),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0F4D3C), size: 12),
+                                        ],
                                       ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0F4D3C), size: 12),
-                                  ],
-                                ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            // Right Image
+                            Expanded(
+                              flex: 5,
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(18),
+                                    child: SizedBox(
+                                      height: 145,
+                                      width: double.infinity,
+                                      child: _buildProductImage(pairing['img']),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: Text(
+                                      pairing['tagline'],
+                                      textAlign: TextAlign.right,
+                                      style: GoogleFonts.caveat(
+                                        color: const Color(0xFFE5C76B),
+                                        fontSize: 12,
+                                        height: 1.1,
+                                        fontWeight: FontWeight.bold,
+                                        shadows: const [Shadow(blurRadius: 4, color: Colors.black54)],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-
-                      const SizedBox(width: 8),
-
-                      // Right Image
-                      Expanded(
-                        flex: 5,
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(18),
-                              child: SizedBox(
-                                height: 145,
-                                width: double.infinity,
-                                child: _buildProductImage('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'),
-                              ),
-                            ),
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: Text(
-                                'Simple Food\nExtraordinary\nHappiness',
-                                textAlign: TextAlign.right,
-                                style: GoogleFonts.caveat(
-                                  color: const Color(0xFFE5C76B),
-                                  fontSize: 12,
-                                  height: 1.1,
-                                  fontWeight: FontWeight.bold,
-                                  shadows: const [Shadow(blurRadius: 4, color: Colors.black54)],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
 
                 // Pagination Dots
@@ -3365,12 +3428,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   left: 20,
                   bottom: 12,
                   child: Row(
-                    children: List.generate(3, (i) => Container(
+                    children: List.generate(mainPairings.length, (i) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
                       margin: const EdgeInsets.only(right: 5),
-                      width: i == 0 ? 14 : 6,
+                      width: _currentPairingIndex == i ? 14 : 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: i == 0 ? const Color(0xFFE5C76B) : Colors.white30,
+                        color: _currentPairingIndex == i ? const Color(0xFFE5C76B) : Colors.white30,
                         borderRadius: BorderRadius.circular(10),
                       ),
                     )),
@@ -3383,8 +3447,47 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
         const SizedBox(height: 16),
 
-        // Sub-Cards Horizontal Row (3 Pairing Cards)
-        SizedBox(
+        // Sub-Cards Horizontal Row (Dynamically populated based on parent selection)
+        currentMain['isImageOnly'] == true
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: subPairings.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+                    final String prodName = item['prod'] as String;
+                    final matchingProduct = allProducts.firstWhere(
+                      (p) => p.name.contains(prodName.split(' ').first),
+                      orElse: () => allProducts[index % allProducts.length],
+                    );
+
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => AppNavigator.push(context, ProductDetailPage(product: matchingProduct, allProducts: allProducts)),
+                        child: Container(
+                          height: 110,
+                          margin: EdgeInsets.only(right: index == subPairings.length - 1 ? 0 : 10),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 5,
+                                offset: const Offset(0, 2),
+                              )
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.asset(item['img'] as String, fit: BoxFit.fill, width: double.infinity, height: double.infinity),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              )
+            : SizedBox(
           height: 215,
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -3393,6 +3496,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             itemCount: subPairings.length,
             itemBuilder: (context, index) {
               final item = subPairings[index];
+              final isImageOnly = item['isImageOnly'] == true;
               final String prodName = item['prod'] as String;
               final matchingProduct = allProducts.firstWhere(
                 (p) => p.name.contains(prodName.split(' ').first),
@@ -3415,7 +3519,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       )
                     ],
                   ),
-                  child: Column(
+                  child: isImageOnly
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: _buildProductImage(item['img'] as String),
+                        )
+                      : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Stack(
@@ -3489,17 +3598,29 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildSection(String title, String category) {
-    final products = allProducts.where((p) {
-      final pCat = p.category.trim().toLowerCase();
-      final targetCat = category.trim().toLowerCase();
-      // ULTRA ROBUST MATCHING
-      return pCat == targetCat || 
-             pCat == "${targetCat}s" || 
-             "${pCat}s" == targetCat ||
-             pCat.contains(targetCat) ||
-             targetCat.contains(pCat);
-    }).toList();
+  Widget _buildSection(String title, String category, {String? subtitle}) {
+    List<Product> products = [];
+    
+    if (category == 'Best Sellers') {
+      products = allProducts.where((p) => p.isBestSeller == true).toList();
+      // Fallback if no products are explicitly marked as best sellers
+      if (products.isEmpty) {
+         products = allProducts.take(4).toList();
+      }
+    } else if (category == 'Fresh Picks') {
+      products = allProducts.skip(4).take(5).toList(); // Simple logic for fresh picks
+    } else {
+      products = allProducts.where((p) {
+        final pCat = p.category.trim().toLowerCase();
+        final targetCat = category.trim().toLowerCase();
+        // ULTRA ROBUST MATCHING
+        return pCat == targetCat || 
+               pCat == "${targetCat}s" || 
+               "${pCat}s" == targetCat ||
+               pCat.contains(targetCat) ||
+               targetCat.contains(pCat);
+      }).toList();
+    }
 
     if (products.isEmpty) {
       // DEBUG: If a category row is hidden, show why in the console
@@ -3507,18 +3628,31 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       return const SizedBox.shrink();
     }
     
-    String? sub;
-    if (title == 'Most Loved Pickles') sub = 'Customer favorites, always!';
-    if (title == 'Traditional Snacks') sub = 'Crispy heritage delights';
-    if (title == 'Fresh Ground Spices') sub = 'Pure & aromatic blends';
-    if (title == 'Authentic Sweets') sub = 'Ghee-soaked traditional memories';
+    String? sub = subtitle;
+    if (sub == null) {
+      if (title == 'Most Loved Pickles') sub = 'Customer favorites, always!';
+      if (title == 'Traditional Snacks') sub = 'Crispy heritage delights';
+      if (title == 'Fresh Ground Spices') sub = 'Pure & aromatic blends';
+      if (title == 'Authentic Sweets') sub = 'Ghee-soaked traditional memories';
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(title: title, subtitle: sub, onSeeAll: () => AppNavigator.push(context, ProductListingPage(category: category))),
+        _SectionTitle(
+          title: title, 
+          subtitle: sub, 
+          onSeeAll: () {
+            // Map special categories to default categories if navigating
+            String navCategory = category;
+            if (category == 'Best Sellers' || category == 'Fresh Picks') {
+              navCategory = 'Pickles'; // fallback
+            }
+            AppNavigator.push(context, ProductListingPage(category: navCategory));
+          }
+        ),
         SizedBox(
-          height: 440, 
+          height: 440,
           child: ListView.builder(
             scrollDirection: Axis.horizontal, 
             physics: const BouncingScrollPhysics(), 
@@ -4281,130 +4415,166 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     if (snackProducts.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Section Header
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TRADITIONAL SNACKS',
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFFD4AF37),
-                        fontWeight: FontWeight.w900,
-                        fontSize: 10,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Snacks with a Story',
-                      style: GoogleFonts.philosopher(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF1B1B1B),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Time-honored recipes, perfect for every craving.',
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        color: const Color(0xFF6B7280),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Snacks')),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFFBF8F1), // Light background for the section
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Section
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 30, 20, 15),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'View All',
+                        'TRADITIONAL SNACKS',
                         style: GoogleFonts.poppins(
-                          color: const Color(0xFF0F4D3C),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
+                          color: const Color(0xFFD48220), // Orange-ish color from image
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                          letterSpacing: 2,
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF0F4D3C)),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Snacks with\na Story',
+                        style: GoogleFonts.philosopher(
+                          fontSize: 34,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF144A3C), // Dark green
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Every snack has a tradition, a story\nand a home-made touch.',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: const Color(0xFF5E6760),
+                          fontWeight: FontWeight.w500,
+                          height: 1.3,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      GestureDetector(
+                        onTap: () => AppNavigator.push(context, const ProductListingPage(category: 'Snacks')),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.grey.shade300),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              )
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'View All',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF144A3C),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF144A3C)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Could add a small illustration here if needed
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
 
-        // Trust Reassurance Badges Row
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Row(
-            children: [
-              Expanded(child: FittedBox(fit: BoxFit.scaleDown, child: _buildSnackTrustItem(Icons.eco_rounded, 'Authentic\nIngredients'))),
-              Container(width: 1, height: 20, color: Colors.grey.shade300),
-              Expanded(child: FittedBox(fit: BoxFit.scaleDown, child: _buildSnackTrustItem(Icons.soup_kitchen_rounded, 'Traditional\nRecipes'))),
-              Container(width: 1, height: 20, color: Colors.grey.shade300),
-              Expanded(child: FittedBox(fit: BoxFit.scaleDown, child: _buildSnackTrustItem(Icons.verified_user_rounded, 'No\nPreservatives'))),
-              Container(width: 1, height: 20, color: Colors.grey.shade300),
-              Expanded(child: FittedBox(fit: BoxFit.scaleDown, child: _buildSnackTrustItem(Icons.favorite_rounded, 'Loved by\nThousands'))),
-            ],
+          // Features Row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildSnackFeatureItem('assets/images/leaf_icon.png', Icons.spa_outlined, 'Authentic\nIngredients'),
+                _buildSnackFeatureItem('assets/images/mortar_icon.png', Icons.soup_kitchen_outlined, 'Traditional\nRecipes'),
+                _buildSnackFeatureItem('assets/images/no_preservatives_icon.png', Icons.verified_user_outlined, 'No\nPreservatives'),
+                _buildSnackFeatureItem('assets/images/heart_icon.png', Icons.favorite_border_rounded, 'Loved by\nThousands'),
+              ],
+            ),
           ),
-        ),
 
-        const SizedBox(height: 10),
+          const SizedBox(height: 15),
 
-        // Cards List
-        SizedBox(
-          height: 315,
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: snackProducts.length,
-            itemBuilder: (context, index) {
-              final product = snackProducts[index];
-              return _SnackProductCard(
-                product: product,
-                allProducts: allProducts,
-                index: index,
-              );
-            },
+          // Cards List
+          SizedBox(
+            height: 480, // Increased height for taller cards
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: snackProducts.length,
+              itemBuilder: (context, index) {
+                final product = snackProducts[index];
+                return _StorySnackProductCard(
+                  product: product,
+                  allProducts: allProducts,
+                  index: index,
+                );
+              },
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
-      ],
+          const SizedBox(height: 30),
+        ],
+      ),
     );
   }
 
-  Widget _buildSnackTrustItem(IconData icon, String label) {
-    return Row(
+  Widget _buildSnackFeatureItem(String assetPath, IconData fallbackIcon, String label) {
+    return Column(
       children: [
-        Icon(icon, color: const Color(0xFF8B5E3C), size: 16),
-        const SizedBox(width: 4),
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3EAD7), // Light beige circle
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Icon(fallbackIcon, color: const Color(0xFF5A3A1F), size: 24),
+          ),
+        ),
+        const SizedBox(height: 6),
         Text(
           label,
-          style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFF1B1B1B), height: 1.1),
+          textAlign: TextAlign.center,
+          style: GoogleFonts.poppins(
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF1B1B1B),
+            height: 1.2,
+          ),
         ),
       ],
     );
@@ -4965,6 +5135,295 @@ class _SnackProductCardState extends State<_SnackProductCard> {
       ),
     );
   }
+}
+
+class _StorySnackProductCard extends StatefulWidget {
+  final Product product;
+  final List<Product> allProducts;
+  final int index;
+  const _StorySnackProductCard({required this.product, required this.allProducts, required this.index});
+
+  @override
+  State<_StorySnackProductCard> createState() => _StorySnackProductCardState();
+}
+
+class _StorySnackProductCardState extends State<_StorySnackProductCard> {
+  late String _selectedWeight;
+
+  Map<String, dynamic> _getThemeForProduct(String name) {
+    name = name.toLowerCase();
+    if (name.contains('chakinalu')) {
+      return {
+        'imagePath': 'assets/images/chakinalu_story.png',
+        'desc': 'Traditional Sankranti spiral snacks.',
+        'badge1': 'Rice Flour', 'badge1Icon': Icons.grass,
+        'badge2': 'Homemade', 'badge2Icon': Icons.home,
+        'badge3': 'Mild Spicy', 'badge3Icon': Icons.local_fire_department,
+      };
+    } else if (name.contains('bundhi') || name.contains('boondi')) {
+      return {
+        'imagePath': 'assets/images/bundhi_story.png',
+        'desc': 'Crispy spiced gram flour droplets.',
+        'badge1': 'Gram Flour', 'badge1Icon': Icons.lens,
+        'badge2': 'No Preservatives', 'badge2Icon': Icons.verified_user,
+        'badge3': 'Freshly Made', 'badge3Icon': Icons.restaurant_menu,
+      };
+    } else if (name.contains('palli') || name.contains('peanut')) {
+      return {
+        'imagePath': 'assets/images/palli_story.png',
+        'desc': 'Spicy & crunchy groundnuts.',
+        'badge1': 'Premium Peanuts', 'badge1Icon': Icons.eco,
+        'badge2': 'Homemade', 'badge2Icon': Icons.home,
+        'badge3': 'Spicy', 'badge3Icon': Icons.local_fire_department,
+      };
+    } else if (name.contains('mixture')) {
+      return {
+        'imagePath': 'assets/images/mixture_story.png',
+        'desc': 'A traditional and crunchy snacking delight.',
+        'badge1': 'Premium Ingredients', 'badge1Icon': Icons.star,
+        'badge2': 'Traditional Recipe', 'badge2Icon': Icons.menu_book,
+        'badge3': 'Rich in Taste', 'badge3Icon': Icons.thumb_up,
+      };
+    } else {
+      return {
+        'imagePath': 'assets/images/ribbon_story.png',
+        'desc': 'A classic Andhra snack for every occasion.',
+        'badge1': 'Rice Flour', 'badge1Icon': Icons.grass,
+        'badge2': 'Handmade', 'badge2Icon': Icons.pan_tool,
+        'badge3': 'No Preservatives', 'badge3Icon': Icons.verified_user,
+      };
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedWeight = widget.product.defaultWeight;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final weights = widget.product.weightPriceMap.keys.toList();
+    if (!weights.contains(_selectedWeight)) {
+      _selectedWeight = weights.isNotEmpty ? weights.first : '250g';
+    }
+
+    final priceStr = widget.product.getPriceForWeight(_selectedWeight);
+    final theme = _getThemeForProduct(widget.product.name);
+    
+    // Use the exact image proportions, ensuring a fixed width for the card list
+    final double cardWidth = 260;
+
+    return GestureDetector(
+      onTap: () => AppNavigator.push(context, ProductDetailPage(product: widget.product, allProducts: widget.allProducts)),
+      child: Container(
+        width: cardWidth,
+        margin: const EdgeInsets.only(right: 15),
+        // Removed the white background from the parent container to let the wavy image show perfectly against the section background
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Top Section: The provided Story Image
+            Image.asset(
+              theme['imagePath'],
+              fit: BoxFit.cover,
+              width: double.infinity,
+            ),
+            
+            // Bottom Section: Product Info (Now a separate white card)
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.product.name,
+                    style: GoogleFonts.philosopher(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: const Color(0xFF0F4D3C),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    theme['desc'], 
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Tags Row
+                  Row(
+                    children: [
+                      _buildTag(theme['badge1'], theme['badge1Icon']),
+                      const SizedBox(width: 4),
+                      _buildTag(theme['badge2'], theme['badge2Icon']),
+                      const SizedBox(width: 4),
+                      _buildTag(theme['badge3'], theme['badge3Icon']),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Bottom Row: Dropdown, Price, Add Button
+                  Row(
+                    children: [
+                      // Dropdown
+                      Container(
+                        height: 36,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedWeight,
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF1B1B1B)),
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1B1B1B)),
+                            items: weights.map((String v) => DropdownMenuItem<String>(value: v, child: Text(v))).toList(),
+                            onChanged: (v) => setState(() => _selectedWeight = v!),
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      // Price
+                      Text(
+                        priceStr,
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF1B1B1B),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Add Button
+                      ListenableBuilder(
+                        listenable: CartManager(),
+                        builder: (context, _) {
+                          int qty = CartManager().getProductQuantity(widget.product.name, _selectedWeight);
+                          if (qty > 0) {
+                            return Container(
+                              height: 36,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F4D3C),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '$qty in cart',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                              ),
+                            );
+                          }
+                          return GestureDetector(
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              CartManager().addToCart(widget.product, weight: _selectedWeight);
+                            },
+                            child: Container(
+                              height: 36,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F4D3C),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Add',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTag(String text, IconData icon) {
+    return Expanded(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: const Color(0xFFD48220)),
+          const SizedBox(width: 2),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.poppins(
+                fontSize: 8,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Custom Clipper (kept here in case it's used elsewhere, otherwise it's harmless to leave)
+class _WavyTopClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(0, size.height - 30);
+
+    var firstControlPoint = Offset(size.width / 4, size.height);
+    var firstEndPoint = Offset(size.width / 2, size.height - 30);
+    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy, firstEndPoint.dx, firstEndPoint.dy);
+
+    var secondControlPoint = Offset(size.width - (size.width / 4), size.height - 60);
+    var secondEndPoint = Offset(size.width, size.height - 30);
+    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy, secondEndPoint.dx, secondEndPoint.dy);
+
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 class _SweetProductCard extends StatefulWidget {
@@ -6469,3 +6928,53 @@ Widget _buildProductImage(String path) {
     errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)),
   );
 }
+
+class BestSellerCardClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    path.moveTo(0, 40);
+    // Top Left Wave
+    path.quadraticBezierTo(size.width * 0.05, 0, size.width * 0.20, 20);
+    path.quadraticBezierTo(size.width * 0.35, 45, size.width * 0.50, 15);
+    path.quadraticBezierTo(size.width * 0.70, -10, size.width * 0.85, 20);
+    path.quadraticBezierTo(size.width, 40, size.width, 80);
+    // Right Side
+    path.lineTo(size.width, size.height - 70);
+    path.quadraticBezierTo(size.width, size.height, size.width - 40, size.height);
+    // Bottom Wave
+    path.quadraticBezierTo(size.width * 0.75, size.height - 25, size.width * 0.55, size.height);
+    path.quadraticBezierTo(size.width * 0.35, size.height + 15, size.width * 0.15, size.height - 5);
+    path.quadraticBezierTo(0, size.height - 20, 0, size.height - 60);
+    path.close();
+    return path;
+  }
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+class ImageWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(0, size.height - 16);
+    
+    var firstControlPoint = Offset(size.width * 0.25, size.height);
+    var firstEndPoint = Offset(size.width * 0.5, size.height - 12);
+    path.quadraticBezierTo(
+        firstControlPoint.dx, firstControlPoint.dy, firstEndPoint.dx, firstEndPoint.dy);
+
+    var secondControlPoint = Offset(size.width * 0.75, size.height - 24);
+    var secondEndPoint = Offset(size.width, size.height - 8);
+    path.quadraticBezierTo(
+        secondControlPoint.dx, secondControlPoint.dy, secondEndPoint.dx, secondEndPoint.dy);
+
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+

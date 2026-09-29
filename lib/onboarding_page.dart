@@ -190,7 +190,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         ],
                       ),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 30), // Spacing for floating header
 
                       // Main Title
                       RichText(
@@ -246,78 +246,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           ),
                         ),
                       ).animate().fadeIn(delay: 700.ms),
-
-                      const Spacer(),
-
-                      // Bottom Action Bar: SKIP | DOTS | NEXT →
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          GestureDetector(
-                            onTap: _navigateToLogin,
-                            child: const Text(
-                              "SKIP",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                letterSpacing: 3,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-
-                          Row(
-                            children: List.generate(
-                              steps.length,
-                              (index) => _buildDot(index == _currentIndex),
-                            ),
-                          ),
-
-                          GestureDetector(
-                            onTap: () {
-                              if (_currentIndex < steps.length - 1) {
-                                _pageController.nextPage(
-                                  duration: const Duration(milliseconds: 600),
-                                  curve: Curves.easeInOut,
-                                );
-                              } else {
-                                _navigateToLogin();
-                              }
-                            },
-                            child: Container(
-                              height: 52,
-                              padding: const EdgeInsets.symmetric(horizontal: 24),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE5C76B),
-                                borderRadius: BorderRadius.circular(25),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFFE5C76B).withOpacity(0.3),
-                                    blurRadius: 15,
-                                    offset: const Offset(0, 6),
-                                  )
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    _currentIndex == steps.length - 1 ? 'GET STARTED' : 'NEXT',
-                                    style: GoogleFonts.poppins(
-                                      color: const Color(0xFF1B1B1B),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 1.5,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.arrow_forward_rounded, color: Color(0xFF1B1B1B), size: 16),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
@@ -325,6 +253,81 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ],
           );
         },
+      ),
+
+      // 4. Fixed Overlay Items (Skip, Dots, Next, Header)
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: _navigateToLogin,
+                child: const Text(
+                  "SKIP",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    letterSpacing: 3,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+
+              Row(
+                children: List.generate(
+                  steps.length,
+                  (index) => _buildDot(index == _currentIndex),
+                ),
+              ),
+
+              GestureDetector(
+                onTap: () {
+                  if (_currentIndex < steps.length - 1) {
+                    _pageController.nextPage(
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeInOut,
+                    );
+                  } else {
+                    _navigateToLogin();
+                  }
+                },
+                child: Container(
+                  height: 52,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5C76B),
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFE5C76B).withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 6),
+                      )
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _currentIndex == steps.length - 1 ? 'GET STARTED' : 'NEXT',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF1B1B1B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_rounded, color: Color(0xFF1B1B1B), size: 16),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
