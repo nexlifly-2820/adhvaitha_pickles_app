@@ -9,7 +9,6 @@ import 'coupons_page.dart';
 import 'contact_us_page.dart';
 import 'navigation_util.dart';
 import 'edit_profile_page.dart';
-import 'rewards_page.dart';
 import 'payment_methods_page.dart';
 import 'notification_settings_page.dart';
 import 'privacy_policy_page.dart';

@@ -24,6 +24,8 @@ import 'product_repository.dart';
 import 'app_config_repository.dart';
 import 'journey_components.dart';
 import 'widgets/home_header.dart';
+import 'widgets/royal_collections.dart';
+import 'widgets/festival_section.dart';
 import 'user_manager.dart';
 import 'cart_page.dart';
 
@@ -438,7 +440,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 _buildSection('Best Sellers', 'Best Sellers', subtitle: 'Our most loved and purchased flavors.'),
         
                 _buildContinueShoppingSection(),
-                _buildTodaysSpecialsGrid(),
+                FestivalSection(allProducts: allProducts),
                 _buildSection('Fresh Picks, Just for You', 'Fresh Picks', subtitle: 'Discover our latest additions, crafted with tradition.'),
                 _buildSnacksSection(),
                 _buildSection('Fresh Ground Spices', 'Spices', subtitle: 'Pure & aromatic blends'),
@@ -953,220 +955,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildRoyalCollectionsSection() {
-    final collections = [
-      {'title': 'Pickles', 'sub': '12+ varieties', 'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', 'cat': 'Pickles', 'color': const Color(0xFF0F4D3C)},
-      {'title': 'Snacks', 'sub': '9+ varieties', 'img': 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg', 'cat': 'Snacks', 'color': const Color(0xFF8B2B2B)},
-      {'title': 'Spices', 'sub': '8+ varieties', 'img': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg', 'cat': 'Spices', 'color': const Color(0xFF0F4D3C)},
-      {'title': 'Sweets', 'sub': '6+ varieties', 'img': 'assets/images/gondh_laddu_edible_gum_laddu.jpg', 'cat': 'Sweets', 'color': const Color(0xFF8B2B2B)},
-      {'title': 'Powders', 'sub': '10+ varieties', 'img': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg', 'cat': 'Powders', 'color': const Color(0xFF0F4D3C)},
-      {'title': 'Combo Packs', 'sub': '5+ varieties', 'img': 'assets/images/dry_fruits_laddu_premium_dry_fruits_laddu.jpg', 'cat': 'Combos', 'color': const Color(0xFF8B2B2B)},
+    final items = const [
+      CollectionItem('Pickles', '12+ varieties', 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'),
+      CollectionItem('Snacks', '9+ varieties', 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg'),
+      CollectionItem('Spices', '8+ varieties', 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg'),
+      CollectionItem('Sweets', '6+ varieties', 'assets/images/gondh_laddu_edible_gum_laddu.jpg'),
+      CollectionItem('Powders', '10+ varieties', 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg'),
+      CollectionItem('Combo Packs', '5+ varieties', 'assets/images/dry_fruits_laddu_premium_dry_fruits_laddu.jpg'),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        RichText(
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Royal ',
-                                style: GoogleFonts.philosopher(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF0F4D3C),
-                                  height: 1.1,
-                                ),
-                              ),
-                              TextSpan(
-                                text: 'Collections',
-                                style: GoogleFonts.philosopher(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF621010),
-                                  height: 1.1,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Positioned(
-                          top: -14,
-                          left: 36,
-                          child: Icon(Icons.workspace_premium, color: Color(0xFFD4AF37), size: 26),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Traditional Andhra Flavours for Every Home',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: const Color(0xFF621010).withOpacity(0.8),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              GestureDetector(
-                onTap: () => MainScreen.of(context)?.setIndex(1),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF9F3E5),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'View All',
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFF0F4D3C),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF0F4D3C)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.zero,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 0.85,
-            ),
-            itemCount: collections.length,
-            itemBuilder: (context, index) {
-              final item = collections[index];
-              final Color bgColor = item['color'] as Color;
-              return GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  AppNavigator.push(context, ProductListingPage(category: item['cat'] as String));
-                },
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: bgColor,
-                    ),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          flex: 5,
-                          child: ClipPath(
-                            clipper: ImageWaveClipper(),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: _buildProductImage(item['img'] as String),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 4,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item['title'] as String,
-                                        style: GoogleFonts.philosopher(
-                                          color: Colors.white,
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        item['sub'] as String,
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.white.withOpacity(0.9),
-                                          fontSize: 11,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Container(height: 1, width: 12, color: const Color(0xFFD4AF37).withOpacity(0.8)),
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                                            child: Transform.rotate(
-                                              angle: 0.785,
-                                              child: Container(width: 4, height: 4, color: const Color(0xFFD4AF37)),
-                                            ),
-                                          ),
-                                          Container(height: 1, width: 12, color: const Color(0xFFD4AF37).withOpacity(0.8)),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 2),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  margin: const EdgeInsets.only(bottom: 2),
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFF9F3E5),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.arrow_forward_rounded,
-                                    color: bgColor,
-                                    size: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+    return RoyalCollectionsSection(
+      items: items,
+      onItemTap: (item) {
+        HapticFeedback.lightImpact();
+        String targetCat = item.name;
+        if (targetCat == 'Combo Packs') targetCat = 'Combos';
+        AppNavigator.push(context, ProductListingPage(category: targetCat));
+      },
+      onViewAll: () {
+        HapticFeedback.lightImpact();
+        MainScreen.of(context)?.setIndex(1);
+      },
     );
   }
 
@@ -4705,20 +4514,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       ),
     );
   }
+}
 
-  Widget _buildProductImage(String path) {
-    if (path.isEmpty) {
-      return Container(color: Colors.grey.shade50, child: const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
-    }
-    if (path.startsWith('http')) {
-      return Image.network(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
-    }
-    String assetPath = path;
-    if (!assetPath.startsWith('assets/')) {
-      assetPath = 'assets/images/$path';
-    }
-    return Image.asset(assetPath, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
+Widget _buildProductImage(String path) {
+  if (path.isEmpty) {
+    return Container(color: Colors.grey.shade50, child: const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
   }
+  if (path.startsWith('http')) {
+    return Image.network(path, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
+  }
+  String assetPath = path;
+  if (!assetPath.startsWith('assets/')) {
+    assetPath = 'assets/images/$path';
+  }
+  return Image.asset(assetPath, fit: BoxFit.cover, width: double.infinity, height: double.infinity, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)));
 }
 
 class LuxuryStoryPage extends StatelessWidget {
@@ -6818,25 +6627,7 @@ class _DealCard extends StatelessWidget {
   }
 }
 
-Widget _buildProductImage(String path) {
-  if (path.isEmpty) {
-    return const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey));
-  }
-  if (path.startsWith('http')) {
-    return Image.network(
-      path, fit: BoxFit.cover, width: double.infinity, height: double.infinity,
-      errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image_outlined, color: Colors.grey)),
-    );
-  }
-  String assetPath = path;
-  if (!assetPath.startsWith('assets/')) {
-    assetPath = 'assets/images/$path';
-  }
-  return Image.asset(
-    assetPath, fit: BoxFit.cover, width: double.infinity, height: double.infinity,
-    errorBuilder: (c, e, s) => const Center(child: Icon(Icons.image_not_supported_outlined, color: Colors.grey)),
-  );
-}
+
 
 class BestSellerCardClipper extends CustomClipper<Path> {
   @override

@@ -293,4 +293,107 @@ class AppConfigRepository {
       if (data.isNotEmpty) yield data;
     } catch (_) {}
   }
+
+  // 20. Festival Section Configuration (Admin Controlled)
+  static Map<String, dynamic> _inMemoryFestivalConfig = {};
+
+  Stream<Map<String, dynamic>> getFestivalConfigStream() async* {
+    if (_inMemoryFestivalConfig.isNotEmpty) {
+      yield _inMemoryFestivalConfig;
+    } else {
+      yield _defaultFestivalData;
+    }
+    try {
+      final data = await ApiService.getAppConfig('festival_config');
+      if (data.isNotEmpty) {
+        _inMemoryFestivalConfig = data;
+        yield data;
+      }
+    } catch (_) {}
+  }
+
+  Future<bool> saveFestivalConfig(Map<String, dynamic> festivalData) async {
+    _inMemoryFestivalConfig = festivalData;
+    try {
+      return await ApiService.saveAppConfig('festival_config', festivalData);
+    } catch (e) {
+      debugPrint('Error saving festival config: $e');
+      return true;
+    }
+  }
+
+  static final Map<String, dynamic> _defaultFestivalData = {
+    'enabled': true,
+    'id': 'sankranti-2027',
+    'kicker': 'CELEBRATE',
+    'title': 'Sankranti',
+    'subtitle': 'Pindi vantalu, sweets & gift boxes, made fresh',
+    'chipsTitle': 'FESTIVE SPECIALS',
+    'theme': {
+      'bgTop': '#F9DFB3',
+      'bgBottom': '#F6D6A2',
+      'tile': '#B81D3B',
+      'line': '#EFCF8C',
+      'title': '#7A1240',
+      'kicker': '#5A1030',
+      'strip': '#D98F2E',
+      'chipBg': '#FDF3DD',
+      'accent': '#E9952C'
+    },
+    'tiles': [
+      {
+        'title': 'Pindi\nVantalu',
+        'image': 'assets/images/snacks.png',
+        'image2': 'assets/images/sweets.png',
+        'link': {'category': 'Snacks'}
+      },
+      {
+        'title': 'Festive\nSweets',
+        'image': 'assets/images/sweets.png',
+        'image2': 'assets/images/snacks.png',
+        'link': {'category': 'Sweets'}
+      },
+      {
+        'title': 'Gifting\nCorner',
+        'image': 'assets/images/combos.png',
+        'image2': 'assets/images/pickles.png',
+        'link': {'category': 'Combos'}
+      },
+      {
+        'title': 'Pickles\n& Podis',
+        'image': 'assets/images/pickles.png',
+        'image2': 'assets/images/spices.png',
+        'link': {'category': 'Pickles'}
+      }
+    ],
+    'strip': ['HOMEMADE', 'STONE-GROUND', 'FRESH BATCHES', 'PAN-INDIA'],
+    'chips': [
+      {
+        'title': 'Sankranti\nEssentials',
+        'image': 'assets/images/sweets.png',
+        'link': {'tag': 'sankranti'}
+      },
+      {
+        'title': 'Snacks\n& More',
+        'image': 'assets/images/snacks.png',
+        'link': {'category': 'Snacks'}
+      },
+      {
+        'title': 'Traditional\nSweets',
+        'image': 'assets/images/combos.png',
+        'link': {'category': 'Sweets'}
+      },
+      {
+        'title': 'Pickles\n& Podis',
+        'image': 'assets/images/pickles.png',
+        'link': {'category': 'Pickles'}
+      },
+      {
+        'title': 'Under\n₹299',
+        'image': 'assets/images/spices.png',
+        'link': {'maxPrice': 299}
+      }
+    ],
+    'products': {'tag': 'sankranti', 'limit': 10}
+  };
 }

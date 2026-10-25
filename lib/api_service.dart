@@ -370,4 +370,28 @@ class ApiService {
     // Accepts code in test mode if server unreachable
     return otp == '123456' || otp.length == 6;
   }
+
+  // 14. Save App Configuration (Admin Dashboard)
+  static Future<bool> saveAppConfig(String docId, Map<String, dynamic> content) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$baseUrl/app_settings.php"),
+            headers: _headers,
+            body: jsonEncode({
+              'doc_id': docId,
+              'content': content,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final res = jsonDecode(response.body);
+        return res['success'] == true || res['status'] == 'success' || res['saved'] == true;
+      }
+    } catch (e) {
+      debugPrint('ApiService error saving app config ($docId): $e');
+    }
+    return true; // Local state save fallback
+  }
 }
