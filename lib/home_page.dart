@@ -23,6 +23,9 @@ import 'product_manager.dart';
 import 'product_repository.dart';
 import 'app_config_repository.dart';
 import 'journey_components.dart';
+import 'widgets/home_header.dart';
+import 'user_manager.dart';
+import 'cart_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -222,7 +225,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       if (mounted) {
         setState(() => homeVideoConfig = data);
         final enabled = data['enabled'] != false;
-        final url = data['video_url']?.toString() ?? data['url']?.toString() ?? 'assets/images/ambhujakshi-all.mp4';
+        final url = data['featured_video_url']?.toString() ?? data['video_url']?.toString() ?? data['url']?.toString() ?? 'assets/images/ambhujakshi-all.mp4';
         if (enabled) {
           _initHomeVideo(url);
         }
@@ -381,7 +384,46 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         controller: _scrollController,
         physics: const BouncingScrollPhysics(),
         slivers: [
-          _buildStickyHeader(),
+          SliverToBoxAdapter(
+            child: ListenableBuilder(
+              listenable: CartManager(),
+              builder: (context, _) {
+                return HomeHeader(
+                  videoUrl: (homeVideoConfig['header_video_enabled'] != false)
+                      ? (homeVideoConfig['header_video_url'] ?? homeVideoConfig['video_url'] ?? 'https://res.cloudinary.com/dxynqm0zo/video/upload/v1790916130/adhvaitha_foods_videos/mxcycwegghdykjsnilyo.mp4')
+                      : '',
+                  location: _currentAddress,
+                  userName: UserManager().userName.isNotEmpty ? UserManager().userName : 'Guest',
+                  cartCount: CartManager().itemCount,
+                  searchHints: const [
+                    'Search royal flavors...', 
+                    'Search "mango pickle"', 
+                    'Search "kara murukku"',
+                    'Search "sunnunda"', 
+                    'Search "idli podi"',
+                  ],
+                  categories: const [
+                    HeaderCategory('All', '🛍️'),
+                    HeaderCategory('Pickles', '🫙'),
+                    HeaderCategory('Snacks', '🥨', badge: 'New'),
+                    HeaderCategory('Sweets', '🍬'),
+                    HeaderCategory('Podis', '🌶️'),
+                    HeaderCategory('Combos', '🎁'),
+                  ],
+                  selectedCategory: _selectedCategoryIndex,
+                  onLocationTap: () => _determinePosition(),
+                  onWishlistTap: () => AppNavigator.push(context, const WishlistPage()),
+                  onProfileTap: () => MainScreen.of(context)?.setIndex(4),
+                  onCartTap: () => AppNavigator.push(context, const CartPage()),
+                  onSearchTap: () => AppNavigator.push(context, const SearchPage()),
+                  onMicTap: () => _listen(),
+                  onCategoryTap: (index) {
+                    setState(() => _selectedCategoryIndex = index);
+                  },
+                );
+              },
+            ),
+          ),
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -15,6 +15,7 @@ class CartManager extends ChangeNotifier {
   double _gstPercentage = 0;
 
   List<CartItem> get items => _items;
+  int get itemCount => _items.fold(0, (sum, i) => sum + i.quantity);
   double get discountAmount => _discountAmount;
   String get appliedPromoCode => _appliedPromoCode;
   double get packingFee => _packingFee;
