@@ -25,6 +25,7 @@ import 'app_config_repository.dart';
 import 'journey_components.dart';
 import 'widgets/home_header.dart';
 import 'widgets/royal_collections.dart';
+import 'widgets/featured_video_showcase.dart';
 import 'widgets/festival_section.dart';
 import 'user_manager.dart';
 import 'cart_page.dart';
@@ -437,6 +438,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 _buildTrustReassuranceBanner(),
                 _buildActiveCoupons(),
                 _buildRoyalCollectionsSection(),
+                const FeaturedVideoShowcase(),
                 _buildSection('Best Sellers', 'Best Sellers', subtitle: 'Our most loved and purchased flavors.'),
         
                 _buildContinueShoppingSection(),

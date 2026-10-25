@@ -396,4 +396,40 @@ class AppConfigRepository {
     ],
     'products': {'tag': 'sankranti', 'limit': 10}
   };
+
+  // 21. Featured Video Showcase (After Royal Collections, Admin Controlled)
+  static Map<String, dynamic> _inMemoryFeaturedVideoConfig = {};
+
+  Stream<Map<String, dynamic>> getFeaturedVideoConfigStream() async* {
+    if (_inMemoryFeaturedVideoConfig.isNotEmpty) {
+      yield _inMemoryFeaturedVideoConfig;
+    } else {
+      yield _defaultFeaturedVideoData;
+    }
+    try {
+      final data = await ApiService.getAppConfig('featured_video_section');
+      if (data.isNotEmpty) {
+        _inMemoryFeaturedVideoConfig = data;
+        yield data;
+      }
+    } catch (_) {}
+  }
+
+  Future<bool> saveFeaturedVideoConfig(Map<String, dynamic> videoData) async {
+    _inMemoryFeaturedVideoConfig = videoData;
+    try {
+      return await ApiService.saveAppConfig('featured_video_section', videoData);
+    } catch (e) {
+      debugPrint('Error saving featured video config: $e');
+      return true;
+    }
+  }
+
+  static final Map<String, dynamic> _defaultFeaturedVideoData = {
+    'enabled': true,
+    'tag': 'HERITAGE IN MOTION',
+    'title': 'Behind the Craft: Our Sun-Dried Tradition',
+    'subtitle': 'Watch how our 40-year-old authentic recipes come to life.',
+    'video_url': 'assets/images/ambhujakshi-all.mp4',
+  };
 }
