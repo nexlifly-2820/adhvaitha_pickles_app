@@ -80,7 +80,11 @@ class _SearchPageState extends State<SearchPage> {
         final bool matchesName = product.name.toLowerCase().contains(lowerQuery);
         final bool matchesCategory = product.category.toLowerCase().contains(lowerQuery);
         final bool matchesDescription = product.description.toLowerCase().contains(lowerQuery);
-        final bool matchesIngredient = product.ingredients.any((i) => i.toLowerCase().contains(lowerQuery));
+        final bool matchesIngredient = product.ingredients.any((i) {
+          final name = i['name'] ?? '';
+          final title = i['title'] ?? '';
+          return name.toLowerCase().contains(lowerQuery) || title.toLowerCase().contains(lowerQuery);
+        });
         final bool matchesSpice = product.secretIngredient.name.toLowerCase().contains(lowerQuery);
         
         // Mood-based mappings

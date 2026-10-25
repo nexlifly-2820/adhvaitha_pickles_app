@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'user_manager.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -11,15 +12,13 @@ class EditProfilePage extends StatefulWidget {
 }
 
 class _EditProfilePageState extends State<EditProfilePage> {
-  final _nameController = TextEditingController(text: 'HEMANTH SILLA');
-  final _emailController = TextEditingController(text: 'hemanth.s@example.com');
-  final _phoneController = TextEditingController(text: '+91 98765 43210');
+  final _nameController = TextEditingController(text: UserManager().userName);
+  final _emailController = TextEditingController(text: UserManager().email);
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
@@ -77,12 +76,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         'Email Address',
                         _emailController,
                         Icons.email_outlined,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        'Phone Number',
-                        _phoneController,
-                        Icons.phone_outlined,
                       ),
                     ],
                   ).animate().fadeIn(duration: 500.ms, delay: 200.ms).slideY(begin: 0.1, end: 0),
@@ -348,8 +341,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(28),
-          onTap: () {
+          onTap: () async {
             HapticFeedback.lightImpact();
+            await UserManager().setUser(
+              name: _nameController.text,
+              email: _emailController.text,
+            );
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(

@@ -45,8 +45,10 @@ class Product {
   final List<String> pairings;
   final List<Review> reviews;
   final bool isBestSeller;
+  final bool isMostLoved;
+  final bool isFreshPick;
   final String origin;
-  final List<String> ingredients;
+  final List<Map<String, String>> ingredients;
   final String preparationMethod;
   final String shelfLife;
   final String storageInstructions;
@@ -65,6 +67,8 @@ class Product {
   final String artisanImage;
   final String artisanDescription;
   final List<Map<String, String>> recipes;
+  final String storyImage;
+  final List<Map<String, String>> behindTheJar;
 
   Product({
     required this.name,
@@ -77,8 +81,19 @@ class Product {
     this.pairings = const ['Rice', 'Idli', 'Dosa'],
     this.reviews = const [],
     this.isBestSeller = false,
+    this.isMostLoved = false,
+    this.isFreshPick = false,
     this.origin = 'Coastal Andhra, India',
-    this.ingredients = const ['Fresh Produce', 'Cold Pressed Oil', 'Sea Salt', 'Traditional Spices'],
+    this.ingredients = const [
+      {'name': 'Raw Mangoes', 'image': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg'},
+      {'name': 'Pure Jaggery', 'image': 'assets/images/palli_patti_peanut_and_jaggery_chikki.jpg'},
+      {'name': 'Red Chilli Powder', 'image': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg'},
+      {'name': 'Mustard Seeds', 'image': 'assets/images/putnala_karam_podi_roasted_gram_spice_powder.jpg'},
+      {'name': 'Fenugreek Seeds', 'image': 'assets/images/menthi_podi_fenugreek_powder.jpg'},
+      {'name': 'Rock Salt', 'image': 'assets/images/haldi_powder_pure_turmeric_powder.jpg'},
+      {'name': 'Sesame Oil', 'image': 'assets/images/thill_patti_sesame_seed_and_jaggery_sweet.jpg'},
+      {'name': 'Spices', 'image': 'assets/images/garam_masala_powder_traditional_warm_spice_blend.jpg'},
+    ],
     this.preparationMethod = 'Handmade in small batches using traditional sun-drying and stone-grinding techniques. No heat is used in the spice grinding process to preserve essential oils.',
     this.shelfLife = '6 Months from date of manufacture',
     this.storageInstructions = 'Store in a cool, dry place. Use a dry spoon only. Ensure the oil layer covers the pickle for longevity.',
@@ -100,6 +115,14 @@ class Product {
       {'title': 'The Coastal Classic', 'instruction': 'Mix with steaming hot rice and a generous dollop of Desi Ghee for the most authentic experience.'},
       {'title': 'Spicy Marinade', 'instruction': 'Use 2 tablespoons as a marinade for grilled prawns or paneer to add a deep, tangy kick.'}
     ],
+    this.storyImage = '',
+    this.behindTheJar = const [
+      {'title': 'Origin', 'subtitle': 'Coastal Andhra, India', 'desc': 'Sourced from the finest mango farms.'},
+      {'title': 'Process', 'subtitle': 'Handmade & Sun-dried', 'desc': 'Sun-dried and mixed with traditional spices.'},
+      {'title': 'Prepared In', 'subtitle': 'Artisanal Kitchen', 'desc': 'Small batches, with care and hygiene.'},
+      {'title': 'Storage', 'subtitle': 'Glass Jars', 'desc': 'Stored in food-grade, airtight jars.'},
+      {'title': 'Shelf Life', 'subtitle': '12 Months', 'desc': 'Best before 12 months from packing date.'},
+    ],
   });
 
   Product copyWith({
@@ -114,7 +137,7 @@ class Product {
     List<Review>? reviews,
     bool? isBestSeller,
     String? origin,
-    List<String>? ingredients,
+    List<Map<String, String>>? ingredients,
     String? preparationMethod,
     String? shelfLife,
     String? storageInstructions,

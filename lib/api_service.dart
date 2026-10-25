@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = "http://api.adhvaithafoods.in/api";
+  static const String baseUrl = "https://api.adhvaithafoods.in/api";
 
   // Headers helper
   static Map<String, String> get _headers => {
@@ -72,6 +72,14 @@ class ApiService {
     required String userId,
     required String title,
     required String fullAddress,
+    String fullName = '',
+    String phone = '',
+    String pincode = '',
+    String city = '',
+    String state = '',
+    String houseNo = '',
+    String area = '',
+    String addressType = 'Home',
   }) async {
     try {
       final response = await http
@@ -212,10 +220,19 @@ class ApiService {
     Map<String, dynamic>? extraData,
   }) async {
     try {
+      final name = extraData?['name']?.toString() ?? 'User';
+      final email = extraData?['email']?.toString() ?? phone;
+
       final payload = {
         'user_id': userId,
-        'phone': phone, ...?extraData,
+        'id': userId,
+        'phone': phone,
+        'email': email,
+        'name': name,
+        'user_name': name,
+        ...?extraData,
       };
+      debugPrint("Saving user to $baseUrl/users.php with payload: $payload");
       final response = await http
           .post(
             Uri.parse("$baseUrl/users.php"),
@@ -224,7 +241,16 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 10));
 
-      return response.statusCode == 200;
+      debugPrint("users.php response status: ${response.statusCode}, body: ${response.body}");
+      if (response.statusCode == 200) {
+        try {
+          final res = jsonDecode(response.body);
+          if (res is Map) {
+            return res['success'] == true || res['status'] == 'success' || res['status'] == 'ok' || res['saved'] == true;
+          }
+        } catch (_) {}
+        return true;
+      }
     } catch (e) {
       debugPrint('ApiService error saving user: $e');
     }
@@ -263,7 +289,32 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final body = response.body.trim();
+        debugPrint("API Response for $docId: $body");
+        final decoded = jsonDecode(body);
+        
+        Map<String, dynamic> result = {};
+        if (decoded is Map<String, dynamic>) {
+          result = decoded;
+        } else if (decoded is Map) {
+          result = Map<String, dynamic>.from(decoded);
+        } else if (decoded is String) {
+          try {
+            final inner = jsonDecode(decoded);
+            if (inner is Map<String, dynamic>) {
+              result = inner;
+            } else if (inner is Map) {
+              result = Map<String, dynamic>.from(inner);
+            }
+          } catch (_) {}
+        }
+
+        if (result.containsKey('content') && result['content'] is Map) {
+          return Map<String, dynamic>.from(result['content']);
+        } else if (result.containsKey('data') && result['data'] is Map) {
+          return Map<String, dynamic>.from(result['data']);
+        }
+        return result;
       }
     } catch (e) {
       debugPrint('ApiService error fetching app config ($docId): $e');

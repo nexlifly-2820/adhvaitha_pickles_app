@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'api_service.dart';
 
 class AppConfigRepository {
@@ -65,21 +66,20 @@ class AppConfigRepository {
 
   // 7. Categories Section
   Stream<List<Map<String, dynamic>>> getCategoriesStream() async* {
-    yield List.from(_defaultCategories); // Instant baseline
+    yield List<Map<String, dynamic>>.from(_defaultCategories); // Instant baseline
     try {
       final data = await ApiService.getAppConfig('categories');
-      final List<dynamic> list = data['list'] ?? [];
+      final List<dynamic> list = data['list'] ?? data['categories'] ?? [];
       if (list.isNotEmpty) {
         List<Map<String, dynamic>> finalCategories = List.from(_defaultCategories);
         final List<Map<String, dynamic>> fetchedList = list.map((item) {
           final map = item as Map<String, dynamic>;
           return {
             'label': map['label']?.toString() ?? '',
-            'img': map['img']?.toString() ?? '',
+            'img': map['img']?.toString() ?? map['image']?.toString() ?? '',
             'tagline': map['tagline']?.toString() ?? '',
             'badge': map['badge']?.toString() ?? '',
             'description': map['description']?.toString() ?? '',
-            'banner_img': map['banner_img']?.toString() ?? '',
           };
         }).toList();
 
@@ -162,14 +162,55 @@ class AppConfigRepository {
     } catch (_) {}
   }
 
+  // 15. Categories Page Parent Cards (Ads / Banners)
+  Stream<List<Map<String, dynamic>>> getCategoryParentCardsStream() async* {
+    yield [
+      {'img': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'},
+      {'img': 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg'},
+    ];
+    try {
+      final data = await ApiService.getAppConfig('category_parent_cards');
+      final List<dynamic> list = data['list'] ?? data['banners'] ?? data['ads'] ?? [];
+      if (list.isNotEmpty) {
+        yield list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+      }
+    } catch (_) {}
+  }
+
   // 12. Perfect Pairings
-  Stream<List<Map<String, String>>> getPairingsStream() async* {
+  Stream<List<Map<String, dynamic>>> getPairingsStream() async* {
     yield [];
     try {
       final data = await ApiService.getAppConfig('pairings');
-      final List<dynamic> list = data['list'] ?? [];
-      yield list.map((item) => Map<String, String>.from(item)).toList();
-    } catch (_) {}
+      debugPrint("Pairings API fetched data: $data");
+      List<dynamic> list = [];
+      if (data.isNotEmpty) {
+        list = data['list'] ?? data['pairings'] ?? data['items'] ?? data['combos'] ?? data['data'] ?? [];
+        if (list.isEmpty && data['content'] is Map) {
+          final contentMap = data['content'] as Map;
+          list = contentMap['list'] ?? contentMap['pairings'] ?? contentMap['items'] ?? [];
+        } else if (list.isEmpty && data['content'] is List) {
+          list = data['content'] as List;
+        } else if (list.isEmpty) {
+          for (var val in data.values) {
+            if (val is List && val.isNotEmpty) {
+              list = val;
+              break;
+            }
+          }
+        }
+      }
+
+      debugPrint("Parsed pairings list length: ${list.length}");
+      if (list.isNotEmpty) {
+        yield list.map((item) => Map<String, dynamic>.from(item)).toList();
+      } else {
+        yield [];
+      }
+    } catch (e) {
+      debugPrint('Error loading pairings: $e');
+      yield [];
+    }
   }
 
   // 13. Heritage Story Banner
@@ -237,6 +278,18 @@ class AppConfigRepository {
     };
     try {
       final data = await ApiService.getAppConfig('billing_config');
+      if (data.isNotEmpty) yield data;
+    } catch (_) {}
+  }
+
+  // 19. Home Video Configuration
+  Stream<Map<String, dynamic>> getHomeVideoConfigStream() async* {
+    yield {
+      'enabled': true,
+      'video_url': 'assets/images/ambhujakshi-all.mp4',
+    };
+    try {
+      final data = await ApiService.getAppConfig('home_video');
       if (data.isNotEmpty) yield data;
     } catch (_) {}
   }

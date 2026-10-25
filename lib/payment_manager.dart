@@ -9,7 +9,7 @@ class PaymentManager {
   final Razorpay _razorpay = Razorpay();
   bool _isInitialized = false;
 
-  static const String _razorpayKeyId = "rzp_test_RsIb2qtwvvKvbV";
+  static const String _razorpayKeyId = "rzp_test_TnGowXx3bsrNOR";
 
   Function(PaymentSuccessResponse)? onSuccess;
   Function(PaymentFailureResponse)? onFailure;

@@ -44,8 +44,9 @@ class _ProductListingPageState extends State<ProductListingPage> {
         setState(() {
           categoryMeta = list.firstWhere(
             (c) =>
-                c['label'].toString().toLowerCase() ==
-                widget.category.toLowerCase(),
+                c['label'].toString().trim().toLowerCase() ==
+                widget.category.trim().toLowerCase() ||
+                c['label'].toString().trim().toLowerCase().contains(widget.category.trim().toLowerCase()),
             orElse: () => {},
           );
         });
@@ -259,51 +260,58 @@ class _ProductListingPageState extends State<ProductListingPage> {
     final isSnacks = cat.contains('snack');
     final isPickles = cat.contains('pickle');
 
-    final String tag = isSweets
-        ? 'TRADITIONAL SWEETS'
-        : isSpices
-            ? "NATURE'S"
-            : isSnacks
-                ? 'CRISPY HERITAGE DELIGHTS'
-                : isPickles
-                    ? 'AUTHENTIC COLLECTION'
-                    : 'HERITAGE COLLECTION';
+    final String tag = categoryMeta?['tag']?.toString() ??
+        categoryMeta?['tagline']?.toString() ??
+        (isSweets
+            ? 'TRADITIONAL SWEETS'
+            : isSpices
+                ? "NATURE'S"
+                : isSnacks
+                    ? 'CRISPY HERITAGE DELIGHTS'
+                    : isPickles
+                        ? 'AUTHENTIC COLLECTION'
+                        : 'HERITAGE COLLECTION');
 
-    final String titleLine1 = isSweets
-        ? 'Sweetness\n'
-        : isSpices
-            ? "NATURE'S\n"
-            : 'Traditional\n';
+    final String titleLine1 = categoryMeta?['title_line_1']?.toString() ??
+        (isSweets
+            ? 'Sweetness\n'
+            : isSpices
+                ? "NATURE'S\n"
+                : 'Traditional\n');
 
-    final String titleLine2 = isSweets
-        ? 'in Every Bite'
-        : isSpices
-            ? 'FINEST SPICES'
-            : isSnacks
-                ? 'Indian Snacks'
-                : isPickles
-                    ? '${widget.category} Pickles'
-                    : '${widget.category} Delights';
+    final String titleLine2 = categoryMeta?['title_line_2']?.toString() ??
+        categoryMeta?['title']?.toString() ??
+        (isSweets
+            ? 'in Every Bite'
+            : isSpices
+                ? 'FINEST SPICES'
+                : isSnacks
+                    ? 'Indian Snacks'
+                    : isPickles
+                        ? '${widget.category} Pickles'
+                        : '${widget.category} Delights');
 
-    final String sub = isSweets
-        ? 'Authentic recipes made with\npure ingredients.'
-        : isSpices
-            ? 'The authentic taste\nthat makes every meal special.'
-            : isSnacks
-                ? 'Authentic flavors crafted\nwith love and tradition.'
-                : isPickles
-                    ? 'Prepared using time-honored\nrecipes and premium ingredients.'
-                    : 'Handcrafted recipes passed\ndown through generations.';
+    final String sub = categoryMeta?['description']?.toString() ??
+        categoryMeta?['sub']?.toString() ??
+        (isSweets
+            ? 'Authentic recipes made with\npure ingredients.'
+            : isSpices
+                ? 'The authentic taste\nthat makes every meal special.'
+                : isSnacks
+                    ? 'Authentic flavors crafted\nwith love and tradition.'
+                    : isPickles
+                        ? 'Prepared using time-honored\nrecipes and premium ingredients.'
+                        : 'Handcrafted recipes passed\ndown through generations.');
 
-    final String bannerImg = isSweets
-        ? 'assets/images/gondh_laddu_edible_gum_laddu.jpg'
-        : isSpices
-            ? 'assets/images/garam_masala_powder_traditional_warm_spice_blend.jpg'
-            : isSnacks
-                ? 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg'
-                : categoryMeta?['banner_img']?.toString() ??
-                    categoryMeta?['img']?.toString() ??
-                    'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg';
+    final String bannerImg = categoryMeta?['banner_img']?.toString() ??
+        categoryMeta?['img']?.toString() ??
+        (isSweets
+            ? 'assets/images/gondh_laddu_edible_gum_laddu.jpg'
+            : isSpices
+                ? 'assets/images/garam_masala_powder_traditional_warm_spice_blend.jpg'
+                : isSnacks
+                    ? 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg'
+                    : 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg');
 
     final String sealLine1 = isSweets
         ? 'Good Food'

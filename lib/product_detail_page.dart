@@ -10,6 +10,7 @@ import 'checkout_page.dart';
 import 'navigation_util.dart';
 import 'product_repository.dart';
 import 'cloud_function_manager.dart';
+import 'main.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Product product;
@@ -21,7 +22,7 @@ class ProductDetailPage extends StatefulWidget {
 }
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
-  int quantity = 1;
+  int quantity = 0;
   late String selectedWeight;
   int _selectedImageIndex = 0;
   bool isTemperingRequested = false;
@@ -61,14 +62,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   String get _subtitle {
-    if (widget.product.name.toLowerCase().contains('bellam')) {
-      return 'Sweet Jaggery Mango Pickle';
-    } else if (widget.product.name.toLowerCase().contains('allam')) {
-      return 'Spicy Ginger Garlic Pickle';
-    } else if (widget.product.name.toLowerCase().contains('usiri')) {
-      return 'Traditional Amla Gooseberry Pickle';
+    if (widget.product.subCategory.isNotEmpty) {
+      return widget.product.subCategory;
     }
     return '${widget.product.category} Special';
+  }
+
+  String _getThreeLineDescription(String rawDesc) {
+    if (rawDesc.isNotEmpty) {
+      return rawDesc;
+    }
+    return 'Crafted with generations of traditional family expertise.\nSourced from the finest natural ingredients without any artificial preservatives.\nDelivers an authentic and unforgettable homemade taste in every bite.';
   }
 
   double get _originalPrice {
@@ -178,10 +182,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       leading: Padding(
         padding: const EdgeInsets.all(8.0),
         child: CircleAvatar(
-          backgroundColor: Colors.white.withValues(alpha: 0.9),
+          backgroundColor: const Color(0xFF18453B),
           child: IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF18453B), size: 18),
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
           ),
         ),
       ),
@@ -219,6 +223,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             icon: const Icon(Icons.share_outlined, color: Color(0xFF18453B), size: 20),
           ),
         ),
+        const SizedBox(width: 8),
+        const SizedBox(width: 8),
+        const GlobalCartBadge(),
         const SizedBox(width: 12),
       ],
       flexibleSpace: FlexibleSpaceBar(
@@ -247,36 +254,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
             ),
 
-            // Top Left Text Overlay: "Tradition in Every Morsel"
-            Positioned(
-              top: 70,
-              left: 28,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Tradition in Every',
-                    style: GoogleFonts.alexBrush(
-                      fontSize: 26,
-                      color: Colors.white,
-                      shadows: [
-                        const Shadow(color: Colors.black87, blurRadius: 8, offset: Offset(1, 1)),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    'Morsel',
-                    style: GoogleFonts.alexBrush(
-                      fontSize: 26,
-                      color: Colors.white,
-                      shadows: [
-                        const Shadow(color: Colors.black87, blurRadius: 8, offset: Offset(1, 1)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+
 
             // Top Right Circular Seal Badge: "AUTHENTIC ANDHRA PICKLES"
             Positioned(
@@ -313,36 +291,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
             ),
 
-            // Bottom Right Overlay: "Sweet Spicy Memorable"
-            Positioned(
-              bottom: 60,
-              right: 28,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Sweet Spicy',
-                    style: GoogleFonts.alexBrush(
-                      fontSize: 24,
-                      color: Colors.white,
-                      shadows: [
-                        const Shadow(color: Colors.black87, blurRadius: 8, offset: Offset(1, 1)),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    'Memorable',
-                    style: GoogleFonts.alexBrush(
-                      fontSize: 24,
-                      color: Colors.white,
-                      shadows: [
-                        const Shadow(color: Colors.black87, blurRadius: 8, offset: Offset(1, 1)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+
 
             // Overlay Pills on Bottom Left of main photo: (100% Natural, Traditional Recipe, No Preservatives)
             Positioned(
@@ -685,9 +634,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         ),
         const SizedBox(height: 12),
         Text(
-          widget.product.description.isEmpty
-              ? 'Sweet jaggery mango pickle. A perfect blend of juicy raw mangoes, pure jaggery and traditional Andhra spices, prepared with love and time-honored methods.'
-              : widget.product.description,
+          _getThreeLineDescription(widget.product.description),
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
           style: GoogleFonts.poppins(
             fontSize: 13,
             color: const Color(0xFF5A483C),
@@ -743,24 +692,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // SELECT WEIGHT & QUANTITY SELECTOR
   Widget _buildWeightAndQuantitySection() {
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'SELECT WEIGHT',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.5,
-            fontSize: 11,
-            color: Color(0xFF18453B),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            // Weight options
-            Expanded(
-              child: Wrap(
+        // Weight options section
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'SELECT WEIGHT',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                  fontSize: 11,
+                  color: Color(0xFF18453B),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: widget.product.weightPriceMap.keys.map((w) {
@@ -791,11 +741,26 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   );
                 }).toList(),
               ),
+            ],
+          ),
+        ),
+
+        const SizedBox(width: 12),
+
+        // Quantity selector section
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'QUANTITY',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+                fontSize: 11,
+                color: Color(0xFF18453B),
+              ),
             ),
-
-            const SizedBox(width: 12),
-
-            // Quantity selector: - 1 +
+            const SizedBox(height: 12),
             Container(
               height: 42,
               padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -997,16 +962,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // EXPANDED 1: INGREDIENTS
   Widget _buildExpandedIngredients() {
-    final ingredientsList = [
-      {'name': 'Raw Mangoes', 'image': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg'},
-      {'name': 'Pure Jaggery', 'image': 'assets/images/palli_patti_peanut_and_jaggery_chikki.jpg'},
-      {'name': 'Red Chilli Powder', 'image': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg'},
-      {'name': 'Mustard Seeds', 'image': 'assets/images/putnala_karam_podi_roasted_gram_spice_powder.jpg'},
-      {'name': 'Fenugreek Seeds', 'image': 'assets/images/menthi_podi_fenugreek_powder.jpg'},
-      {'name': 'Rock Salt', 'image': 'assets/images/haldi_powder_pure_turmeric_powder.jpg'},
-      {'name': 'Sesame Oil', 'image': 'assets/images/thill_patti_sesame_seed_and_jaggery_sweet.jpg'},
-      {'name': 'Spices', 'image': 'assets/images/garam_masala_powder_traditional_warm_spice_blend.jpg'},
-    ];
+    final List<Map<String, String>> ingredientsList = widget.product.ingredients.isNotEmpty
+        ? widget.product.ingredients
+        : [
+            {'name': 'Raw Mangoes', 'image': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg'},
+            {'name': 'Pure Jaggery', 'image': 'assets/images/palli_patti_peanut_and_jaggery_chikki.jpg'},
+            {'name': 'Red Chilli Powder', 'image': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg'},
+            {'name': 'Mustard Seeds', 'image': 'assets/images/putnala_karam_podi_roasted_gram_spice_powder.jpg'},
+            {'name': 'Fenugreek Seeds', 'image': 'assets/images/menthi_podi_fenugreek_powder.jpg'},
+            {'name': 'Rock Salt', 'image': 'assets/images/haldi_powder_pure_turmeric_powder.jpg'},
+            {'name': 'Sesame Oil', 'image': 'assets/images/thill_patti_sesame_seed_and_jaggery_sweet.jpg'},
+            {'name': 'Spices', 'image': 'assets/images/garam_masala_powder_traditional_warm_spice_blend.jpg'},
+          ];
 
     return Column(
       children: [
@@ -1022,6 +989,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ),
           itemBuilder: (context, index) {
             final item = ingredientsList[index];
+            final nameStr = item['name'] ?? item['title'] ?? '';
+            final imgPath = item['image'] ?? item['img'] ?? '';
             return Column(
               children: [
                 Container(
@@ -1034,16 +1003,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: Image.asset(
-                      item['image']!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) => const Icon(Icons.eco, color: Color(0xFF18453B)),
-                    ),
+                    child: imgPath.startsWith('http')
+                        ? Image.network(imgPath, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.eco, color: Color(0xFF18453B)))
+                        : Image.asset(imgPath.startsWith('assets/') ? imgPath : 'assets/images/$imgPath', fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.eco, color: Color(0xFF18453B))),
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  item['name']!,
+                  nameStr,
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF2A1C15)),
                   maxLines: 2,
@@ -1083,50 +1050,37 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
+  IconData _getBehindTheJarIcon(String title) {
+    title = title.toLowerCase();
+    if (title.contains('origin')) return Icons.location_on_rounded;
+    if (title.contains('process')) return Icons.eco_rounded;
+    if (title.contains('prepared') || title.contains('kitchen')) return Icons.soup_kitchen_rounded;
+    if (title.contains('storage') || title.contains('jar')) return Icons.takeout_dining_rounded;
+    if (title.contains('shelf') || title.contains('life')) return Icons.hourglass_top_rounded;
+    return Icons.check_circle_outline_rounded;
+  }
+
   // EXPANDED 2: BEHIND THE JAR
   Widget _buildExpandedBehindTheJar() {
-    final timelineItems = [
-      {
-        'icon': Icons.location_on_rounded,
-        'title': 'Origin',
-        'subtitle': widget.product.origin,
-        'desc': 'Sourced from the finest mango farms.',
-      },
-      {
-        'icon': Icons.eco_rounded,
-        'title': 'Process',
-        'subtitle': 'Handmade & Sun-dried',
-        'desc': widget.product.preparationMethod.isNotEmpty
-            ? widget.product.preparationMethod
-            : 'Sun-dried and mixed with traditional spices.',
-      },
-      {
-        'icon': Icons.soup_kitchen_rounded,
-        'title': 'Prepared In',
-        'subtitle': 'Artisanal Kitchen',
-        'desc': 'Small batches, with care and hygiene.',
-      },
-      {
-        'icon': Icons.takeout_dining_rounded,
-        'title': 'Storage',
-        'subtitle': 'Glass Jars',
-        'desc': widget.product.storageInstructions.isNotEmpty
-            ? widget.product.storageInstructions
-            : 'Stored in food-grade, airtight jars.',
-      },
-      {
-        'icon': Icons.hourglass_top_rounded,
-        'title': 'Shelf Life',
-        'subtitle': widget.product.shelfLife.isNotEmpty ? widget.product.shelfLife : '12 Months',
-        'desc': 'Best before 12 months from packing date.',
-      },
-    ];
+    final List<Map<String, String>> timelineItems = widget.product.behindTheJar.isNotEmpty
+        ? widget.product.behindTheJar
+        : [
+            {'title': 'Origin', 'subtitle': widget.product.origin, 'desc': 'Sourced from the finest mango farms.'},
+            {'title': 'Process', 'subtitle': 'Handmade & Sun-dried', 'desc': widget.product.preparationMethod.isNotEmpty ? widget.product.preparationMethod : 'Sun-dried and mixed with traditional spices.'},
+            {'title': 'Prepared In', 'subtitle': 'Artisanal Kitchen', 'desc': 'Small batches, with care and hygiene.'},
+            {'title': 'Storage', 'subtitle': 'Glass Jars', 'desc': widget.product.storageInstructions.isNotEmpty ? widget.product.storageInstructions : 'Stored in food-grade, airtight jars.'},
+            {'title': 'Shelf Life', 'subtitle': widget.product.shelfLife.isNotEmpty ? widget.product.shelfLife : '12 Months', 'desc': 'Best before 12 months from packing date.'},
+          ];
 
     return Column(
       children: timelineItems.asMap().entries.map((entry) {
         final idx = entry.key;
         final item = entry.value;
         final isLast = idx == timelineItems.length - 1;
+        final titleStr = item['title'] ?? item['name'] ?? '';
+        final subtitleStr = item['subtitle'] ?? item['sub'] ?? '';
+        final descStr = item['desc'] ?? item['description'] ?? '';
+        final iconData = _getBehindTheJarIcon(titleStr);
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1139,7 +1093,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     color: Color(0xFFFFF3D6),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(item['icon'] as IconData, color: const Color(0xFFC38D29), size: 16),
+                  child: Icon(iconData, color: const Color(0xFFC38D29), size: 16),
                 ),
                 if (!isLast)
                   Container(
@@ -1157,17 +1111,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item['title'] as String,
+                      titleStr,
                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Color(0xFF18453B)),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      item['subtitle'] as String,
+                      subtitleStr,
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF2A1C15)),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      item['desc'] as String,
+                      descStr,
                       style: TextStyle(fontSize: 11, color: Colors.grey.shade700, height: 1.3),
                     ),
                   ],
@@ -1258,28 +1212,34 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // EXPANDED 4: ROYAL RECIPES
   Widget _buildExpandedRoyalRecipes() {
-    final recipeCards = [
-      {
-        'title': 'Avakaya with Hot Rice',
-        'desc': 'A timeless classic.',
-        'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-      },
-      {
-        'title': 'Avakaya Paratha',
-        'desc': 'A spicy twist.',
-        'image': 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg',
-      },
-      {
-        'title': 'Avakaya Curd Rice',
-        'desc': 'Simple & delicious.',
-        'image': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg',
-      },
-      {
-        'title': 'Avakaya Dosa',
-        'desc': 'Perfect combo.',
-        'image': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
-      },
-    ];
+    final List<Map<String, String>> recipeCards = widget.product.recipes.isNotEmpty
+        ? widget.product.recipes
+        : [
+            {
+              'title': 'Avakaya with Hot Rice',
+              'subtitle': 'A timeless classic.',
+              'instruction': 'A timeless classic.',
+              'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+            },
+            {
+              'title': 'Avakaya Paratha',
+              'subtitle': 'A spicy twist.',
+              'instruction': 'A spicy twist.',
+              'image': 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg',
+            },
+            {
+              'title': 'Avakaya Curd Rice',
+              'subtitle': 'Simple & delicious.',
+              'instruction': 'Simple & delicious.',
+              'image': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg',
+            },
+            {
+              'title': 'Avakaya Dosa',
+              'subtitle': 'Perfect combo.',
+              'instruction': 'Perfect combo.',
+              'image': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+            },
+          ];
 
     return SizedBox(
       height: 160,
@@ -1288,6 +1248,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         itemCount: recipeCards.length,
         itemBuilder: (context, index) {
           final recipe = recipeCards[index];
+          final imgPath = recipe['image'] ?? recipe['img'] ?? '';
+          final title = recipe['title'] ?? '';
+          final subtitle = recipe['subtitle'] ?? recipe['instruction'] ?? recipe['desc'] ?? '';
           return Container(
             width: 130,
             margin: const EdgeInsets.only(right: 12),
@@ -1301,11 +1264,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                  child: Image.asset(
-                    recipe['image']!,
+                  child: SizedBox(
                     height: 90,
                     width: double.infinity,
-                    fit: BoxFit.cover,
+                    child: imgPath.startsWith('http')
+                        ? Image.network(imgPath, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200))
+                        : Image.asset(imgPath.startsWith('assets/') ? imgPath : 'assets/images/$imgPath', fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade200)),
                   ),
                 ),
                 Padding(
@@ -1314,7 +1278,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        recipe['title']!,
+                        title,
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -1325,7 +1289,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        recipe['desc']!,
+                        subtitle,
                         style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1544,13 +1508,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       child: OutlinedButton.icon(
                         onPressed: () {
                           HapticFeedback.mediumImpact();
+                          final qty = quantity > 0 ? quantity : 1;
                           CartManager().addToCart(
                             widget.product,
-                            quantity: quantity,
+                            quantity: qty,
                             weight: selectedWeight,
                             isTemperingRequested: isTemperingRequested,
                             chefNote: isTemperingRequested ? _chefNoteController.text : null,
                           );
+                          setState(() {
+                            quantity = 1;
+                          });
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Added to Cart!'),
@@ -1578,9 +1546,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       child: ElevatedButton.icon(
                         onPressed: () {
                           HapticFeedback.heavyImpact();
+                          final qty = quantity > 0 ? quantity : 1;
                           CartManager().addToCart(
                             widget.product,
-                            quantity: quantity,
+                            quantity: qty,
                             weight: selectedWeight,
                             isTemperingRequested: isTemperingRequested,
                             chefNote: isTemperingRequested ? _chefNoteController.text : null,

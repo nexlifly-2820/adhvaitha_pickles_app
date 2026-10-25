@@ -16,12 +16,9 @@ class OnboardingPage extends StatefulWidget {
 class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
-  int _selectedTasteIndex = 1;
 
   List<Map<String, String>> _steps = [];
-  List<Map<String, dynamic>> _tasteOptions = [];
   StreamSubscription? _onboardingSub;
-  StreamSubscription? _tasteSub;
 
   @override
   void initState() {
@@ -40,22 +37,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
         });
       }
     });
-
-    _tasteSub = AppConfigRepository().getTasteOptionsStream().listen((data) {
-      if (mounted) {
-        setState(() {
-          if (data.isNotEmpty) {
-            _tasteOptions = data;
-          }
-        });
-      }
-    });
   }
 
   @override
   void dispose() {
     _onboardingSub?.cancel();
-    _tasteSub?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -72,9 +58,25 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
+  Widget _buildOnboardingImage(String imgPath) {
+    if (imgPath.startsWith('http://') || imgPath.startsWith('https://')) {
+      return Image.network(
+        imgPath,
+        fit: BoxFit.cover,
+        errorBuilder: (c, e, s) => Image.asset('assets/images/onboarding1.jpg', fit: BoxFit.cover),
+      );
+    } else {
+      return Image.asset(
+        imgPath,
+        fit: BoxFit.cover,
+        errorBuilder: (c, e, s) => Image.asset('assets/images/onboarding1.jpg', fit: BoxFit.cover),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final steps = _defaultSteps;
+    final steps = _steps.isNotEmpty ? _steps : _defaultSteps;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -94,11 +96,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             children: [
               // 1. Background Image
               Positioned.fill(
-                child: Image.asset(
-                  imgPath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (c, e, s) => Image.asset('assets/images/onboarding1.jpg', fit: BoxFit.cover),
-                ),
+                child: _buildOnboardingImage(imgPath),
               ),
 
               // 2. Dark Gradient Overlay

@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'api_service.dart';
 import 'models.dart';
 import 'product_manager.dart';
+import 'user_manager.dart';
 
 class OrderManager extends ChangeNotifier {
   static final OrderManager _instance = OrderManager._internal();
@@ -15,6 +15,15 @@ class OrderManager extends ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  int _orderSequence = 1;
+
+  String generateNextOrderId() {
+    final year = DateTime.now().year;
+    final currentCount = _orders.length + _orderSequence;
+    _orderSequence++;
+    return 'AMBJ$year$currentCount';
+  }
 
   Timer? _pollingTimer;
 
@@ -28,23 +37,36 @@ class OrderManager extends ChangeNotifier {
   }
 
   Future<void> fetchOrders({bool showLoading = true}) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    final userId = UserManager().currentUserId;
 
-    if (showLoading) {
+    if (showLoading && _orders.isEmpty) {
       _isLoading = true;
       notifyListeners();
     }
 
     try {
-      final rawOrders = await ApiService.getUserOrders(user.uid);
+      final rawOrders = await ApiService.getUserOrders(userId);
       if (rawOrders.isNotEmpty) {
-        _orders = rawOrders.map((json) => _mapJsonToOrder(json)).toList();
+        final fetchedOrders = rawOrders.map((json) => _mapJsonToOrder(json)).toList();
+        final existingIds = _orders.map((o) => o.id).toSet();
+        for (var fo in fetchedOrders) {
+          if (!existingIds.contains(fo.id)) {
+            _orders.add(fo);
+          }
+        }
+        _orders.sort((a, b) => b.date.compareTo(a.date));
       }
     } catch (e) {
       print('Error fetching orders: $e');
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void addOrder(Order order) {
+    if (!_orders.any((o) => o.id == order.id)) {
+      _orders.insert(0, order);
       notifyListeners();
     }
   }
@@ -91,7 +113,7 @@ class OrderManager extends ChangeNotifier {
     }
 
     return Order(
-      id: data['orderId']?.toString() ?? data['id']?.toString() ?? 'ADH-000',
+      id: data['orderId']?.toString() ?? data['order_id']?.toString() ?? data['id']?.toString() ?? 'AMBJ${DateTime.now().year}1',
       items: items,
       subtotal: (data['subtotal'] as num?)?.toDouble() ?? 0.0,
       deliveryFee: (data['deliveryFee'] as num?)?.toDouble() ?? 0.0,

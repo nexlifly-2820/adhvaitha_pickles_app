@@ -466,7 +466,7 @@ class GlobalCartBadge extends StatelessWidget {
     return ListenableBuilder(
       listenable: CartManager(),
       builder: (context, _) {
-        int count = CartManager().items.length;
+        int count = CartManager().items.fold(0, (sum, item) => sum + item.quantity);
         return Padding(
           padding: const EdgeInsets.only(right: 14, top: 8, bottom: 8),
           child: Stack(
@@ -480,19 +480,19 @@ class GlobalCartBadge extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: const Color(0xFFFFF8E1),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
+                        color: const Color(0xFFD4AF37).withValues(alpha: 0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
                       )
                     ],
                   ),
                   child: const Icon(
-                    Icons.shopping_bag_outlined,
-                    color: Color(0xFF18453B),
+                    Icons.shopping_bag_rounded,
+                    color: Color(0xFFD4AF37),
                     size: 20,
                   ),
                 ),

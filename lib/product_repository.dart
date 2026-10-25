@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'models.dart';
@@ -71,7 +72,15 @@ class ProductRepository {
       rating: 4.9, image: 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', 
       color: const Color(0xFF18453B), category: 'Pickles', isBestSeller: true, reviews: _mockReviews,
       pairings: ['Chakinalu', 'Sunnunda Laddu', 'Garam Masala'],
-      ingredients: ['Premium Mango', 'Pure Jaggery', 'Cold-Pressed Peanut Oil', 'Mustard Seeds', 'Fenugreek', 'Red Chilli Powder', 'Sea Salt'],
+      ingredients: [
+        {'name': 'Premium Mango', 'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'},
+        {'name': 'Pure Jaggery', 'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'},
+        {'name': 'Cold-Pressed Peanut Oil', 'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'},
+        {'name': 'Mustard Seeds', 'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'},
+        {'name': 'Fenugreek', 'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'},
+        {'name': 'Red Chilli Powder', 'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'},
+        {'name': 'Sea Salt', 'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'},
+      ],
       preparationMethod: 'Mangoes are hand-cut and sun-dried for 48 hours. Spices are stone-ground to retain aroma. Mixed in small batches and aged for 15 days.',
       storageInstructions: 'Keep in an airtight glass jar. Always use a dry spoon. Ensure mango pieces are submerged in oil to prevent spoilage.',
       servingSuggestion: 'Pairs best with steaming hot rice and a dollop of ghee. Also complements breakfast items like Idli and Dosa.',
@@ -94,7 +103,15 @@ class ProductRepository {
       rating: 4.9, image: 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg', 
       color: const Color(0xFF18453B), category: 'Pickles', isBestSeller: true, reviews: _mockReviews,
       pairings: ['Bundhi', 'Gondh Laddu', 'Sambar Masala Powder'],
-      ingredients: ['Fresh Ginger', 'Garlic Cloves', 'Tamarind', 'Cold-Pressed Oil', 'Red Chilli', 'Turmeric', 'Sea Salt'],
+      ingredients: [
+        {'name': 'Fresh Ginger', 'image': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'},
+        {'name': 'Garlic Cloves', 'image': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'},
+        {'name': 'Tamarind', 'image': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'},
+        {'name': 'Cold-Pressed Oil', 'image': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'},
+        {'name': 'Red Chilli', 'image': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'},
+        {'name': 'Turmeric', 'image': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'},
+        {'name': 'Sea Salt', 'image': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg'},
+      ],
       preparationMethod: 'Ginger and Garlic are crushed using a traditional stone mortar. Tamarind pulp is reduced slowly to concentrate flavors. No water added.',
       servingSuggestion: 'Best enjoyed with Curd Rice, Pesarattu, or as a side for hot Parathas.',
       secretIngredient: _secretGarlic,
@@ -433,8 +450,14 @@ class ProductRepository {
     yield allProducts; // Instant render
     try {
       final list = await ApiService.getProducts();
+      debugPrint("API fetched products raw list length: ${list.length}");
       if (list.isNotEmpty) {
-        yield list.map((item) => _mapToProduct(item is Map<String, dynamic> ? item : Map<String, dynamic>.from(item))).toList();
+        final mapped = list.map((item) {
+          debugPrint("Mapping product item: $item");
+          return _mapToProduct(item is Map<String, dynamic> ? item : Map<String, dynamic>.from(item));
+        }).toList();
+        debugPrint("Successfully mapped ${mapped.length} API products.");
+        yield mapped;
       }
     } catch (e) {
       debugPrint('Error loading products stream: $e');
@@ -456,18 +479,39 @@ class ProductRepository {
   Product _mapToProduct(Map<String, dynamic> data) {
     // 1. SAFE WEIGHT MAP PARSING
     Map<String, double> safeWeightMap = {};
-    if (data['weightPriceMap'] != null && data['weightPriceMap'] is Map) {
-      (data['weightPriceMap'] as Map).forEach((k, v) {
-        safeWeightMap[k.toString()] = (v as num).toDouble();
-      });
+    if (data['weightPriceMap'] != null) {
+      if (data['weightPriceMap'] is Map) {
+        (data['weightPriceMap'] as Map).forEach((k, v) {
+          safeWeightMap[k.toString()] = double.tryParse(v.toString()) ?? 100.0;
+        });
+      } else if (data['weightPriceMap'] is String) {
+        try {
+          final decoded = jsonDecode(data['weightPriceMap']);
+          if (decoded is Map) {
+            decoded.forEach((k, v) {
+              safeWeightMap[k.toString()] = double.tryParse(v.toString()) ?? 100.0;
+            });
+          }
+        } catch (_) {}
+      }
+    }
+    if (safeWeightMap.isEmpty && data['weight_price_json'] != null) {
+      try {
+        final decoded = jsonDecode(data['weight_price_json'].toString());
+        if (decoded is Map) {
+          decoded.forEach((k, v) {
+            safeWeightMap[k.toString()] = double.tryParse(v.toString()) ?? 100.0;
+          });
+        }
+      } catch (_) {}
     }
     if (safeWeightMap.isEmpty) {
       // Find local product to get actual weights
-      final localProduct = allProducts.where((p) => p.name == (data['name']?.toString() ?? '')).firstOrNull;
+      final localProduct = allProducts.where((p) => p.name.trim().toLowerCase() == (data['name']?.toString() ?? '').trim().toLowerCase()).firstOrNull;
       if (localProduct != null) {
         safeWeightMap = localProduct.weightPriceMap;
       } else {
-        safeWeightMap = {"250g": 180.0, "500g": 350.0, "1kg": 680.0};
+        safeWeightMap = {"250g": 120.0, "500g": 228.0};
       }
     }
 
@@ -490,27 +534,90 @@ class ProductRepository {
     if (data['recipes'] != null && data['recipes'] is List) {
       for (var r in (data['recipes'] as List)) {
         if (r is Map) {
+          final title = r['title']?.toString() ?? '';
+          final subtitle = r['subtitle']?.toString() ?? r['instruction']?.toString() ?? r['desc']?.toString() ?? '';
+          final image = r['image']?.toString() ?? r['img']?.toString() ?? '';
           safeRecipes.add({
-            'title': r['title']?.toString() ?? '',
-            'instruction': r['instruction']?.toString() ?? '',
+            'title': title,
+            'subtitle': subtitle,
+            'instruction': subtitle,
+            'image': image,
+            'img': image,
           });
         }
       }
     }
 
+    // 4. SAFE INGREDIENTS
+    List<Map<String, String>> safeIngredients = [];
+    if (data['ingredients'] != null && data['ingredients'] is List) {
+      for (var i in (data['ingredients'] as List)) {
+        if (i is Map) {
+          safeIngredients.add({
+            'name': i['name']?.toString() ?? i['title']?.toString() ?? '',
+            'image': i['image']?.toString() ?? i['img']?.toString() ?? '',
+          });
+        } else if (i is String) {
+          safeIngredients.add({
+            'name': i,
+            'image': 'assets/images/allam_velluli_pickle_ginger_garlic_spice_powder.jpg',
+          });
+        }
+      }
+    }
+
+    // 5. SAFE BEHIND THE JAR
+    List<Map<String, String>> safeBehindTheJar = [];
+    if (data['behindTheJar'] != null && data['behindTheJar'] is List) {
+      for (var b in (data['behindTheJar'] as List)) {
+        if (b is Map) {
+          safeBehindTheJar.add({
+            'title': b['title']?.toString() ?? '',
+            'subtitle': b['subtitle']?.toString() ?? '',
+            'desc': b['desc']?.toString() ?? '',
+          });
+        }
+      }
+    }
+
+    final bool isBestSeller = data['isBestSeller'] == true || data['isBestSeller'] == 1 || data['isBestSeller'] == '1' || data['isBestSeller'].toString().toLowerCase() == 'true' ||
+        data['is_bestseller'] == true || data['is_bestseller'] == 1 || data['is_bestseller'] == '1' || data['is_bestseller'].toString().toLowerCase() == 'true';
+
+    final bool isMostLoved = data['isMostLoved'] == true || data['isMostLoved'] == 1 || data['isMostLoved'] == '1' || data['isMostLoved'].toString().toLowerCase() == 'true' ||
+        data['is_most_loved'] == true || data['is_most_loved'] == 1 || data['is_most_loved'] == '1' || data['is_most_loved'].toString().toLowerCase() == 'true';
+
+    final bool isFreshPick = data['isFreshPick'] == true || data['isFreshPick'] == 1 || data['isFreshPick'] == '1' || data['isFreshPick'].toString().toLowerCase() == 'true' ||
+        data['is_fresh_pick'] == true || data['is_fresh_pick'] == 1 || data['is_fresh_pick'] == '1' || data['is_fresh_pick'].toString().toLowerCase() == 'true';
+
+    final bool isOutOfStock = data['isOutOfStock'] == true || data['isOutOfStock'] == 1 || data['isOutOfStock'] == '1' || data['isOutOfStock'].toString().toLowerCase() == 'true' ||
+        data['is_out_of_stock'] == true || data['is_out_of_stock'] == 1 || data['is_out_of_stock'] == '1' || data['is_out_of_stock'].toString().toLowerCase() == 'true';
+
+    final bool isVeg = data['isVeg'] != false && data['isVeg'] != 0 && data['isVeg'] != '0' && data['isVeg'].toString().toLowerCase() != 'false' && data['isVeg'].toString().toLowerCase() != '0' &&
+        data['is_veg'] != false && data['is_veg'] != 0 && data['is_veg'] != '0' && data['is_veg'].toString().toLowerCase() != 'false' && data['is_veg'].toString().toLowerCase() != '0';
+
+    final String name = data['name']?.toString() ?? data['product_name']?.toString() ?? 'Royal Pickle';
+    final String description = data['description']?.toString() ?? data['desc']?.toString() ?? data['summary']?.toString() ?? '';
+    final String image = data['image']?.toString() ?? data['img']?.toString() ?? data['product_image']?.toString() ?? 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg';
+    final String category = data['category']?.toString() ?? data['category_name']?.toString() ?? 'Pickles';
+    final String subCategory = data['subCategory']?.toString() ?? data['sub_category']?.toString() ?? data['subcategory']?.toString() ?? data['subtitle']?.toString() ?? 'Classic';
+
+    debugPrint("Mapped Product -> name: $name, subCategory: $subCategory, isMostLoved: $isMostLoved, desc: $description");
+
     return Product(
-      name: data['name']?.toString() ?? 'Royal Pickle',
-      description: data['description']?.toString() ?? '',
+      name: name,
+      description: description,
       weightPriceMap: safeWeightMap,
       rating: (data['rating'] as num?)?.toDouble() ?? 5.0,
-      image: data['image']?.toString() ?? 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
+      image: image,
       color: Color(int.tryParse(data['color']?.toString() ?? '0xFF18453B') ?? 0xFF18453B),
-      category: data['category']?.toString() ?? 'Pickles',
-      isBestSeller: data['isBestSeller'] == true,
-      isOutOfStock: data['isOutOfStock'] == true,
+      category: category,
+      isBestSeller: isBestSeller,
+      isMostLoved: isMostLoved,
+      isFreshPick: isFreshPick,
+      isOutOfStock: isOutOfStock,
       stockCount: (data['stockCount'] as num?)?.toInt() ?? 100,
-      isVeg: data['isVeg'] != false, // Default to true unless explicitly false
-      subCategory: data['subCategory']?.toString() ?? 'Classic',
+      isVeg: isVeg,
+      subCategory: subCategory,
       viewCount: (data['viewCount'] as num?)?.toInt() ?? 42,
       purchaseCount: (data['purchaseCount'] as num?)?.toInt() ?? 15,
       trustBadges: List<String>.from(data['trustBadges'] as List? ?? ['Zero Preservatives', 'Sun-Dried', 'Hand-Sorted', 'Stone-Pounded']),
@@ -520,7 +627,7 @@ class ProductRepository {
       recipes: safeRecipes,
       pairings: List<String>.from(data['pairings'] as List? ?? []),
       origin: data['origin']?.toString() ?? 'Coastal Andhra, India',
-      ingredients: List<String>.from(data['ingredients'] as List? ?? []),
+      ingredients: safeIngredients,
       preparationMethod: data['preparationMethod']?.toString() ?? '',
       shelfLife: data['shelfLife']?.toString() ?? '',
       storageInstructions: data['storageInstructions']?.toString() ?? '',
@@ -532,6 +639,8 @@ class ProductRepository {
         image: data['secretIngredient']?['image']?.toString() ?? 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
       ),
       sommelierPairings: safePairings,
+      storyImage: data['storyImage']?.toString() ?? '',
+      behindTheJar: safeBehindTheJar,
     );
   }
 
@@ -555,6 +664,8 @@ class ProductRepository {
       'color': p.color.value,
       'category': p.category,
       'isBestSeller': p.isBestSeller,
+      'isMostLoved': p.isMostLoved,
+      'isFreshPick': p.isFreshPick,
       'isOutOfStock': p.isOutOfStock,
       'stockCount': p.stockCount,
       'isVeg': p.isVeg,
@@ -562,10 +673,12 @@ class ProductRepository {
       'viewCount': p.viewCount,
       'purchaseCount': p.purchaseCount,
       'trustBadges': p.trustBadges,
+      'storyImage': p.storyImage,
       'artisanName': p.artisanName,
       'artisanImage': p.artisanImage,
       'artisanDescription': p.artisanDescription,
       'recipes': p.recipes,
+      'behindTheJar': p.behindTheJar,
       'pairings': p.pairings,
       'origin': p.origin,
       'ingredients': p.ingredients,

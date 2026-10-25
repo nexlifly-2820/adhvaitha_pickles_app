@@ -27,6 +27,9 @@ dependencies:
   speech_to_text: ^7.4.0
   razorpay_flutter: ^1.4.5
   path_provider: ^2.1.2
+  video_player: ^2.9.2
+  cached_network_image: ^3.3.1
+  sqflite: 2.3.3+1
 
 dev_dependencies:
   flutter_test:

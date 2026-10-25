@@ -13,6 +13,11 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'cart_manager.dart';
 import 'cloud_function_manager.dart';
 import 'payment_manager.dart';
+import 'address_manager.dart';
+import 'shipping_address_page.dart';
+import 'order_manager.dart';
+import 'models/order_item.dart';
+import 'screens/order_confirmation_screen.dart';
 import 'main.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -47,11 +52,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void initState() {
     super.initState();
     _loadServiceability();
+    CartManager().addListener(_onCartUpdated);
     PaymentManager().setupCallbacks(
       onSuccess: _handlePaymentSuccess,
       onFailure: _handlePaymentError,
       onExternalWallet: _handleExternalWallet,
     );
+  }
+
+  void _onCartUpdated() {
+    if (mounted) setState(() {});
   }
 
   void _loadServiceability() {
@@ -67,6 +77,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   @override
   void dispose() {
+    CartManager().removeListener(_onCartUpdated);
     _pincodeController.dispose();
     _cityController.dispose();
     _stateController.dispose();
@@ -123,8 +134,34 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     if (!mounted) return;
     if (result['success'] == true) {
-      cart.clearCart();
-      _showSuccess();
+      final String realOrderId =
+          (result['orderId'] ?? result['order_id'] ?? '').toString();
+
+      final orderItems = cart.items.map((ci) {
+        return OrderItem(
+          productId: ci.product.name,
+          name: ci.product.name,
+          category: ci.product.category,
+          weight: ci.weight,
+          qty: ci.quantity,
+          price: ci.product.getRawPriceForWeight(ci.weight),
+          imageUrl: ci.product.image,
+        );
+      }).toList();
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderConfirmationScreen(
+            orderId: realOrderId.isNotEmpty ? realOrderId : null,
+            cartItems: orderItems,
+            total: cart.total,
+            shippingAddress:
+                '${_addressController.text}, ${_areaController.text}, ${_cityController.text} - ${_pincodeController.text}',
+            paymentMethod: _selectedPayment,
+          ),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(result['message'] ?? 'Order failed. Please try again.'),
@@ -480,6 +517,102 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Saved Addresses Selector (if any)
+        ListenableBuilder(
+          listenable: AddressManager(),
+          builder: (context, _) {
+            final savedAddresses = AddressManager().addresses;
+            if (savedAddresses.isEmpty) return const SizedBox.shrink();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCardContainer(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'CHOOSE SAVED ADDRESS',
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13, color: const Color(0xFF0F382C)),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const ShippingAddressPage()));
+                            },
+                            child: Text('Manage', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFFE0A328))),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 90,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: savedAddresses.length,
+                          itemBuilder: (context, index) {
+                            final addr = savedAddresses[index];
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (addr.fullName.isNotEmpty) _nameController.text = addr.fullName;
+                                  if (addr.phone.isNotEmpty) _phoneController.text = addr.phone;
+                                  if (addr.secondaryPhone.isNotEmpty) _secondaryPhoneController.text = addr.secondaryPhone;
+                                  if (addr.pincode.isNotEmpty) _pincodeController.text = addr.pincode;
+                                  if (addr.city.isNotEmpty) _cityController.text = addr.city;
+                                  if (addr.state.isNotEmpty) _stateController.text = addr.state;
+                                  if (addr.houseNo.isNotEmpty) _addressController.text = addr.houseNo;
+                                  if (addr.area.isNotEmpty) _areaController.text = addr.area;
+                                  if (addr.addressType.isNotEmpty) _addressType = addr.addressType;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Selected address: ${addr.title}'), backgroundColor: const Color(0xFF0F382C)),
+                                );
+                              },
+                              child: Container(
+                                width: 220,
+                                margin: const EdgeInsets.only(right: 10),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF9F6EE),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: const Color(0xFFE5C778), width: 1.2),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.location_on, size: 14, color: Color(0xFF0F382C)),
+                                        const SizedBox(width: 4),
+                                        Text(addr.title.toUpperCase(), style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 11, color: const Color(0xFF0F382C))),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      addr.fullAddress,
+                                      style: GoogleFonts.poppins(fontSize: 10.5, color: Colors.grey.shade700),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+            );
+          },
+        ),
+
         // 1. Contact Information Card
         _buildCardContainer(
           child: Column(
@@ -803,26 +936,31 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _trustItem(Icons.verified_user_rounded, '100% Secure Payments'),
-        Container(width: 1, height: 12, color: Colors.grey.shade400, margin: const EdgeInsets.symmetric(horizontal: 10)),
-        _trustItem(Icons.local_shipping_rounded, 'Fresh Delivery Across India'),
-        Container(width: 1, height: 12, color: Colors.grey.shade400, margin: const EdgeInsets.symmetric(horizontal: 10)),
-        _trustItem(Icons.eco_rounded, 'Authentic Andhra Flavours'),
+        Expanded(child: _trustItem(Icons.verified_user_rounded, '100% Secure')),
+        Container(width: 1, height: 12, color: Colors.grey.shade400, margin: const EdgeInsets.symmetric(horizontal: 6)),
+        Expanded(child: _trustItem(Icons.local_shipping_rounded, 'Fast Delivery')),
+        Container(width: 1, height: 12, color: Colors.grey.shade400, margin: const EdgeInsets.symmetric(horizontal: 6)),
+        Expanded(child: _trustItem(Icons.eco_rounded, 'Authentic')),
       ],
     );
   }
 
   Widget _trustItem(IconData icon, String label) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 12, color: const Color(0xFFE0A328)),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey.shade800,
+        Icon(icon, size: 11, color: const Color(0xFFE0A328)),
+        const SizedBox(width: 3),
+        Flexible(
+          child: Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 8.5,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade800,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -1334,7 +1472,101 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          Text(
+            'Available Coupons',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 11.5,
+              color: const Color(0xFF0F382C),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 60,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  _buildEligibleCouponChip(context, cart, 'FIRST30', '30% OFF', 'Min. order ₹500'),
+                  const SizedBox(width: 8),
+                  _buildEligibleCouponChip(context, cart, 'PICKLE100', '₹100 OFF', 'Min. order ₹999'),
+                  const SizedBox(width: 8),
+                  _buildEligibleCouponChip(context, cart, 'FESTIVE20', '20% OFF', 'Min. order ₹1500'),
+                  const SizedBox(width: 8),
+                  _buildEligibleCouponChip(context, cart, 'FREESHIP', 'FREE SHIP', 'All orders'),
+                ],
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEligibleCouponChip(BuildContext context, CartManager cart, String code, String title, String desc) {
+    final bool isApplied = cart.appliedPromoCode == code;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        if (isApplied) {
+          cart.removePromoCode();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Coupon $code removed'), backgroundColor: const Color(0xFF8B1E1E), behavior: SnackBarBehavior.floating),
+          );
+        } else {
+          if (cart.applyPromoCode(code)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Coupon $code applied!'), backgroundColor: const Color(0xFF0F382C), behavior: SnackBarBehavior.floating),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Could not apply coupon (check min. order)'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+            );
+          }
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isApplied ? const Color(0xFF0F382C) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isApplied ? const Color(0xFF0F382C) : const Color(0xFFC8E6C9),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.local_offer_rounded, size: 12, color: isApplied ? const Color(0xFFE5C158) : const Color(0xFF0F382C)),
+                const SizedBox(width: 4),
+                Text(
+                  code,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11.5,
+                    color: isApplied ? Colors.white : const Color(0xFF0F382C),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: isApplied ? const Color(0xFFE5C158) : Colors.grey.shade700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1761,32 +1993,44 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.verified_rounded, size: 12, color: Color(0xFF2E7D32)),
-        const SizedBox(width: 4),
-        Text(
-          'SSL Secured',
-          style: GoogleFonts.poppins(
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey.shade800,
+        const Icon(Icons.verified_rounded, size: 11, color: Color(0xFF2E7D32)),
+        const SizedBox(width: 3),
+        Flexible(
+          child: Text(
+            'SSL Secured',
+            style: GoogleFonts.poppins(
+              fontSize: 8.5,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade800,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        Container(width: 1, height: 10, color: Colors.grey.shade400, margin: const EdgeInsets.symmetric(horizontal: 10)),
-        Text(
-          'Powered by Razorpay',
-          style: GoogleFonts.poppins(
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey.shade800,
+        Container(width: 1, height: 10, color: Colors.grey.shade400, margin: const EdgeInsets.symmetric(horizontal: 6)),
+        Flexible(
+          child: Text(
+            'Powered by Razorpay',
+            style: GoogleFonts.poppins(
+              fontSize: 8.5,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade800,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        Container(width: 1, height: 10, color: Colors.grey.shade400, margin: const EdgeInsets.symmetric(horizontal: 10)),
-        Text(
-          'Your Trust, Our Priority',
-          style: GoogleFonts.poppins(
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey.shade800,
+        Container(width: 1, height: 10, color: Colors.grey.shade400, margin: const EdgeInsets.symmetric(horizontal: 6)),
+        Flexible(
+          child: Text(
+            'Your Trust, Our Priority',
+            style: GoogleFonts.poppins(
+              fontSize: 8.5,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade800,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -1848,7 +2092,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget _buildPrimaryButton(CartManager cart) {
     String buttonText = 'Continue to Billing';
     if (_currentStep == 1) buttonText = 'Continue to Payment';
-    if (_currentStep == 2) buttonText = 'PROCEED TO PAY ₹${cart.total.toStringAsFixed(0)}';
+    if (_currentStep == 2) {
+      if (_selectedPayment == 'Cash on Delivery') {
+        buttonText = 'PLACE ORDER';
+      } else {
+        buttonText = 'PROCEED TO PAY ₹${cart.total.toStringAsFixed(0)}';
+      }
+    }
 
     return Column(
       children: [

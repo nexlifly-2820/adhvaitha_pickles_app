@@ -1,7 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'address_manager.dart';
 import 'api_service.dart';
 import 'models.dart';
+import 'order_manager.dart';
+import 'user_manager.dart';
 
 class CloudFunctionManager {
   static final CloudFunctionManager _instance = CloudFunctionManager._internal();
@@ -9,24 +10,59 @@ class CloudFunctionManager {
   CloudFunctionManager._internal();
 
   // Save address via BigRock API Service
-  Future<bool> saveAddress({required String title, required String fullAddress}) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return false;
+  Future<bool> saveAddress({
+    required String title,
+    required String fullAddress,
+    String fullName = '',
+    String phone = '',
+    String secondaryPhone = '',
+    String pincode = '',
+    String city = '',
+    String state = '',
+    String houseNo = '',
+    String area = '',
+    String addressType = 'Home',
+  }) async {
+    final userId = UserManager().currentUserId;
 
+    // Always add to local AddressManager immediately for instant UI update & success
+    AddressManager().addAddressObject(
+      SavedAddress(
+        id: DateTime.now().toString(),
+        title: title,
+        fullName: fullName,
+        phone: phone,
+        secondaryPhone: secondaryPhone,
+        pincode: pincode,
+        city: city,
+        state: state,
+        houseNo: houseNo,
+        area: area,
+        addressType: addressType,
+        fullAddress: fullAddress,
+      ),
+    );
+
+    // Attempt to sync with server in background (non-blocking)
     try {
-      final success = await ApiService.saveAddress(
-        userId: user.uid,
+      await ApiService.saveAddress(
+        userId: userId,
         title: title,
         fullAddress: fullAddress,
-      );
-
-      AddressManager().addAddress(title, fullAddress);
-      return success;
+        fullName: fullName,
+        phone: phone,
+        pincode: pincode,
+        city: city,
+        state: state,
+        houseNo: houseNo,
+        area: area,
+        addressType: addressType,
+      ).timeout(const Duration(seconds: 5));
     } catch (e) {
-      print('Error saving address: $e');
-      AddressManager().addAddress(title, fullAddress);
-      return true; // Fallback to local memory address add
+      print('Error syncing address to server: $e');
     }
+
+    return true;
   }
 
   // Place order via BigRock API Service
@@ -44,11 +80,10 @@ class CloudFunctionManager {
     required String pincode,
     required String paymentMethod,
   }) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return {'success': false, 'message': 'User not logged in'};
+    final userId = UserManager().currentUserId;
 
     try {
-      final String orderId = 'ADH-${DateTime.now().millisecondsSinceEpoch}';
+      final String orderId = OrderManager().generateNextOrderId();
       
       final formattedItems = items.map((item) => {
         'name': item.product.name,
@@ -61,23 +96,51 @@ class CloudFunctionManager {
 
       final orderData = {
         'orderId': orderId,
-        'userId': user.uid,
+        'order_id': orderId,
+        'userId': userId,
+        'user_id': userId,
         'items': formattedItems,
         'subtotal': subtotal,
+        'sub_total': subtotal,
         'deliveryFee': deliveryFee,
+        'delivery_fee': deliveryFee,
         'packingFee': packingFee,
+        'packing_fee': packingFee,
         'gstAmount': gstAmount,
+        'gst_amount': gstAmount,
         'discountAmount': discountAmount,
+        'discount_amount': discountAmount,
         'total': total,
+        'total_amount': total,
         'shippingAddress': shippingAddress,
+        'shipping_address': shippingAddress,
         'city': city,
         'state': state,
         'pincode': pincode,
         'paymentMethod': paymentMethod,
+        'payment_method': paymentMethod,
         'status': "Placed",
         'batchId': 'BCH-${DateTime.now().year}${DateTime.now().month}${DateTime.now().day}',
+        'batch_id': 'BCH-${DateTime.now().year}${DateTime.now().month}${DateTime.now().day}',
         'spiceOrigin': "Guntur Royal Markets",
+        'spice_origin': "Guntur Royal Markets",
       };
+
+      final order = Order(
+        id: orderId,
+        items: List.from(items),
+        subtotal: subtotal,
+        deliveryFee: deliveryFee,
+        discountAmount: discountAmount,
+        total: total,
+        date: DateTime.now(),
+        status: "Placed",
+        shippingAddress: '$shippingAddress, $city, $state - $pincode',
+        paymentMethod: paymentMethod,
+        batchId: 'BCH-${DateTime.now().year}${DateTime.now().month}${DateTime.now().day}',
+        spiceOrigin: "Guntur Royal Markets",
+      );
+      OrderManager().addOrder(order);
 
       final result = await ApiService.placeOrder(orderData);
       

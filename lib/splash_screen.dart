@@ -2,10 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:video_player/video_player.dart';
 import 'main.dart';
 import 'onboarding_page.dart';
+import 'api_service.dart';
 import 'app_config_repository.dart';
 import 'app_update_page.dart';
 
@@ -17,56 +18,113 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  VideoPlayerController? _videoController;
+  bool _isVideoInitialized = false;
+  bool _hasNavigated = false;
+
   @override
   void initState() {
     super.initState();
-    _startSequence();
+    _loadAdminSplashVideo();
   }
 
-  Future<void> _startSequence() async {
-    // Hold 3.5s for cinematic sequence
-    await Future.delayed(const Duration(milliseconds: 3500));
-
-    if (mounted) {
-      // Fetch App Status (Maintenance / Update)
-      try {
-        final config = await AppConfigRepository().getAppStateStream().first;
-        if (config['maintenance_mode'] == true) {
-          _showMaintenanceOverlay();
-          return;
+  Future<void> _loadAdminSplashVideo() async {
+    String videoUrl = 'assets/images/ambhujakshi-all.mp4';
+    try {
+      Map<String, dynamic> config = {};
+      for (var id in ['splash_video', 'splash', 'splash_screen', 'splashscreen']) {
+        config = await ApiService.getAppConfig(id);
+        final foundUrl = config['video_url']?.toString() ?? config['url']?.toString() ?? config['video']?.toString() ?? config['link']?.toString() ?? config['media_url']?.toString();
+        if (foundUrl != null && foundUrl.isNotEmpty) {
+          videoUrl = foundUrl;
+          break;
         }
-
-        const currentVersion = "1.0.0";
-        final minVersion = config['min_version'] ?? "1.0.0";
-
-        if (_isVersionLower(currentVersion, minVersion)) {
-          if (!mounted) return;
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const AppUpdatePage()),
-          );
-          return;
-        }
-      } catch (e) {
-        debugPrint("Splash config error: $e");
       }
-
-      // Navigate
-      Widget nextScreen;
-      if (FirebaseAuth.instance.currentUser != null) {
-        nextScreen = const MainScreen();
-      } else {
-        nextScreen = const OnboardingPage();
-      }
-
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 500),
-          transitionsBuilder: (_, a, secondaryAnimation, c) => FadeTransition(opacity: a, child: c),
-          pageBuilder: (_, animation, secondaryAnimation) => nextScreen,
-        ),
-      );
+    } catch (e) {
+      debugPrint("Error loading splash video config: $e");
     }
+
+    _initVideo(videoUrl);
+  }
+
+  void _initVideo(String url) {
+    _videoController = url.startsWith('http')
+        ? VideoPlayerController.networkUrl(Uri.parse(url))
+        : VideoPlayerController.asset(url);
+
+    _videoController?.initialize().then((_) {
+      if (!mounted) return;
+      setState(() {
+        _isVideoInitialized = true;
+      });
+      _videoController?.setLooping(false); // Play until finish
+      _videoController?.play();
+      _videoController?.addListener(_videoListener);
+    }).catchError((e) {
+      debugPrint("Splash video init error: $e");
+      if (url.startsWith('http')) {
+        _initVideo('assets/images/ambhujakshi-all.mp4');
+      } else {
+        _navigateToNext();
+      }
+    });
+  }
+
+  void _videoListener() {
+    if (_videoController == null || !_videoController!.value.isInitialized) return;
+    final position = _videoController!.value.position;
+    final duration = _videoController!.value.duration;
+    if (position >= duration && duration > Duration.zero) {
+      _navigateToNext();
+    }
+  }
+
+  Future<void> _navigateToNext() async {
+    if (_hasNavigated || !mounted) return;
+    _hasNavigated = true;
+    _videoController?.removeListener(_videoListener);
+    try {
+      if (_videoController?.value.isPlaying == true) {
+        _videoController?.pause();
+      }
+    } catch (_) {}
+
+    try {
+      final config = await AppConfigRepository().getAppStateStream().first;
+      if (config['maintenance_mode'] == true) {
+        if (mounted) _showMaintenanceOverlay();
+        return;
+      }
+
+      const currentVersion = "1.0.0";
+      final minVersion = config['min_version'] ?? "1.0.0";
+
+      if (_isVersionLower(currentVersion, minVersion)) {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AppUpdatePage()),
+        );
+        return;
+      }
+    } catch (e) {
+      debugPrint("Splash config error: $e");
+    }
+
+    Widget nextScreen;
+    if (FirebaseAuth.instance.currentUser != null) {
+      nextScreen = const MainScreen();
+    } else {
+      nextScreen = const OnboardingPage();
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 500),
+        transitionsBuilder: (_, a, secondaryAnimation, c) => FadeTransition(opacity: a, child: c),
+        pageBuilder: (_, animation, secondaryAnimation) => nextScreen,
+      ),
+    );
   }
 
   bool _isVersionLower(String current, String min) {
@@ -113,41 +171,65 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   @override
+  void dispose() {
+    _videoController?.removeListener(_videoListener);
+    _videoController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF073E2E),
-      body: Center(
-        child: Container(
-          width: 210,
-          height: 210,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(52),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1. Background Video Player (Fit to screen / box cover)
+          if (_isVideoInitialized && _videoController != null)
+            SizedBox.expand(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _videoController!.value.size.width > 0 ? _videoController!.value.size.width : 1600,
+                  height: _videoController!.value.size.height > 0 ? _videoController!.value.size.height : 900,
+                  child: VideoPlayer(_videoController!),
+                ),
               ),
-            ],
-          ),
-          child: Center(
-            child: Image.asset(
-              'assets/images/AMBHUJAKSHI  logo.png',
-              fit: BoxFit.contain,
-              errorBuilder: (c, e, s) => Image.asset('assets/images/logo_no_bg.png', fit: BoxFit.contain),
+            ),
+          
+          // 2. Subtle Skip Button (Top Right, clean & discreet)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 16,
+            right: 20,
+            child: GestureDetector(
+              onTap: _navigateToNext,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Text(
+                      'Skip',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 11),
+                  ],
+                ),
+              ),
             ),
           ),
-        )
-            .animate()
-            .fadeIn(duration: 800.ms)
-            .scale(
-              begin: const Offset(0.85, 0.85),
-              end: const Offset(1.0, 1.0),
-              curve: Curves.easeOutBack,
-              duration: 1000.ms,
-            ),
+        ],
       ),
     );
   }

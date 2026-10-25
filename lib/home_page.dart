@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import 'package:video_player/video_player.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -75,10 +76,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Map<String, dynamic> dealsConfig = {};
   List<Map<String, String>> packagingList = [];
   List<Map<String, dynamic>> categoryList = [];
-  List<Map<String, String>> pairingList = [];
+  List<Map<String, dynamic>> pairingList = [];
   Map<String, String> heritageBanner = {};
   List<String> trendingKeywords = [];
   int inventoryThreshold = 10;
+  VideoPlayerController? _homeVideoController;
+  bool _isHomeVideoInitialized = false;
+  Map<String, dynamic> homeVideoConfig = {};
+  StreamSubscription? _homeVideoSub;
 
   @override
   void initState() {
@@ -213,7 +218,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       );
     });
 
+    _homeVideoSub = AppConfigRepository().getHomeVideoConfigStream().listen((data) {
+      if (mounted) {
+        setState(() => homeVideoConfig = data);
+        final enabled = data['enabled'] != false;
+        final url = data['video_url']?.toString() ?? data['url']?.toString() ?? 'assets/images/ambhujakshi-all.mp4';
+        if (enabled) {
+          _initHomeVideo(url);
+        }
+      }
+    });
+
     _pairingsSub = AppConfigRepository().getPairingsStream().listen((data) {
+      debugPrint("Pairings stream received data: $data");
       if (mounted) setState(() => pairingList = data);
     });
 
@@ -260,10 +277,90 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _heritageSub?.cancel();
     _trendingSub?.cancel();
     _configSub?.cancel();
+    _homeVideoSub?.cancel();
+    _homeVideoController?.dispose();
     _pageController.dispose();
     _adPageController.dispose();
     ProductManager().removeListener(_onProductUpdate);
     super.dispose();
+  }
+
+  void _initHomeVideo(String url) {
+    _homeVideoController?.dispose();
+    _homeVideoController = url.startsWith('http')
+        ? VideoPlayerController.networkUrl(Uri.parse(url))
+        : VideoPlayerController.asset(url);
+    _homeVideoController?.initialize().then((_) {
+      if (mounted) {
+        setState(() {
+          _isHomeVideoInitialized = true;
+        });
+        _homeVideoController?.setLooping(true);
+        _homeVideoController?.play();
+      }
+    }).catchError((e) {
+      debugPrint("Home video init error: $e");
+    });
+  }
+
+  Widget _buildHomeVideoSection() {
+    final enabled = homeVideoConfig['enabled'] != false;
+    if (!enabled || !_isHomeVideoInitialized || _homeVideoController == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+      child: Container(
+        height: 210,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.12),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            )
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _homeVideoController!.value.size.width > 0 ? _homeVideoController!.value.size.width : 1600,
+                  height: _homeVideoController!.value.size.height > 0 ? _homeVideoController!.value.size.height : 900,
+                  child: VideoPlayer(_homeVideoController!),
+                ),
+              ),
+              if (homeVideoConfig['title'] != null && homeVideoConfig['title'].toString().isNotEmpty)
+                Positioned(
+                  left: 16,
+                  bottom: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      homeVideoConfig['title'].toString(),
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -289,6 +386,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildHomeVideoSection(),
                 _buildHeroBanner(),
                 _buildPerfectPairings(),
                 _buildSection('Most Loved Pickles', 'Pickles'),
@@ -838,12 +936,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       clipBehavior: Clip.none,
                       children: [
                         RichText(
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           text: TextSpan(
                             children: [
                               TextSpan(
                                 text: 'Royal ',
                                 style: GoogleFonts.philosopher(
-                                  fontSize: 32,
+                                  fontSize: 28,
                                   fontWeight: FontWeight.bold,
                                   color: const Color(0xFF0F4D3C),
                                   height: 1.1,
@@ -852,7 +952,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               TextSpan(
                                 text: 'Collections',
                                 style: GoogleFonts.philosopher(
-                                  fontSize: 32,
+                                  fontSize: 28,
                                   fontWeight: FontWeight.bold,
                                   color: const Color(0xFF621010),
                                   height: 1.1,
@@ -2353,10 +2453,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     Text(
                       'Exclusive Offers for You',
                       style: GoogleFonts.philosopher(
-                        fontSize: 22,
+                        fontSize: 20,
                         fontWeight: FontWeight.w900,
                         color: const Color(0xFF1B1B1B),
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -2997,7 +3099,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Royal Collections', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF18453B))),
+              const Text(
+                'Royal Collections', 
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF18453B)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               Text(
                 '${categoryList.length} CATEGORIES',
                 style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFFD4AF37), letterSpacing: 1),
@@ -3041,141 +3148,25 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget _buildPerfectPairings() {
     final List<Map<String, dynamic>> mainPairings = [
       {
-        'isImageOnly': true,
-        'title': 'THE COASTAL CLASSIC',
-        'subtitle': 'Rice + Ghee +\nAvakaya',
-        'desc': 'A timeless combination that brings out the best of Andhra flavors.',
-        'tagline': 'Simple Food\nExtraordinary\nHappiness',
         'img': 'assets/images/art1.png',
-        'colors': [const Color(0xFF0C3D2E), const Color(0xFF135341)],
         'searchKey': 'Avakaya',
         'subs': [
-          {
-            'isImageOnly': true,
-            'title': 'Curd Rice +\nMango Pickle',
-            'sub': 'Cooling curd meets\ntangy spice.',
-            'img': 'assets/images/artsib1.png',
-            'badge': Icons.spa_rounded,
-            'prod': 'Avakaya',
-          },
-          {
-            'isImageOnly': true,
-            'title': 'Pappu +\nAvakaya',
-            'sub': 'The ultimate\ncomfort meal.',
-            'img': 'assets/images/artsib2.png',
-            'badge': Icons.favorite_rounded,
-            'prod': 'Avakaya',
-          },
-          {
-            'isImageOnly': true,
-            'title': 'Pappu +\nAvakaya',
-            'sub': 'The ultimate\ncomfort meal.',
-            'img': 'assets/images/artsib3.png',
-            'badge': Icons.favorite_rounded,
-            'prod': 'Avakaya',
-          },
-          {
-            'isImageOnly': true,
-            'title': 'Pappu +\nAvakaya',
-            'sub': 'The ultimate\ncomfort meal.',
-            'img': 'assets/images/artsib4.png',
-            'badge': Icons.favorite_rounded,
-            'prod': 'Avakaya',
-          }
-        ]
-      },
-      {
-        'isImageOnly': true,
-        'title': 'THE TIFFIN TIME',
-        'subtitle': 'Dosa +\nKaram Podi',
-        'desc': 'Transform your morning breakfast with a sprinkle of magic.',
-        'tagline': 'Crispy\nSpicy\nPerfect',
-        'img': 'assets/images/art2.png',
-        'colors': [const Color(0xFF8B5A2B), const Color(0xFFA0522D)],
-        'searchKey': 'Karam Podi',
-        'subs': [
-          {
-            'isImageOnly': true,
-            'title': 'Idli + Karam\nPodi + Ghee',
-            'sub': 'Simple. Traditional.\nIrresistible.',
-            'img': 'assets/images/art2sib1.png',
-            'badge': Icons.eco_rounded,
-            'prod': 'Karam Podi',
-          },
-          {
-            'isImageOnly': true,
-            'title': 'Upma + Mango\nPickle',
-            'sub': 'Everyday food.\nExtra special.',
-            'img': 'assets/images/art2sib2.png',
-            'badge': Icons.nature_rounded,
-            'prod': 'Usiri Pickle',
-          },
-          {
-            'isImageOnly': true,
-            'title': 'Upma + Mango\nPickle',
-            'sub': 'Everyday food.\nExtra special.',
-            'img': 'assets/images/art2sib3.png',
-            'badge': Icons.nature_rounded,
-            'prod': 'Usiri Pickle',
-          },
-          {
-            'isImageOnly': true,
-            'title': 'Upma + Mango\nPickle',
-            'sub': 'Everyday food.\nExtra special.',
-            'img': 'assets/images/art2sib4.png',
-            'badge': Icons.nature_rounded,
-            'prod': 'Usiri Pickle',
-          }
-        ]
-      },
-      {
-        'isImageOnly': true,
-        'title': 'THE EVENING CHAI',
-        'subtitle': 'Tea +\nChakinalu',
-        'desc': 'Crunchy traditional bites to elevate your evening tea.',
-        'tagline': 'Crunchy\nSavoury\nWarm',
-        'img': 'assets/images/art3.png',
-        'colors': [const Color(0xFF800000), const Color(0xFFA52A2A)],
-        'searchKey': 'Chakinalu',
-        'subs': [
-          {
-            'isImageOnly': true,
-            'title': 'Coffee +\nMurukulu',
-            'sub': 'The perfect\nevening crunch.',
-            'img': 'assets/images/art3sib1.png',
-            'badge': Icons.coffee_rounded,
-            'prod': 'Murukulu',
-          },
-          {
-            'isImageOnly': true,
-            'title': 'Tea +\nGondh Laddu',
-            'sub': 'A sweet balance\nto your brew.',
-            'img': 'assets/images/art3sib2.png',
-            'badge': Icons.wb_sunny_rounded,
-            'prod': 'Laddu',
-          },
-          {
-            'isImageOnly': true,
-            'title': 'Tea +\nGondh Laddu',
-            'sub': 'A sweet balance\nto your brew.',
-            'img': 'assets/images/art3sib3.png',
-            'badge': Icons.wb_sunny_rounded,
-            'prod': 'Laddu',
-          },
-          {
-            'isImageOnly': true,
-            'title': 'Tea +\nGondh Laddu',
-            'sub': 'A sweet balance\nto your brew.',
-            'img': 'assets/images/art3sib4.png',
-            'badge': Icons.wb_sunny_rounded,
-            'prod': 'Laddu',
-          }
+          {'img': 'assets/images/artsib1.png', 'prod': 'Avakaya', 'title': 'Curd Rice & Mango Pickle', 'sub': 'Cooling curd meets tangy spice.'},
+          {'img': 'assets/images/artsib2.png', 'prod': 'Avakaya', 'title': 'Pappu & Avakaya', 'sub': 'The ultimate comfort meal.'},
+          {'img': 'assets/images/artsib3.png', 'prod': 'Avakaya', 'title': 'Ghee Rice & Pickle', 'sub': 'Rich and aromatic flavor.'},
+          {'img': 'assets/images/artsib4.png', 'prod': 'Avakaya', 'title': 'Sambar & Avakaya', 'sub': 'Traditional Andhra combination.'},
         ]
       },
     ];
 
-    final currentMain = mainPairings[_currentPairingIndex];
-    final List<Map<String, dynamic>> subPairings = currentMain['subs'];
+    final displayPairings = pairingList.isNotEmpty ? pairingList : mainPairings;
+    if (_currentPairingIndex >= displayPairings.length) {
+      _currentPairingIndex = 0;
+    }
+
+    final currentMain = displayPairings[_currentPairingIndex];
+    final List<dynamic> rawSubs = currentMain['subs'] ?? currentMain['subPairings'] ?? currentMain['items'] ?? [];
+    final List<Map<String, dynamic>> subPairings = rawSubs.map((s) => Map<String, dynamic>.from(s)).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3263,7 +3254,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         ),
 
-        // Main Hero Pairing Card Carousel
+        // Main Hero Pairing Card Carousel (Image-Only, Scrollable from Admin Dashboard)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Container(
@@ -3278,323 +3269,202 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 )
               ],
             ),
-            child: Stack(
-              children: [
-                PageView.builder(
-                  physics: const BouncingScrollPhysics(),
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentPairingIndex = index;
-                    });
-                  },
-                  itemCount: mainPairings.length,
-                  itemBuilder: (context, index) {
-                    final pairing = mainPairings[index];
-                    final isImageOnly = pairing['isImageOnly'] == true;
-                    return Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(24),
-                        gradient: isImageOnly ? null : LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: pairing['colors'],
-                        ),
-                      ),
-                      child: isImageOnly
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(24),
-                              child: Image.asset(pairing['img'], fit: BoxFit.fill, width: double.infinity, height: double.infinity),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
+                children: [
+                  PageView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentPairingIndex = index;
+                      });
+                    },
+                    itemCount: displayPairings.length,
+                    itemBuilder: (context, index) {
+                      final pairing = displayPairings[index];
+                      final searchKey = pairing['searchKey'] ?? pairing['prod'] ?? '';
+                      final matchingProduct = allProducts.isNotEmpty
+                          ? allProducts.firstWhere(
+                              (p) => searchKey.isNotEmpty && p.name.contains(searchKey.split(' ').first),
+                              orElse: () => allProducts[index % allProducts.length],
                             )
-                          : Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Row(
-                          children: [
-                            // Left Column Text
-                            Expanded(
-                              flex: 6,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    pairing['title'],
-                                    style: GoogleFonts.poppins(
-                                      color: const Color(0xFFD4AF37),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 1.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    pairing['subtitle'],
-                                    style: GoogleFonts.philosopher(
-                                      color: const Color(0xFFFFF8E8),
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w900,
-                                      height: 1.1,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    pairing['desc'],
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white70,
-                                      fontSize: 10,
-                                      height: 1.3,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  GestureDetector(
-                                    onTap: () {
-                                      final product = allProducts.firstWhere(
-                                        (p) => p.name.contains(pairing['searchKey']),
-                                        orElse: () => allProducts[0],
-                                      );
-                                      AppNavigator.push(context, ProductDetailPage(product: product, allProducts: allProducts));
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE5C76B),
-                                        borderRadius: BorderRadius.circular(18),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'See Details',
-                                            style: GoogleFonts.poppins(
-                                              color: const Color(0xFF0F4D3C),
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0F4D3C), size: 12),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                          : null;
+                      final imgPath = pairing['img'] ?? pairing['image'] ?? '';
 
-                            const SizedBox(width: 8),
-
-                            // Right Image
-                            Expanded(
-                              flex: 5,
-                              child: Stack(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(18),
-                                    child: SizedBox(
-                                      height: 145,
-                                      width: double.infinity,
-                                      child: _buildProductImage(pairing['img']),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: Text(
-                                      pairing['tagline'],
-                                      textAlign: TextAlign.right,
-                                      style: GoogleFonts.caveat(
-                                        color: const Color(0xFFE5C76B),
-                                        fontSize: 12,
-                                        height: 1.1,
-                                        fontWeight: FontWeight.bold,
-                                        shadows: const [Shadow(blurRadius: 4, color: Colors.black54)],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                      return GestureDetector(
+                        onTap: matchingProduct != null
+                            ? () => AppNavigator.push(context, ProductDetailPage(product: matchingProduct, allProducts: allProducts))
+                            : () => MainScreen.of(context)?.setIndex(1),
+                        child: Container(
+                          width: double.infinity,
+                          height: 205,
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              image: imgPath.startsWith('http')
+                                  ? NetworkImage(imgPath) as ImageProvider
+                                  : AssetImage(imgPath.startsWith('assets/') ? imgPath : 'assets/images/$imgPath'),
+                              fit: BoxFit.fill,
+                              alignment: Alignment.center,
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-
-                // Pagination Dots
-                Positioned(
-                  left: 20,
-                  bottom: 12,
-                  child: Row(
-                    children: List.generate(mainPairings.length, (i) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.only(right: 5),
-                      width: _currentPairingIndex == i ? 14 : 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: _currentPairingIndex == i ? const Color(0xFFE5C76B) : Colors.white30,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    )),
+                      );
+                    },
                   ),
-                ),
-              ],
+
+                  // Pagination Dots
+                  Positioned(
+                    left: 20,
+                    bottom: 12,
+                    child: Row(
+                      children: List.generate(displayPairings.length, (i) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.only(right: 5),
+                        width: _currentPairingIndex == i ? 14 : 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: _currentPairingIndex == i ? const Color(0xFFE5C76B) : Colors.white30,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      )),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
 
         const SizedBox(height: 16),
 
-        // Sub-Cards Horizontal Row (Dynamically populated based on parent selection)
-        currentMain['isImageOnly'] == true
-            ? Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: subPairings.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final item = entry.value;
-                    final String prodName = item['prod'] as String;
-                    final matchingProduct = allProducts.firstWhere(
-                      (p) => p.name.contains(prodName.split(' ').first),
-                      orElse: () => allProducts[index % allProducts.length],
-                    );
-
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () => AppNavigator.push(context, ProductDetailPage(product: matchingProduct, allProducts: allProducts)),
-                        child: Container(
-                          height: 110,
-                          margin: EdgeInsets.only(right: index == subPairings.length - 1 ? 0 : 10),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 5,
-                                offset: const Offset(0, 2),
-                              )
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.asset(item['img'] as String, fit: BoxFit.fill, width: double.infinity, height: double.infinity),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              )
-            : SizedBox(
-          height: 215,
-          child: ListView.builder(
+        // Sub-Cards Grid (2 in a row, supports 4 or more siblings dynamically from admin dashboard)
+        if (subPairings.isNotEmpty)
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: subPairings.length,
-            itemBuilder: (context, index) {
-              final item = subPairings[index];
-              final isImageOnly = item['isImageOnly'] == true;
-              final String prodName = item['prod'] as String;
-              final matchingProduct = allProducts.firstWhere(
-                (p) => p.name.contains(prodName.split(' ').first),
-                orElse: () => allProducts[index % allProducts.length],
-              );
-
-              return GestureDetector(
-                onTap: () => AppNavigator.push(context, ProductDetailPage(product: matchingProduct, allProducts: allProducts)),
-                child: Container(
-                  width: 155,
-                  margin: const EdgeInsets.only(right: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      )
+            child: Column(
+              children: [
+                for (int i = 0; i < subPairings.length; i += 2) ...[
+                  if (i > 0) const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildSubPairingCard(subPairings[i], i),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: (i + 1 < subPairings.length)
+                            ? _buildSubPairingCard(subPairings[i + 1], i + 1)
+                            : const SizedBox.shrink(),
+                      ),
                     ],
                   ),
-                  child: isImageOnly
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: _buildProductImage(item['img'] as String),
-                        )
-                      : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                            child: SizedBox(
-                              height: 110,
-                              width: double.infinity,
-                              child: _buildProductImage(item['img'] as String),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 8,
-                            right: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(5),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF0F4D3C),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(item['badge'] as IconData, color: Colors.white, size: 12),
-                            ),
-                          ),
-                        ],
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSubPairingCard(Map<String, dynamic> item, int index) {
+    final String prodName = item['prod'] as String? ?? item['title'] ?? '';
+    final String title = item['title'] as String? ?? item['name'] ?? prodName;
+    final String subtitle = item['sub'] as String? ?? item['subtitle'] ?? item['description'] ?? '';
+
+    final matchingProduct = allProducts.isNotEmpty
+        ? allProducts.firstWhere(
+            (p) => prodName.isNotEmpty && p.name.contains(prodName.split(' ').first),
+            orElse: () => allProducts[index % allProducts.length],
+          )
+        : null;
+    final imgPath = item['img'] as String? ?? item['image'] ?? '';
+
+    return GestureDetector(
+      onTap: matchingProduct != null
+          ? () => AppNavigator.push(context, ProductDetailPage(product: matchingProduct, allProducts: allProducts))
+          : null,
+      child: Container(
+        height: 135,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: imgPath.startsWith('http')
+                        ? NetworkImage(imgPath) as ImageProvider
+                        : AssetImage(imgPath.startsWith('assets/') ? imgPath : 'assets/images/$imgPath'),
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                  ),
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.8),
+                    ],
+                    stops: const [0.35, 1.0],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (title.isNotEmpty)
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item['title'] as String,
-                              style: GoogleFonts.philosopher(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: const Color(0xFF1B1B1B),
-                                height: 1.1,
-                              ),
-                              maxLines: 2,
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              item['sub'] as String,
-                              style: TextStyle(fontSize: 10, color: Colors.grey.shade500, height: 1.2),
-                              maxLines: 2,
-                            ),
-                            const SizedBox(height: 8),
-                            GestureDetector(
-                              onTap: () => AppNavigator.push(context, ProductDetailPage(product: matchingProduct, allProducts: allProducts)),
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF0F4D3C),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 12),
-                              ),
-                            ),
-                          ],
+                    if (subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFFE5C76B),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 10,
                         ),
                       ),
                     ],
-                  ),
+                  ],
                 ),
-              );
-            },
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -3606,6 +3476,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       // Fallback if no products are explicitly marked as best sellers
       if (products.isEmpty) {
          products = allProducts.take(4).toList();
+      }
+    } else if (category == 'Most Loved' || title == 'Most Loved Pickles') {
+      products = allProducts.where((p) => p.isMostLoved == true).toList();
+      if (products.isEmpty) {
+         products = allProducts.where((p) => p.category.toLowerCase().contains('pickle')).take(4).toList();
       }
     } else if (category == 'Fresh Picks') {
       products = allProducts.skip(4).take(5).toList(); // Simple logic for fresh picks
@@ -4434,27 +4309,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'TRADITIONAL SNACKS',
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFFD48220), // Orange-ish color from image
-                          fontWeight: FontWeight.w900,
-                          fontSize: 10,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Snacks with\na Story',
+                        'Snacks with a Story',
                         style: GoogleFonts.philosopher(
-                          fontSize: 34,
+                          fontSize: 26,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF144A3C), // Dark green
+                          color: const Color(0xFF144A3C),
                           height: 1.1,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Every snack has a tradition, a story\nand a home-made touch.',
+                        'Every snack has a tradition, a story and a home-made touch.',
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           color: const Color(0xFF5E6760),
@@ -6337,7 +6204,7 @@ class _PremiumProductCardState extends State<_PremiumProductCard> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'The Royal Sweet & Spicy Classic',
+                            widget.product.subCategory.isNotEmpty ? widget.product.subCategory : 'Classic',
                             style: GoogleFonts.poppins(
                               fontSize: 10,
                               fontStyle: FontStyle.italic,
@@ -6349,7 +6216,7 @@ class _PremiumProductCardState extends State<_PremiumProductCard> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'A perfect blend of sun-ripened ingredients and traditional Andhra spices.',
+                            widget.product.description.isNotEmpty ? widget.product.description : 'Authentic traditional delicacy.',
                             style: TextStyle(
                               fontSize: 10,
                               color: Colors.grey.shade600,

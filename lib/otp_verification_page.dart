@@ -6,11 +6,13 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'api_service.dart';
 import 'notification_manager.dart';
+import 'user_manager.dart';
 import 'main.dart';
 
 class OtpVerificationPage extends StatefulWidget {
   final String? phone;
   final String? email;
+  final String? name;
   final String? verificationId;
   final bool isEmailOtp;
 
@@ -18,6 +20,7 @@ class OtpVerificationPage extends StatefulWidget {
     super.key,
     this.phone,
     this.email,
+    this.name,
     this.verificationId,
     this.isEmailOtp = false,
   });
@@ -82,6 +85,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // Background Image
@@ -600,11 +604,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
         );
 
         if (verified) {
-          final String userId = 'USER-${widget.email!.replaceAll('@', '_').replaceAll('.', '_')}';
-          await ApiService.saveUser(
-            userId: userId,
-            phone: widget.email!,
-          );
+          await UserManager().setUser(name: widget.name ?? 'Valued Customer', email: widget.email ?? '');
           await NotificationManager().updateToken();
 
           if (mounted) {

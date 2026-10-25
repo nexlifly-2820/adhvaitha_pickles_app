@@ -19,6 +19,8 @@ import 'faq_page.dart';
 import 'kitchen_story_page.dart';
 import 'account_deletion_page.dart';
 import 'app_update_page.dart';
+import 'user_manager.dart';
+import 'login_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -236,13 +238,16 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  'HEMANTH SILLA',
-                  style: GoogleFonts.philosopher(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 0.8,
+                ListenableBuilder(
+                  listenable: UserManager(),
+                  builder: (context, _) => Text(
+                    UserManager().userName,
+                    style: GoogleFonts.philosopher(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0.8,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -614,9 +619,15 @@ class ProfilePage extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(context); // close dialog
+              UserManager().clearUser();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Logged out successfully')),
+              );
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+                (route) => false,
               );
             },
             style: ElevatedButton.styleFrom(
