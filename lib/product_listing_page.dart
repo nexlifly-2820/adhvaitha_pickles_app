@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:shimmer/shimmer.dart';
 import 'models.dart';
 import 'product_detail_page.dart';
 import 'cart_manager.dart';
@@ -11,6 +10,7 @@ import 'navigation_util.dart';
 import 'product_manager.dart';
 import 'app_config_repository.dart';
 import 'search_page.dart';
+import 'widgets/loading_spinner.dart';
 import 'main.dart';
 
 class ProductListingPage extends StatefulWidget {
@@ -953,28 +953,10 @@ class _ProductListingPageState extends State<ProductListingPage> {
   }
 
   Widget _buildShimmerGrid() {
-    return SliverPadding(
-      padding: const EdgeInsets.all(20),
-      sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.49,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 18,
-        ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) => Shimmer.fromColors(
-            baseColor: Colors.white,
-            highlightColor: const Color(0xFFFFF8E8),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          ),
-          childCount: 4,
-        ),
+    return const SliverFillRemaining(
+      hasScrollBody: false,
+      child: Center(
+        child: RoyalLoadingSpinner(message: 'Curating Royal Selection...'),
       ),
     );
   }

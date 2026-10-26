@@ -27,6 +27,7 @@ import 'widgets/home_header.dart';
 import 'widgets/royal_collections.dart';
 import 'widgets/featured_video_showcase.dart';
 import 'widgets/festival_section.dart';
+import 'widgets/loading_spinner.dart';
 import 'user_manager.dart';
 import 'cart_page.dart';
 
@@ -374,10 +375,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final allProducts = ProductManager().products;
     final isGlobalLoading = ProductManager().isLoading;
 
-    if (_isLoading && isGlobalLoading && allProducts.length <= 5) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFFFF8E8),
-        body: _buildShimmerLoading(),
+    if ((_isLoading || isGlobalLoading) && allProducts.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF6F6F6),
+        body: RoyalLoadingSpinner(isFullScreen: true),
       );
     }
 

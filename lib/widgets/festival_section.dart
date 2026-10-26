@@ -14,6 +14,7 @@ import '../product_detail_page.dart';
 import '../product_listing_page.dart';
 import '../navigation_util.dart';
 import '../app_config_repository.dart';
+import 'loading_spinner.dart';
 
 typedef ProductLink = Map<String, dynamic>;
 
@@ -529,7 +530,7 @@ class _FestivalSectionState extends State<FestivalSection> {
     if (products.isEmpty) {
       return SizedBox(
         height: 214 * s,
-        child: const Center(child: Text('No products found for this section.')),
+        child: const RoyalLoadingSpinner(size: 38, message: 'Loading Festive Delicacies...'),
       );
     }
     return Container(

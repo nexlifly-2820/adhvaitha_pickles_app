@@ -7,6 +7,7 @@ import 'main.dart';
 import 'app_config_repository.dart';
 import 'product_manager.dart';
 import 'search_page.dart';
+import 'widgets/loading_spinner.dart';
 
 class CategoriesPage extends StatefulWidget {
   const CategoriesPage({super.key});
@@ -64,6 +65,10 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     return StreamBuilder<List<Map<String, dynamic>>>(
                       stream: AppConfigRepository().getCategoryParentCardsStream(),
                       builder: (context, parentSnapshot) {
+                        if ((catSnapshot.connectionState == ConnectionState.waiting && !catSnapshot.hasData) || (ProductManager().isLoading && allProducts.isEmpty)) {
+                          return const RoyalLoadingSpinner();
+                        }
+
                         final rawData = catSnapshot.data ?? [];
                         final categories = rawData.map((e) => Map<String, dynamic>.from(e)).toList();
 

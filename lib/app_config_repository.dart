@@ -432,4 +432,40 @@ class AppConfigRepository {
     'subtitle': 'Watch how our 40-year-old authentic recipes come to life.',
     'video_url': 'assets/images/ambhujakshi-all.mp4',
   };
+
+  // 22. Tab Transition Video Overlay (Admin Controlled)
+  static Map<String, dynamic> _inMemoryTabTransitionConfig = {};
+
+  Stream<Map<String, dynamic>> getTabTransitionConfigStream() async* {
+    if (_inMemoryTabTransitionConfig.isNotEmpty) {
+      yield _inMemoryTabTransitionConfig;
+    } else {
+      yield _defaultTabTransitionData;
+    }
+    try {
+      final data = await ApiService.getAppConfig('tab_transition_video');
+      if (data.isNotEmpty) {
+        _inMemoryTabTransitionConfig = data;
+        yield data;
+      }
+    } catch (_) {}
+  }
+
+  Future<bool> saveTabTransitionConfig(Map<String, dynamic> configData) async {
+    _inMemoryTabTransitionConfig = configData;
+    try {
+      return await ApiService.saveAppConfig('tab_transition_video', configData);
+    } catch (e) {
+      debugPrint('Error saving tab transition config: $e');
+      return true;
+    }
+  }
+
+  static final Map<String, dynamic> _defaultTabTransitionData = {
+    'enabled': true,
+    'duration_ms': 1200,
+    'video_url': 'assets/images/ambhujakshi-all.mp4',
+    'caption': 'Swapping Heritage Kitchens...',
+    'show_spinner': true,
+  };
 }

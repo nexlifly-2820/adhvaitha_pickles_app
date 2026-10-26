@@ -15,6 +15,7 @@ import 'cart_page.dart';
 import 'navigation_util.dart';
 import 'product_manager.dart';
 import 'notification_manager.dart';
+import 'widgets/tab_transition_video_overlay.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -100,6 +101,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  bool _isTransitioning = false;
 
   final List<GlobalKey<NavigatorState>> _navigatorKeys = [
     GlobalKey<NavigatorState>(),
@@ -114,7 +116,16 @@ class _MainScreenState extends State<MainScreen> {
       _navigatorKeys[index].currentState?.popUntil((route) => route.isFirst);
     } else {
       HapticFeedback.lightImpact();
-      setState(() => _selectedIndex = index);
+      setState(() {
+        _selectedIndex = index;
+        _isTransitioning = true;
+      });
+    }
+  }
+
+  void _onTransitionComplete() {
+    if (mounted && _isTransitioning) {
+      setState(() => _isTransitioning = false);
     }
   }
 
@@ -158,6 +169,10 @@ class _MainScreenState extends State<MainScreen> {
             _buildTab(2, const WishlistPage()),
             _buildTab(3, const OrderHistoryPage()),
             _buildTab(4, const ProfilePage()),
+            TabTransitionVideoOverlay(
+              isVisible: _isTransitioning,
+              onTransitionComplete: _onTransitionComplete,
+            ),
           ],
         ),
         bottomNavigationBar: CustomBottomNavBar(
