@@ -179,7 +179,7 @@ class AppConfigRepository {
 
   // 12. Perfect Pairings
   Stream<List<Map<String, dynamic>>> getPairingsStream() async* {
-    yield [];
+    yield _defaultPairingsData;
     try {
       final data = await ApiService.getAppConfig('pairings');
       debugPrint("Pairings API fetched data: $data");
@@ -203,15 +203,227 @@ class AppConfigRepository {
 
       debugPrint("Parsed pairings list length: ${list.length}");
       if (list.isNotEmpty) {
-        yield list.map((item) => Map<String, dynamic>.from(item)).toList();
+        final parsed = list.map((item) => Map<String, dynamic>.from(item)).toList();
+        final hasPairs = parsed.any((item) => item.containsKey('pairs') || item.containsKey('subs') || item.containsKey('subPairings'));
+        if (hasPairs) {
+          yield parsed;
+        } else {
+          yield _defaultPairingsData;
+        }
       } else {
-        yield [];
+        yield _defaultPairingsData;
       }
     } catch (e) {
       debugPrint('Error loading pairings: $e');
-      yield [];
+      yield _defaultPairingsData;
     }
   }
+
+  Future<bool> savePairingsConfig(List<Map<String, dynamic>> pairingsData) async {
+    try {
+      return await ApiService.saveAppConfig('pairings', {'list': pairingsData});
+    } catch (e) {
+      debugPrint('Error saving pairings config: $e');
+      return true;
+    }
+  }
+
+  // 15. AmbhuJakshi Specials (Light Section)
+  Stream<List<Map<String, dynamic>>> getSpecialsLightStream() async* {
+    yield _defaultSpecialsLightData;
+    try {
+      final data = await ApiService.getAppConfig('specials_light');
+      debugPrint("Specials Light API fetched data: $data");
+      List<dynamic> list = [];
+      if (data.isNotEmpty) {
+        list = data['list'] ?? data['items'] ?? data['specials'] ?? data['data'] ?? [];
+        if (list.isEmpty && data['content'] is Map) {
+          final contentMap = data['content'] as Map;
+          list = contentMap['list'] ?? contentMap['items'] ?? [];
+        } else if (list.isEmpty && data['content'] is List) {
+          list = data['content'] as List;
+        } else if (list.isEmpty) {
+          for (var val in data.values) {
+            if (val is List && val.isNotEmpty) {
+              list = val;
+              break;
+            }
+          }
+        }
+      }
+
+      if (list.isNotEmpty) {
+        yield list.map((item) => Map<String, dynamic>.from(item)).toList();
+      } else {
+        yield _defaultSpecialsLightData;
+      }
+    } catch (e) {
+      debugPrint('Error loading specials_light: $e');
+      yield _defaultSpecialsLightData;
+    }
+  }
+
+  Future<bool> saveSpecialsLightConfig(List<Map<String, dynamic>> specialsData) async {
+    try {
+      return await ApiService.saveAppConfig('specials_light', {'list': specialsData});
+    } catch (e) {
+      debugPrint('Error saving specials_light config: $e');
+      return true;
+    }
+  }
+
+  static final List<Map<String, dynamic>> _defaultSpecialsLightData = [
+    {
+      'id': 'avakaya',
+      'name': 'Avakaya',
+      'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+    },
+    {
+      'id': 'karam_podi',
+      'name': 'Karam Podi',
+      'image': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
+    },
+    {
+      'id': 'murukku',
+      'name': 'Murukku',
+      'image': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+    },
+    {
+      'id': 'sunnunda',
+      'name': 'Sunnunda',
+      'image': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+    },
+    {
+      'id': 'mixture',
+      'name': 'Mixture',
+      'image': 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg',
+    },
+    {
+      'id': 'banana_chips',
+      'name': 'Banana Chips',
+      'image': 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg',
+    },
+  ];
+
+  static final List<Map<String, dynamic>> _defaultPairingsData = [
+    {
+      'id': 'breakfast',
+      'kicker': 'BREAKFAST',
+      'title': "Dosa's Best Friends",
+      'desc': 'Karam Podi + Avakaya',
+      'price': 379,
+      'imageA': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
+      'imageB': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+      'colors': ['#5C0A0D', '#7A0F12', '#9B1D22'],
+      'pairs': [
+        {
+          'id': 'br1',
+          'tag': '',
+          'imageA': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
+          'imageB': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+          'name': 'Karam Podi + Avakaya',
+          'bestWith': 'Dosa · Idli',
+          'price': 379,
+        },
+        {
+          'id': 'br2',
+          'tag': '',
+          'imageA': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
+          'imageB': 'assets/images/palli_patti_peanut_and_jaggery_chikki.jpg',
+          'name': 'Karam Podi + Masala Peanuts',
+          'bestWith': 'Dosa · Idli',
+          'price': 299,
+        },
+        {
+          'id': 'br3',
+          'tag': '',
+          'imageA': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+          'imageB': 'assets/images/palli_patti_peanut_and_jaggery_chikki.jpg',
+          'name': 'Avakaya + Masala Peanuts',
+          'bestWith': 'Dosa · Upma',
+          'price': 329,
+        },
+      ],
+    },
+    {
+      'id': 'evening_tea',
+      'kicker': 'EVENING TEA',
+      'title': "Chai's Crunchy Partners",
+      'desc': 'Murukku + Banana Chips',
+      'price': 299,
+      'imageA': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+      'imageB': 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg',
+      'colors': ['#18453B', '#235D4E', '#2E7563'],
+      'pairs': [
+        {
+          'id': 'et1',
+          'tag': '',
+          'imageA': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+          'imageB': 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg',
+          'name': 'Murukku + Banana Chips',
+          'bestWith': 'Evening tea',
+          'price': 299,
+        },
+        {
+          'id': 'et2',
+          'tag': '',
+          'imageA': 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg',
+          'imageB': 'assets/images/palli_patti_peanut_and_jaggery_chikki.jpg',
+          'name': 'Spicy Mixture + Masala Peanuts',
+          'bestWith': 'Evening tea',
+          'price': 279,
+        },
+        {
+          'id': 'et3',
+          'tag': '',
+          'imageA': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+          'imageB': 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg',
+          'name': 'Murukku + Spicy Mixture',
+          'bestWith': 'Evening tea',
+          'price': 319,
+        },
+      ],
+    },
+    {
+      'id': 'after_meals',
+      'kicker': 'AFTER MEALS',
+      'title': 'Sweet Endings',
+      'desc': 'Sunnunda Laddu + Murukku',
+      'price': 399,
+      'imageA': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+      'imageB': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+      'colors': ['#8B4513', '#A0522D', '#B8860B'],
+      'pairs': [
+        {
+          'id': 'am1',
+          'tag': '',
+          'imageA': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+          'imageB': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+          'name': 'Sunnunda Laddu + Murukku',
+          'bestWith': 'After meals · Gifting',
+          'price': 399,
+        },
+        {
+          'id': 'am2',
+          'tag': '',
+          'imageA': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+          'imageB': 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg',
+          'name': 'Sunnunda Laddu + Banana Chips',
+          'bestWith': 'After meals · Gifting',
+          'price': 379,
+        },
+        {
+          'id': 'am3',
+          'tag': '',
+          'imageA': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+          'imageB': 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg',
+          'name': 'Sunnunda Laddu + Spicy Mixture',
+          'bestWith': 'After meals · Gifting',
+          'price': 389,
+        },
+      ],
+    },
+  ];
 
   // 13. Heritage Story Banner
   Stream<Map<String, String>> getHeritageBannerStream() async* {

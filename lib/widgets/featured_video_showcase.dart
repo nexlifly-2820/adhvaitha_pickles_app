@@ -195,19 +195,21 @@ class _FeaturedVideoShowcaseState extends State<FeaturedVideoShowcase> {
                         ),
                       ),
 
-                    // Dark Gradient Overlay for Readability
-                    Positioned.fill(
+                    // Subtle Bottom Gradient for Text Legibility (Video stays 100% bright & clear)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      height: 70,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withOpacity(0.3),
                               Colors.transparent,
-                              Colors.black.withOpacity(0.75),
+                              Colors.black.withOpacity(0.45),
                             ],
-                            stops: const [0.0, 0.4, 1.0],
                           ),
                         ),
                       ),

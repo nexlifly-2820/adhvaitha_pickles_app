@@ -91,10 +91,9 @@ class RoyalCollectionsSection extends StatelessWidget {
   }
 
   Widget _header(double s) {
-    return SizedBox(
-      height: 104 * s,
-      child: Stack(
-        alignment: Alignment.topCenter,
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
         children: [
           Positioned(left: 4 * s, top: 0, child: _Lamp(size: 48 * s)),
           Positioned(right: 4 * s, top: 0, child: _Lamp(size: 48 * s)),
@@ -109,8 +108,12 @@ class RoyalCollectionsSection extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text('❖', style: TextStyle(color: gold, fontSize: 14 * s)),
-                  SizedBox(width: 10 * s),
+                  Icon(
+                    Icons.diamond_rounded,
+                    color: gold,
+                    size: 13 * s,
+                  ),
+                  SizedBox(width: 12 * s),
                   Text(title,
                       style: TextStyle(
                         fontFamily: 'serif',
@@ -122,8 +125,12 @@ class RoyalCollectionsSection extends StatelessWidget {
                           Shadow(color: Color(0x59FFC864), blurRadius: 14),
                         ],
                       )),
-                  SizedBox(width: 10 * s),
-                  Text('❖', style: TextStyle(color: gold, fontSize: 14 * s)),
+                  SizedBox(width: 12 * s),
+                  Icon(
+                    Icons.diamond_rounded,
+                    color: gold,
+                    size: 13 * s,
+                  ),
                 ],
               ),
               SizedBox(height: 6 * s),
@@ -144,8 +151,7 @@ class RoyalCollectionsSection extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _grid(double s) {

@@ -28,6 +28,8 @@ import 'widgets/royal_collections.dart';
 import 'widgets/featured_video_showcase.dart';
 import 'widgets/festival_section.dart';
 import 'widgets/loading_spinner.dart';
+import 'widgets/art_of_pairing.dart';
+import 'widgets/specials_light_section.dart';
 import 'user_manager.dart';
 import 'cart_page.dart';
 
@@ -435,6 +437,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 _buildHomeVideoSection(),
                 _buildHeroBanner(),
                 _buildPerfectPairings(),
+                const SpecialsLightSection(items: []),
                 _buildSection('Most Loved Pickles', 'Pickles'),
                 _buildTrustReassuranceBanner(),
                 _buildActiveCoupons(),
@@ -3000,224 +3003,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildPerfectPairings() {
-    final List<Map<String, dynamic>> mainPairings = [
-      {
-        'img': 'assets/images/art1.png',
-        'searchKey': 'Avakaya',
-        'subs': [
-          {'img': 'assets/images/artsib1.png', 'prod': 'Avakaya', 'title': 'Curd Rice & Mango Pickle', 'sub': 'Cooling curd meets tangy spice.'},
-          {'img': 'assets/images/artsib2.png', 'prod': 'Avakaya', 'title': 'Pappu & Avakaya', 'sub': 'The ultimate comfort meal.'},
-          {'img': 'assets/images/artsib3.png', 'prod': 'Avakaya', 'title': 'Ghee Rice & Pickle', 'sub': 'Rich and aromatic flavor.'},
-          {'img': 'assets/images/artsib4.png', 'prod': 'Avakaya', 'title': 'Sambar & Avakaya', 'sub': 'Traditional Andhra combination.'},
-        ]
-      },
-    ];
-
-    final displayPairings = pairingList.isNotEmpty ? pairingList : mainPairings;
-    if (_currentPairingIndex >= displayPairings.length) {
-      _currentPairingIndex = 0;
-    }
-
-    final currentMain = displayPairings[_currentPairingIndex];
-    final List<dynamic> rawSubs = currentMain['subs'] ?? currentMain['subPairings'] ?? currentMain['items'] ?? [];
-    final List<Map<String, dynamic>> subPairings = rawSubs.map((s) => Map<String, dynamic>.from(s)).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Section Header
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 4,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE5C76B),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'CURATED COMBOS',
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFFD4AF37),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 10,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'The Art of Pairing',
-                        style: GoogleFonts.philosopher(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFF1B1B1B),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Perfect combinations. Richer flavors.',
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: const Color(0xFF6B7280),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              GestureDetector(
-                onTap: () => MainScreen.of(context)?.setIndex(1),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'View All',
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFF0F4D3C),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF0F4D3C)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Main Hero Pairing Card Carousel (Image-Only, Scrollable from Admin Dashboard)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Container(
-            height: 205,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                )
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: Stack(
-                children: [
-                  PageView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    onPageChanged: (index) {
-                      setState(() {
-                        _currentPairingIndex = index;
-                      });
-                    },
-                    itemCount: displayPairings.length,
-                    itemBuilder: (context, index) {
-                      final pairing = displayPairings[index];
-                      final searchKey = pairing['searchKey'] ?? pairing['prod'] ?? '';
-                      final matchingProduct = allProducts.isNotEmpty
-                          ? allProducts.firstWhere(
-                              (p) => searchKey.isNotEmpty && p.name.contains(searchKey.split(' ').first),
-                              orElse: () => allProducts[index % allProducts.length],
-                            )
-                          : null;
-                      final imgPath = pairing['img'] ?? pairing['image'] ?? '';
-
-                      return GestureDetector(
-                        onTap: matchingProduct != null
-                            ? () => AppNavigator.push(context, ProductDetailPage(product: matchingProduct, allProducts: allProducts))
-                            : () => MainScreen.of(context)?.setIndex(1),
-                        child: Container(
-                          width: double.infinity,
-                          height: 205,
-                          decoration: BoxDecoration(
-                            image: DecorationImage(
-                              image: imgPath.startsWith('http')
-                                  ? NetworkImage(imgPath) as ImageProvider
-                                  : AssetImage(imgPath.startsWith('assets/') ? imgPath : 'assets/images/$imgPath'),
-                              fit: BoxFit.fill,
-                              alignment: Alignment.center,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-                  // Pagination Dots
-                  Positioned(
-                    left: 20,
-                    bottom: 12,
-                    child: Row(
-                      children: List.generate(displayPairings.length, (i) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.only(right: 5),
-                        width: _currentPairingIndex == i ? 14 : 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: _currentPairingIndex == i ? const Color(0xFFE5C76B) : Colors.white30,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      )),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // Sub-Cards Grid (2 in a row, supports 4 or more siblings dynamically from admin dashboard)
-        if (subPairings.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                for (int i = 0; i < subPairings.length; i += 2) ...[
-                  if (i > 0) const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildSubPairingCard(subPairings[i], i),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: (i + 1 < subPairings.length)
-                            ? _buildSubPairingCard(subPairings[i + 1], i + 1)
-                            : const SizedBox.shrink(),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-      ],
+    final combos = pairingList.map((e) => HeroCombo.fromJson(e)).toList();
+    return ArtOfPairing(
+      combos: combos,
+      onViewAll: () => MainScreen.of(context)?.setIndex(1),
     );
   }
 
