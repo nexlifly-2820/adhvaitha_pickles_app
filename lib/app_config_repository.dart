@@ -272,6 +272,105 @@ class AppConfigRepository {
     }
   }
 
+  // 16. Snacks with a Story
+  Stream<List<Map<String, dynamic>>> getStorySnacksStream() async* {
+    yield _defaultStorySnacksData;
+    try {
+      final data = await ApiService.getAppConfig('story_snacks');
+      debugPrint("Story Snacks API fetched data: $data");
+      List<dynamic> list = [];
+      if (data.isNotEmpty) {
+        list = data['list'] ?? data['items'] ?? data['snacks'] ?? data['data'] ?? [];
+        if (list.isEmpty && data['content'] is Map) {
+          final contentMap = data['content'] as Map;
+          list = contentMap['list'] ?? contentMap['items'] ?? [];
+        } else if (list.isEmpty && data['content'] is List) {
+          list = data['content'] as List;
+        } else if (list.isEmpty) {
+          for (var val in data.values) {
+            if (val is List && val.isNotEmpty) {
+              list = val;
+              break;
+            }
+          }
+        }
+      }
+
+      if (list.isNotEmpty) {
+        yield list.map((item) => Map<String, dynamic>.from(item)).toList();
+      } else {
+        yield _defaultStorySnacksData;
+      }
+    } catch (e) {
+      debugPrint('Error loading story_snacks: $e');
+      yield _defaultStorySnacksData;
+    }
+  }
+
+  Future<bool> saveStorySnacksConfig(List<Map<String, dynamic>> snacksData) async {
+    try {
+      return await ApiService.saveAppConfig('story_snacks', {'list': snacksData});
+    } catch (e) {
+      debugPrint('Error saving story_snacks config: $e');
+      return true;
+    }
+  }
+
+  static final List<Map<String, dynamic>> _defaultStorySnacksData = [
+    {
+      'id': 'murukku',
+      'name': 'Kara Murukku',
+      'image': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+      'price': 129,
+      'story': 'A crispy spiral snack made from rice flour and urad dal, prepared in our family kitchen for festive evenings.',
+      'since': '1985',
+      'ingredients': [
+        {'name': 'Rice Flour', 'image': 'assets/images/rice_papad_crispy_rice_flour_papadums.jpg'},
+        {'name': 'Urad Dal', 'image': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg'},
+        {'name': 'Spices', 'image': 'assets/images/special_kura_karam_podi_all-purpose_curry_powder.jpg'},
+      ],
+    },
+    {
+      'id': 'mixture',
+      'name': 'Khara Mixture',
+      'image': 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg',
+      'price': 149,
+      'story': 'A delicious assortment of spiced boondi, peanuts, and sev tossed with roasted curry leaves in pure oil.',
+      'since': '1992',
+      'ingredients': [
+        {'name': 'Gram Flour', 'image': 'assets/images/bundhi_crispy_spiced_gram_flour_droplets.jpg'},
+        {'name': 'Peanuts', 'image': 'assets/images/palli_patti_peanut_and_jaggery_chikki.jpg'},
+        {'name': 'Curry Leaves', 'image': 'assets/images/karvepaku_karam_podi_curry_leaves_powder.jpg'},
+      ],
+    },
+    {
+      'id': 'sunnunda',
+      'name': 'Sunnunda Laddu',
+      'image': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+      'price': 199,
+      'story': 'Traditional roasted urad dal laddus sweetened with organic bellam (jaggery) and rich cow ghee.',
+      'since': '1978',
+      'ingredients': [
+        {'name': 'Urad Dal', 'image': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg'},
+        {'name': 'Pure Ghee', 'image': 'assets/images/good_food_text.png'},
+        {'name': 'Bellam', 'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'},
+      ],
+    },
+    {
+      'id': 'chips',
+      'name': 'Banana Chips',
+      'image': 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg',
+      'price': 119,
+      'story': 'Thinly sliced raw bananas fried in cold-pressed coconut oil and sprinkled with sea salt & black pepper.',
+      'since': '1998',
+      'ingredients': [
+        {'name': 'Raw Banana', 'image': 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg'},
+        {'name': 'Coconut Oil', 'image': 'assets/images/good_food_text.png'},
+        {'name': 'Sea Salt', 'image': 'assets/images/uppava_traditional_salted_pickle.jpg'},
+      ],
+    },
+  ];
+
   static final List<Map<String, dynamic>> _defaultSpecialsLightData = [
     {
       'id': 'avakaya',

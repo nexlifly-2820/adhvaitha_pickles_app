@@ -30,6 +30,7 @@ import 'widgets/festival_section.dart';
 import 'widgets/loading_spinner.dart';
 import 'widgets/art_of_pairing.dart';
 import 'widgets/specials_light_section.dart';
+import 'widgets/snacks_story_flip.dart';
 import 'user_manager.dart';
 import 'cart_page.dart';
 
@@ -448,7 +449,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 _buildContinueShoppingSection(),
                 FestivalSection(allProducts: allProducts),
                 _buildSection('Fresh Picks, Just for You', 'Fresh Picks', subtitle: 'Discover our latest additions, crafted with tradition.'),
-                _buildSnacksSection(),
+                const SnacksStoryFlip(items: []),
                 _buildSection('Fresh Ground Spices', 'Spices', subtitle: 'Pure & aromatic blends'),
                 _buildSection('Traditional Sweets, Timeless Joy', 'Sweets', subtitle: 'Made with pure ingredients, just like home.'),
                 _buildSweetsQuoteBanner(),
