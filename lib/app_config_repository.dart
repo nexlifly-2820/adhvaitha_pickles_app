@@ -316,6 +316,57 @@ class AppConfigRepository {
     }
   }
 
+  // 17. Auto Carousel Banners
+  Stream<List<Map<String, dynamic>>> getAutoBannersStream() async* {
+    yield _defaultAutoBannersData;
+    try {
+      final data = await ApiService.getAppConfig('auto_banners');
+      debugPrint("Auto Banners API fetched data: $data");
+      List<dynamic> list = [];
+      if (data.isNotEmpty) {
+        list = data['banners'] ?? data['list'] ?? data['items'] ?? data['data'] ?? [];
+        if (list.isEmpty && data['content'] is Map) {
+          final contentMap = data['content'] as Map;
+          list = contentMap['banners'] ?? contentMap['list'] ?? contentMap['items'] ?? [];
+        } else if (list.isEmpty && data['content'] is List) {
+          list = data['content'] as List;
+        } else if (list.isEmpty) {
+          for (var val in data.values) {
+            if (val is List && val.isNotEmpty) {
+              list = val;
+              break;
+            }
+          }
+        }
+      }
+
+      if (list.isNotEmpty) {
+        yield list.map((item) => Map<String, dynamic>.from(item)).toList();
+      } else {
+        yield _defaultAutoBannersData;
+      }
+    } catch (e) {
+      debugPrint('Error loading auto_banners: $e');
+      yield _defaultAutoBannersData;
+    }
+  }
+
+  Future<bool> saveAutoBannersConfig(List<Map<String, dynamic>> bannersData) async {
+    try {
+      return await ApiService.saveAppConfig('auto_banners', {'banners': bannersData});
+    } catch (e) {
+      debugPrint('Error saving auto_banners config: $e');
+      return true;
+    }
+  }
+
+  static final List<Map<String, dynamic>> _defaultAutoBannersData = [
+    {'id': 'b1', 'image': 'assets/images/banner_1.jpg', 'link': {'category': 'Pickles'}},
+    {'id': 'b2', 'image': 'assets/images/banner_2.jpg', 'link': {'category': 'Powders'}},
+    {'id': 'b3', 'image': 'assets/images/banner_3.jpg', 'link': {'category': 'Sweets'}},
+    {'id': 'b4', 'image': 'assets/images/banner_4.jpg', 'link': {'category': 'Snacks'}},
+  ];
+
   static final List<Map<String, dynamic>> _defaultStorySnacksData = [
     {
       'id': 'murukku',

@@ -31,6 +31,7 @@ import 'widgets/loading_spinner.dart';
 import 'widgets/art_of_pairing.dart';
 import 'widgets/specials_light_section.dart';
 import 'widgets/snacks_story_flip.dart';
+import 'widgets/auto_banner_carousel.dart';
 import 'user_manager.dart';
 import 'cart_page.dart';
 
@@ -445,6 +446,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 _buildRoyalCollectionsSection(),
                 const FeaturedVideoShowcase(),
                 _buildSection('Best Sellers', 'Best Sellers', subtitle: 'Our most loved and purchased flavors.'),
+                const AutoBannerCarousel(banners: []),
         
                 _buildContinueShoppingSection(),
                 FestivalSection(allProducts: allProducts),
