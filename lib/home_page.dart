@@ -26,14 +26,25 @@ import 'journey_components.dart';
 import 'widgets/home_header.dart';
 import 'widgets/royal_collections.dart';
 import 'widgets/featured_video_showcase.dart';
-import 'widgets/festival_section.dart';
+import 'widgets/festival_section.dart' hide Product;
 import 'widgets/loading_spinner.dart';
 import 'widgets/art_of_pairing.dart';
 import 'widgets/specials_light_section.dart';
 import 'widgets/snacks_story_flip.dart';
 import 'widgets/auto_banner_carousel.dart';
+import 'widgets/pickle_showcase_section.dart';
+import 'widgets/most_loved_section.dart';
+import 'widgets/best_sellers_section.dart';
+import 'widgets/fresh_picks_section.dart';
+import 'widgets/sweets_thali_section.dart';
+import 'widgets/trust_promise_section.dart';
+import 'widgets/reviews_letters_section.dart';
+import 'widgets/spice_grinder_section.dart';
 import 'user_manager.dart';
 import 'cart_page.dart';
+import 'widgets/combo_box_section.dart';
+import 'widgets/combo_home_section.dart';
+import 'widgets/section_titles.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -48,6 +59,39 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentPairingIndex = 0;
 
   List<Product> get allProducts => ProductManager().products;
+
+  Product _findProduct(String query, String fallbackDesc, double fallbackPrice, String category, String image, Map<String, double> weights) {
+    if (query.trim().isEmpty) {
+      return Product(
+        name: 'Homemade Delicacy',
+        description: fallbackDesc,
+        weightPriceMap: weights.isNotEmpty ? weights : {'500g': fallbackPrice > 0 ? fallbackPrice : 199.0},
+        rating: 4.8,
+        image: image.isNotEmpty ? image : 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+        color: const Color(0xFF18453B),
+        category: category,
+        secretIngredient: IngredientDetail(name: '', description: '', image: ''),
+      );
+    }
+    try {
+      return allProducts.firstWhere((x) => x.name.toLowerCase().trim() == query.toLowerCase().trim());
+    } catch (_) {
+      try {
+        return allProducts.firstWhere((x) => x.name.toLowerCase().contains(query.toLowerCase()) || query.toLowerCase().contains(x.name.toLowerCase()));
+      } catch (_) {
+        return Product(
+          name: query,
+          description: fallbackDesc,
+          weightPriceMap: weights.isNotEmpty ? weights : {'500g': fallbackPrice > 0 ? fallbackPrice : 199.0},
+          rating: 4.8,
+          image: image.isNotEmpty ? image : 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+          color: const Color(0xFF18453B),
+          category: category,
+          secretIngredient: IngredientDetail(name: '', description: '', image: ''),
+        );
+      }
+    }
+  }
 
   final ScrollController _scrollController = ScrollController();
   final PageController _pageController = PageController();
@@ -436,27 +480,92 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (homeVideoConfig['enabled'] != false && _isHomeVideoInitialized && _homeVideoController != null) const SectionTitle(TitleKind.kitchen),
                 _buildHomeVideoSection(),
+                const SectionTitle(TitleKind.andhra),
                 _buildHeroBanner(),
+                const SectionTitle(TitleKind.pairing),
                 _buildPerfectPairings(),
+                const SectionTitle(TitleKind.specials),
                 const SpecialsLightSection(items: []),
-                _buildSection('Most Loved Pickles', 'Pickles'),
-                _buildTrustReassuranceBanner(),
-                _buildActiveCoupons(),
-                _buildRoyalCollectionsSection(),
-                const FeaturedVideoShowcase(),
-                _buildSection('Best Sellers', 'Best Sellers', subtitle: 'Our most loved and purchased flavors.'),
-                const AutoBannerCarousel(banners: []),
-        
-                _buildContinueShoppingSection(),
-                FestivalSection(allProducts: allProducts),
-                _buildSection('Fresh Picks, Just for You', 'Fresh Picks', subtitle: 'Discover our latest additions, crafted with tradition.'),
-                const SnacksStoryFlip(items: []),
-                _buildSection('Fresh Ground Spices', 'Spices', subtitle: 'Pure & aromatic blends'),
-                _buildSection('Traditional Sweets, Timeless Joy', 'Sweets', subtitle: 'Made with pure ingredients, just like home.'),
+                const SectionTitle(TitleKind.pickle),
+                PickleShowcaseSection(
+                  apiBase: 'https://admin.adhvaithafoods.in/api',
+                  onAddToCart: (item, variant) {
+                    HapticFeedback.lightImpact();
+                    final match = _findProduct(item.name, item.description, variant.price, 'Pickles', item.thumb, {variant.label: variant.price});
+                    CartManager().addToCart(match, weight: variant.label);
+                  },
+                  onOpenProduct: (item) {
+                    final match = _findProduct(item.name, item.description, item.variants.isNotEmpty ? item.variants.first.price : 199.0, 'Pickles', item.thumb, {for (var v in item.variants) v.label: v.price});
+                    AppNavigator.push(context, ProductDetailPage(product: match, allProducts: allProducts));
+                  },
+                  onViewAll: () => AppNavigator.push(context, const ProductListingPage(category: 'Pickles')),
+                ),
+                const SectionTitle(TitleKind.mostLoved),
+                MostLovedSection(
+                  onAdd: (product, variant) async {
+                    HapticFeedback.lightImpact();
+                    final match = _findProduct(product.name, product.tagline, variant.price.toDouble(), 'Most Loved', product.image, {variant.label: variant.price.toDouble()});
+                    CartManager().addToCart(match, weight: variant.label);
+                  },
+                  onOpen: (product) {
+                    final match = _findProduct(product.name, product.tagline, product.variants.isNotEmpty ? product.variants.first.price.toDouble() : 199.0, 'Most Loved', product.image, {for (var v in product.variants) v.label: v.price.toDouble()});
+                    AppNavigator.push(context, ProductDetailPage(product: match, allProducts: allProducts));
+                  },
+                ),
+                const SectionTitle(TitleKind.bestseller),
+                BestSellersLoader(
+                  apiBase: 'https://admin.adhvaithafoods.in/api',
+                  onOpen: (item) {
+                    final match = _findProduct(item.name, 'Bestselling item', item.price.toDouble(), 'Bestsellers', item.image, {item.variantId.isNotEmpty ? item.variantId : '500g': item.price.toDouble()});
+                    AppNavigator.push(context, ProductDetailPage(product: match, allProducts: allProducts));
+                  },
+                  onAdd: (item) async {
+                    HapticFeedback.lightImpact();
+                    final match = _findProduct(item.name, 'Bestselling item', item.price.toDouble(), 'Bestsellers', item.image, {item.variantId.isNotEmpty ? item.variantId : '500g': item.price.toDouble()});
+                    CartManager().addToCart(match);
+                  },
+                  onSeeAll: (cat) => AppNavigator.push(context, ProductListingPage(category: cat.name)),
+                ),
+                const SectionTitle(TitleKind.kadai),
+                const FreshPicksSection(),
+                const SectionTitle(TitleKind.festive),
+                FestivalSection(
+                  api: FestivalApi('https://admin.adhvaithafoods.in/api'),
+                  onOpenProducts: (title, link) => AppNavigator.push(context, ProductListingPage(category: title)),
+                  onAddToCart: (p) {
+                    try {
+                      final match = allProducts.firstWhere((x) => x.name.toLowerCase() == p.name.toLowerCase());
+                      CartManager().addToCart(match);
+                    } catch (_) {}
+                  },
+                  onProductTap: (p) {
+                    try {
+                      final match = allProducts.firstWhere((x) => x.name.toLowerCase() == p.name.toLowerCase());
+                      AppNavigator.push(context, ProductDetailPage(product: match, allProducts: allProducts));
+                    } catch (_) {}
+                  },
+                ),
+                const SectionTitle(TitleKind.sweetTooth),
+                const SweetsThaliSection(),
+                const SectionTitle(TitleKind.combo),
+                ComboHomeSection(apiBase: 'https://admin.adhvaithafoods.in/api', onAdded: () => AppNavigator.push(context, const CartPage())),
+                const SectionTitle(TitleKind.promise),
+                TrustPromiseSection(
+                  apiUrl: 'https://admin.adhvaithafoods.in/api/home/trust',
+                  onCategory: (cat) => AppNavigator.push(context, ProductListingPage(category: cat)),
+                ),
+                const SectionTitle(TitleKind.letters),
+                const ReviewsLettersSection(apiUrl: 'https://admin.adhvaithafoods.in/api/home/reviews'),
+                const SectionTitle(TitleKind.spice),
+                const SpiceGrinderSection(),
+                const SectionTitle(TitleKind.heart),
                 _buildSweetsQuoteBanner(),
-                _buildHeritageStory(),
+                ComboHomeSection(apiBase: 'https://admin.adhvaithafoods.in/api', onAdded: () => AppNavigator.push(context, const CartPage())),
+                const SectionTitle(TitleKind.slowMade),
                 _buildMakingProcessSection(),
+                if (allProducts.any((p) => p.reviews.isNotEmpty)) const SectionTitle(TitleKind.families),
                 _buildTestimonials(),
                 const SizedBox(height: 40),
                 _buildNexliflyFooter(),
@@ -3006,10 +3115,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildPerfectPairings() {
-    final combos = pairingList.map((e) => HeroCombo.fromJson(e)).toList();
-    return ArtOfPairing(
-      combos: combos,
-      onViewAll: () => MainScreen.of(context)?.setIndex(1),
+    return PairingHomeCard(
+      apiBase: 'https://admin.adhvaithafoods.in/api',
+      onAddCouple: (couple, weight, qtyChange) async {
+        try {
+          final pA = allProducts.firstWhere((p) => p.name.toLowerCase().contains(couple.a.name.toLowerCase()) || couple.a.name.toLowerCase().contains(p.name.toLowerCase()), orElse: () => allProducts.first);
+          final pB = allProducts.firstWhere((p) => p.name.toLowerCase().contains(couple.b.name.toLowerCase()) || couple.b.name.toLowerCase().contains(p.name.toLowerCase()), orElse: () => allProducts.last);
+          if (qtyChange > 0) {
+            CartManager().addToCart(pA, quantity: qtyChange);
+            CartManager().addToCart(pB, quantity: qtyChange);
+          }
+          return true;
+        } catch (_) {
+          return false;
+        }
+      },
+      onCart: () => AppNavigator.push(context, const CartPage()),
     );
   }
 
@@ -3444,99 +3565,130 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildHeritageStory() {
-    final String title = heritageBanner['title'] ?? 'OUR KITCHEN\nSTORY';
-    final String desc = heritageBanner['description'] ?? 'Handmade with love since 1982. Experience the ancestral legacy of Coastal Andhra in every jar.';
-    final String img = heritageBanner['image_url'] ?? 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg';
-    final String btnText = heritageBanner['button_text'] ?? 'EXPLORE OUR JOURNEY';
-
+  Widget _buildComboBoxBanner() {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
       height: 480,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(40),
-        image: DecorationImage(
-          image: _getBannerImageProvider(img),
-          fit: BoxFit.cover,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF2386B), Color(0xFFC2185B), Color(0xFF780A3C)],
         ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF2386B).withOpacity(0.4),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+          ),
+        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(40),
         child: Stack(
           children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.1),
-                    Colors.black.withOpacity(0.8),
-                    const Color(0xFF18453B),
-                  ],
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.15,
+                child: Image.asset(
+                  'assets/images/avakaya_pickle.png',
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(40),
+              padding: const EdgeInsets.all(36),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.auto_awesome, color: Color(0xFFD4AF37), size: 40)
-                      .animate(onPlay: (c) => c.repeat())
-                      .shimmer(duration: 3.seconds),
-                  const SizedBox(height: 25),
-                  Text(
-                    title, 
-                    style: GoogleFonts.philosopher(
-                      fontWeight: FontWeight.w900, 
-                      fontSize: 42, 
-                      color: Colors.white, 
-                      height: 1,
-                      letterSpacing: 2
-                    )
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFE45C),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'BUILD YOUR BOX',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2,
+                        color: const Color(0xFF780A3C),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 15),
-                  Container(height: 2, width: 60, color: const Color(0xFFD4AF37)),
-                  const SizedBox(height: 20),
-                  Text(
-                    desc, 
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7), 
-                      height: 1.6, 
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500
-                    )
+                  const SizedBox(height: 16),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: "Amma's\n",
+                          style: GoogleFonts.rozhaOne(
+                            fontSize: 38,
+                            color: Colors.white,
+                            height: 1.1,
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'Combo Box',
+                          style: GoogleFonts.yatraOne(
+                            fontSize: 38,
+                            color: const Color(0xFFFFE45C),
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 35),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Pick your favorite jars, fill the kraft box, unlock tier discounts up to 25% off, and send with love!',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 13,
+                      height: 1.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
                   ElevatedButton(
-                    onPressed: () => AppNavigator.push(context, const KitchenStoryPage()), 
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ComboBoxScreen(
+                            apiBase: 'https://admin.adhvaithafoods.in/api',
+                            logoAsset: 'assets/images/AMBHUJAKSHI  logo.png',
+                            onAdded: () {
+                              CartManager().refreshProductData(ProductManager().products);
+                              Navigator.pop(context);
+                            },
+                          ),
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4AF37),
-                      foregroundColor: const Color(0xFF18453B),
-                      minimumSize: const Size(double.infinity, 64),
+                      backgroundColor: const Color(0xFFFFE45C),
+                      foregroundColor: const Color(0xFF780A3C),
+                      minimumSize: const Size(double.infinity, 60),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       elevation: 0,
                     ),
                     child: Text(
-                      btnText, 
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)
-                    )
+                      'START BUILDING BOX 🎁',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-            Positioned(
-              top: -100, right: -100,
-              child: Container(
-                height: 300, width: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.05),
-                ),
-              ).animate(onPlay: (c) => c.repeat()).scale(begin: const Offset(1,1), end: const Offset(1.5, 1.5), duration: 4.seconds, curve: Curves.easeInOut),
             ),
           ],
         ),

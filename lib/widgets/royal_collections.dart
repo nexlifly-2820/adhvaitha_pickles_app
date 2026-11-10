@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../image_util.dart';
 
 class CollectionItem {
   final String name;
@@ -94,15 +95,25 @@ class RoyalCollectionsSection extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.topCenter,
-        children: [
-          Positioned(left: 4 * s, top: 0, child: _Lamp(size: 48 * s)),
-          Positioned(right: 4 * s, top: 0, child: _Lamp(size: 48 * s)),
-          Column(
+      children: [
+        // Side Lamp Artworks positioned safely at far edges without overlapping title text
+        Positioned(left: 8 * s, top: -2 * s, child: _Lamp(size: 34 * s)),
+        Positioned(right: 8 * s, top: -2 * s, child: _Lamp(size: 34 * s)),
+
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 44 * s),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(kicker,
-                  style: TextStyle(
-                      color: gold, fontSize: 11 * s, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+              Text(
+                kicker,
+                style: TextStyle(
+                  color: gold,
+                  fontSize: 10.5 * s,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                ),
+              ),
               SizedBox(height: 4 * s),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -111,25 +122,27 @@ class RoyalCollectionsSection extends StatelessWidget {
                   Icon(
                     Icons.diamond_rounded,
                     color: gold,
-                    size: 13 * s,
+                    size: 10 * s,
                   ),
-                  SizedBox(width: 12 * s),
-                  Text(title,
-                      style: TextStyle(
-                        fontFamily: 'serif',
-                        color: const Color(0xFFFFE6A8),
-                        fontSize: 26 * s,
-                        fontWeight: FontWeight.w900,
-                        shadows: const [
-                          Shadow(color: Color(0xFF4A0507), offset: Offset(0, 2)),
-                          Shadow(color: Color(0x59FFC864), blurRadius: 14),
-                        ],
-                      )),
-                  SizedBox(width: 12 * s),
+                  SizedBox(width: 8 * s),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'serif',
+                      color: const Color(0xFFFFE6A8),
+                      fontSize: 24 * s,
+                      fontWeight: FontWeight.w900,
+                      shadows: const [
+                        Shadow(color: Color(0xFF4A0507), offset: Offset(0, 2)),
+                        Shadow(color: Color(0x59FFC864), blurRadius: 12),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 8 * s),
                   Icon(
                     Icons.diamond_rounded,
                     color: gold,
-                    size: 13 * s,
+                    size: 10 * s,
                   ),
                 ],
               ),
@@ -141,17 +154,21 @@ class RoyalCollectionsSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20 * s),
                   border: Border.all(color: gold.withOpacity(.4)),
                 ),
-                child: Text(pill,
-                    style: TextStyle(
-                        color: const Color(0xFFFFE9C2),
-                        fontSize: 11 * s,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.2)),
+                child: Text(
+                  pill,
+                  style: TextStyle(
+                    color: const Color(0xFFFFE9C2),
+                    fontSize: 10.5 * s,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.2,
+                  ),
+                ),
               ),
             ],
           ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 
   Widget _grid(double s) {
@@ -171,25 +188,15 @@ class RoyalCollectionsSection extends StatelessWidget {
   }
 
   Widget _card(CollectionItem it, double s) {
-    final img = it.imageUrl.startsWith('http')
-        ? Image.network(
-            it.imageUrl,
-            fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
-            errorBuilder: (c, e, s) => Container(
-              color: Colors.grey.shade200,
-              child: const Icon(Icons.restaurant, color: Colors.grey),
-            ),
-          )
-        : Image.asset(
-            it.imageUrl.startsWith('assets/') ? it.imageUrl : 'assets/images/${it.imageUrl}',
-            fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
-            errorBuilder: (c, e, s) => Container(
-              color: Colors.grey.shade200,
-              child: const Icon(Icons.restaurant, color: Colors.grey),
-            ),
-          );
+    final img = buildSmartImage(
+      it.imageUrl,
+      fit: BoxFit.cover,
+      alignment: Alignment.topCenter,
+      errorWidget: Container(
+        color: Colors.grey.shade200,
+        child: const Icon(Icons.restaurant, color: Colors.grey),
+      ),
+    );
 
     return GestureDetector(
       onTap: () => onItemTap?.call(it),

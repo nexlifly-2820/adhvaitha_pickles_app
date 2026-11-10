@@ -950,8 +950,9 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
   }
 
   Widget _card(SpProduct p) {
+    final d = _effectiveData;
     final vi =
-        (_variant[p.id] ?? 0).clamp(0, math.max(0, p.variants.length - 1));
+        (_variant[p.id] ?? 0).clamp(0, math.max(0, p.variants.length - 1)).toInt();
     final v = p.variants.isEmpty ? null : p.variants[vi];
     final added = v != null && _added == '${p.id}-${v.id}';
 
@@ -993,7 +994,7 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
                         style: GoogleFonts.poppins(
                             fontSize: 10.5, color: const Color(0xFF8A7660)),
                       ),
-                      if (widget.data.cardTag.isNotEmpty)
+                      if (d.cardTag.isNotEmpty)
                         Container(
                           margin: const EdgeInsets.only(top: 6),
                           padding: const EdgeInsets.symmetric(
@@ -1002,7 +1003,7 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
                               color: const Color(0xFFE6F4E8),
                               borderRadius: BorderRadius.circular(8)),
                           child: Text(
-                            widget.data.cardTag,
+                            d.cardTag,
                             style: GoogleFonts.poppins(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w800,
@@ -1299,23 +1300,38 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
         ),
       );
 
+  String _abs(String u) {
+    if (u.isEmpty || u.startsWith('http') || u.startsWith('assets/')) return u;
+    const origin = 'https://admin.adhvaithafoods.in';
+    return u.startsWith('/') ? '$origin$u' : '$origin/$u';
+  }
+
   Widget _buildImg(String u) {
     if (u.isEmpty) {
       return const SizedBox();
     }
-    if (u.startsWith('http')) {
+    final fullUrl = _abs(u);
+    if (fullUrl.startsWith('http')) {
       return Image.network(
-        u,
+        fullUrl,
         fit: BoxFit.contain,
         gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => const SizedBox(),
+        errorBuilder: (_, __, ___) => Image.asset(
+          'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const SizedBox(),
+        ),
       );
     }
-    String assetPath = u.startsWith('assets/') ? u : 'assets/images/$u';
+    String assetPath = fullUrl.startsWith('assets/') ? fullUrl : 'assets/images/$fullUrl';
     return Image.asset(
       assetPath,
       fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => const SizedBox(),
+      errorBuilder: (_, __, ___) => Image.asset(
+        'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const SizedBox(),
+      ),
     );
   }
 

@@ -11,6 +11,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../models/order_result.dart';
 import '../image_util.dart';
+import '../navigation_util.dart';
+import 'order_details_screen.dart';
 
 Color _hex(String? h, Color fb) {
   final s = (h ?? '').replaceAll('#', '');
@@ -125,7 +127,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
             "discounts": [],
             "total": res.total,
             "paymentMethod": "Paid Online",
-            "eta": res.deliveryDate ?? "Fri, 9 Oct",
+            "eta": (res.deliveryDate.isNotEmpty) ? res.deliveryDate : "Fri, 9 Oct",
             "status": "placed"
           };
         } else {
@@ -157,9 +159,21 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
       if (!mounted) return;
       setState(() {});
       HapticFeedback.lightImpact();
-      _t.forward(from: (_s!['enabled'] == false) ? 1 : 0);
+      _t.forward(from: (_s?['enabled'] == false) ? 1.0 : 0.0);
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
+    }
+  }
+
+  void _handleTrack(String orderId) {
+    HapticFeedback.mediumImpact();
+    if (widget.onTrack != null) {
+      widget.onTrack!(orderId);
+    } else {
+      AppNavigator.push(
+        context,
+        OrderDetailsScreen(orderId: orderId),
+      );
     }
   }
 
@@ -623,7 +637,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
                     'Track order →',
                     primary,
                     Colors.white,
-                    () => widget.onTrack?.call('${o['id']}'),
+                    () => _handleTrack('${o['id']}'),
                   ),
                 ),
                 const SizedBox(width: 10),

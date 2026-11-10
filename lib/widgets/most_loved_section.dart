@@ -6,12 +6,14 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../models.dart';
 import '../cart_manager.dart';
 import '../product_detail_page.dart';
 import '../product_listing_page.dart';
 import '../navigation_util.dart';
 import '../product_manager.dart';
 import '../app_config_repository.dart';
+import '../image_util.dart';
 
 // ============================ MODELS ============================
 
@@ -73,8 +75,8 @@ class MLProduct {
             .map((e) => _hex('$e'))
             .toList(),
         rating: j['rating'] ?? 0,
-        soldToday: j['soldToday'] ?? 0,
-        spice: (j['spice'] ?? 0).clamp(0, 3),
+        soldToday: ((j['soldToday'] as num?)?.toInt() ?? 0),
+        spice: ((j['spice'] as num?)?.toInt() ?? 0).clamp(0, 3),
         variants: ((j['variants'] ?? []) as List)
             .map((e) => MLVariant.fromJson(e))
             .toList(),
@@ -104,7 +106,7 @@ class MostLovedData {
       kicker: s['kicker'] ?? 'THE LOVE CHART',
       title: s['title'] ?? 'Most loved',
       titleAccent: s['titleAccent'] ?? 'products',
-      intervalMs: math.max(1200, (s['intervalMs'] ?? 2500) as int),
+      intervalMs: math.max(1200, ((s['intervalMs'] as num?)?.toInt() ?? 2500)),
       products: ((j['products'] ?? []) as List)
           .take(max)
           .map((e) => MLProduct.fromJson(e))
@@ -273,7 +275,7 @@ class _MostLovedSectionState extends State<MostLovedSection>
     if (!activeData.enabled || _p.isEmpty) return const SizedBox.shrink();
     final p = _p[_cur];
     final vi =
-        (_variant[p.id] ?? 0).clamp(0, math.max(0, p.variants.length - 1));
+        (_variant[p.id] ?? 0).clamp(0, math.max(0, p.variants.length - 1)).toInt();
     final v = p.variants.isEmpty ? null : p.variants[vi];
 
     return Listener(
@@ -628,28 +630,8 @@ class _MostLovedSectionState extends State<MostLovedSection>
         child: _buildImg(p.image, 235),
       );
 
-  Widget _buildImg(String u, double w, {double? h}) {
-    if (u.isEmpty) {
-      return SizedBox(width: w, height: h);
-    }
-    if (u.startsWith('http')) {
-      return Image.network(
-        u,
-        width: w,
-        height: h,
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => SizedBox(width: w, height: h),
-      );
-    }
-    String assetPath = u.startsWith('assets/') ? u : 'assets/images/$u';
-    return Image.asset(
-      assetPath,
-      width: w,
-      height: h,
-      fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => SizedBox(width: w, height: h),
-    );
-  }
+  Widget _buildImg(String u, double w, {double? h}) =>
+      buildSmartImage(u, width: w, height: h, fit: BoxFit.contain);
 
   Widget _buyBar(MLProduct p, MLVariant v, int vi) {
     final off = v.mrp > v.price ? ((1 - v.price / v.mrp) * 100).round() : 0;
@@ -703,14 +685,25 @@ class _MostLovedSectionState extends State<MostLovedSection>
                     if (widget.onAdd != null) {
                       await widget.onAdd!(p, v);
                     } else {
-                      // Default Add to Cart
-                      CartManager().addItem({
-                        'id': p.id,
-                        'name': p.name,
-                        'variant': v.label,
-                        'price': v.price,
-                        'image': p.image,
-                      });
+                      final allProducts = ProductManager().products;
+                      final match = allProducts.firstWhere(
+                        (prod) => prod.name.toLowerCase().contains(p.name.toLowerCase()),
+                        orElse: () => Product(
+                          name: p.name,
+                          description: p.tagline,
+                          weightPriceMap: {v.label: v.price.toDouble()},
+                          rating: p.rating.toDouble(),
+                          image: p.image,
+                          color: const Color(0xFF18453B),
+                          category: 'Pickles',
+                          secretIngredient: IngredientDetail(
+                            name: 'Traditional Spices',
+                            description: 'Aromatic hand-ground blend',
+                            image: p.image,
+                          ),
+                        ),
+                      );
+                      CartManager().addToCart(match, weight: v.label);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('${p.name} (${v.label}) added to cart!'),
@@ -743,7 +736,7 @@ class _MostLovedSectionState extends State<MostLovedSection>
                 onTap: () => _go(i, user: true),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 350),
-                  width: 72,
+                  width: 74,
                   margin: const EdgeInsets.only(right: 10),
                   transform:
                       Matrix4.translationValues(0, i == _cur ? -4 : 0, 0),
@@ -758,33 +751,54 @@ class _MostLovedSectionState extends State<MostLovedSection>
                   clipBehavior: Clip.antiAlias,
                   child: Stack(
                     children: [
+                      // Top Left Rank Badge (Clean & Non-overlapping)
                       Positioned(
-                        top: 3,
-                        left: 7,
-                        child: Text(
-                          '${i + 1}',
-                          style: GoogleFonts.fraunces(
-                            fontWeight: FontWeight.w800,
-                            fontSize: i < 3 ? 15 : 12,
-                            color: i < 3 ? _gold : const Color(0xFFE8D4C2),
+                        top: 4,
+                        left: 6,
+                        child: Container(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: i == _cur
+                                ? const Color(0xFF7A0F12)
+                                : Colors.black45,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '#${i + 1}',
+                            style: GoogleFonts.fraunces(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 10,
+                              color: _gold,
+                            ),
                           ),
                         ),
                       ),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildImg(_p[i].image, 58, h: 46),
-                          Text(
-                            _p[i].short,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFF3E2D0),
+                      // Content Column safely below rank number
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 18, 4, 4),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Center(
+                                child: _buildImg(_p[i].image, 48, h: 38),
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 2),
+                            Text(
+                              _p[i].short,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFF3E2D0),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       if (i == _cur)
                         Positioned(
@@ -793,7 +807,7 @@ class _MostLovedSectionState extends State<MostLovedSection>
                           child: AnimatedBuilder(
                             animation: _progress,
                             builder: (_, __) => Container(
-                              width: 72 * _progress.value,
+                              width: 74 * _progress.value,
                               height: 3,
                               color: _gold,
                             ),

@@ -394,4 +394,44 @@ class ApiService {
     }
     return true; // Local state save fallback
   }
+
+  // 15. Fetch Rewards Data (Scratch & Save)
+  static Future<Map<String, dynamic>> getRewards(String userId) async {
+    try {
+      final response = await http
+          .get(Uri.parse("$baseUrl/rewards.php?user_id=$userId"))
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map<String, dynamic>) return data;
+        if (data is Map) return Map<String, dynamic>.from(data);
+      }
+    } catch (e) {
+      debugPrint('ApiService error fetching rewards: $e');
+    }
+    return {};
+  }
+
+  // 16. Scratch Card Reward Endpoint
+  static Future<Map<String, dynamic>> scratchCard(String cardId) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$baseUrl/rewards.php?action=scratch"),
+            headers: _headers,
+            body: jsonEncode({'id': cardId}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map<String, dynamic>) return data;
+        if (data is Map) return Map<String, dynamic>.from(data);
+      }
+    } catch (e) {
+      debugPrint('ApiService error scratching card: $e');
+    }
+    return {};
+  }
 }

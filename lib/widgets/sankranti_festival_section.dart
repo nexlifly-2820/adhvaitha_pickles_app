@@ -7,6 +7,7 @@ import '../wishlist_manager.dart';
 import '../product_detail_page.dart';
 import '../product_listing_page.dart';
 import '../navigation_util.dart';
+import '../image_util.dart';
 
 class SankrantiFestivalSection extends StatefulWidget {
   final List<Product> allProducts;
@@ -623,33 +624,7 @@ class _SankrantiFestivalSectionState extends State<SankrantiFestivalSection> {
   }
 
   // IMAGE HELPER
-  Widget _buildImage(String path) {
-    if (path.isEmpty) {
-      return Container(
-        color: Colors.grey.shade100,
-        child: const Center(child: Icon(Icons.restaurant, color: Colors.grey)),
-      );
-    }
-    if (path.startsWith('http')) {
-      return Image.network(
-        path,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(
-          color: Colors.grey.shade100,
-          child: const Icon(Icons.broken_image, color: Colors.grey),
-        ),
-      );
-    }
-    String assetPath = path.startsWith('assets/') ? path : 'assets/images/$path';
-    return Image.asset(
-      assetPath,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
-        color: Colors.grey.shade100,
-        child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
-      ),
-    );
-  }
+  Widget _buildImage(String path) => buildSmartImage(path, fit: BoxFit.cover);
 }
 
 // SCALLOP PAINTER FOR TOP HEADER

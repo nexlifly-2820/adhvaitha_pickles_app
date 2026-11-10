@@ -8,6 +8,10 @@ import '../product_listing_page.dart';
 import '../navigation_util.dart';
 import '../product_manager.dart';
 import '../app_config_repository.dart';
+import '../image_util.dart';
+import 'specials_lotus_eye_screen.dart';
+import '../cart_manager.dart';
+import '../cart_page.dart';
 
 class LotusItem {
   final String id, name, image;
@@ -130,32 +134,35 @@ class _SpecialsLightSectionState extends State<SpecialsLightSection> {
   }
 
   void _openItemProduct(BuildContext context, LotusItem item) {
-    final allProducts = ProductManager().products;
-    final cleanName = item.name.toLowerCase().trim();
-
-    Product? match;
-    if (allProducts.isNotEmpty) {
-      match = allProducts.firstWhere(
-        (p) {
-          final pName = p.name.toLowerCase();
-          return pName.contains(cleanName) ||
-                 cleanName.contains(pName) ||
-                 (cleanName.contains('avakaya') && pName.contains('avakaya')) ||
-                 (cleanName.contains('karam') && pName.contains('karam')) ||
-                 (cleanName.contains('murukku') && (pName.contains('murukku') || pName.contains('janthukalu'))) ||
-                 (cleanName.contains('sunnunda') && pName.contains('sunnunda')) ||
-                 (cleanName.contains('mixture') && pName.contains('mixture')) ||
-                 (cleanName.contains('banana') && pName.contains('chips'));
-        },
-        orElse: () => allProducts.first,
-      );
-    }
-
-    if (match != null) {
-      AppNavigator.push(context, ProductDetailPage(product: match, allProducts: allProducts));
-    } else {
-      AppNavigator.push(context, ProductListingPage(category: item.name));
-    }
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 500),
+        pageBuilder: (_, __, ___) => SpecialsLotusEyeScreen(
+          apiBase: 'https://admin.adhvaithafoods.in/api',
+          initialId: item.id,
+          initialName: item.name,
+          frameAsset: 'assets/images/lotus_eye_frame.png',
+          lotusAsset: 'assets/images/lotus_on_water.png',
+          cartCount: CartManager().itemCount,
+          onAdd: (specialItem, variant, qty) async {
+            try {
+              final allProducts = ProductManager().products;
+              final match = allProducts.firstWhere(
+                (p) => p.name.toLowerCase().contains(specialItem.name.toLowerCase()) || specialItem.name.toLowerCase().contains(p.name.toLowerCase()),
+                orElse: () => allProducts.first,
+              );
+              CartManager().addToCart(match, quantity: qty, weight: variant.label);
+              return true;
+            } catch (_) {
+              return false;
+            }
+          },
+          onGoToCart: () => AppNavigator.push(context, const CartPage()),
+        ),
+        transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
+      ),
+    );
   }
 
   static const List<LotusItem> _defaultItems = [
@@ -199,16 +206,8 @@ class _Tile extends StatelessWidget {
 
   const _Tile({required this.item, required this.s, required this.onTap});
 
-  Widget _img(String u) {
-    if (u.isEmpty) {
-      return const Center(child: Icon(Icons.restaurant, color: Colors.grey, size: 18));
-    }
-    if (u.startsWith('http')) {
-      return Image.network(u, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey, size: 18));
-    }
-    String assetPath = u.startsWith('assets/') ? u : 'assets/images/$u';
-    return Image.asset(assetPath, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: Colors.grey, size: 18));
-  }
+  Widget _img(String u) =>
+      buildSmartImage(u, fit: BoxFit.contain);
 
   @override
   Widget build(BuildContext context) {

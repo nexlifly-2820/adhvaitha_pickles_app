@@ -1,10 +1,23 @@
 import 'package:flutter/material.dart';
 import 'models.dart';
+import 'widgets/cart_bar.dart';
 
 class CartManager extends ChangeNotifier {
   static final CartManager _instance = CartManager._internal();
   factory CartManager() => _instance;
   CartManager._internal();
+
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    try {
+      globalCartBar.sync(
+        count: itemCount,
+        total: total,
+        images: _items.map((i) => i.product.image).toList(),
+      );
+    } catch (_) {}
+  }
 
   final List<CartItem> _items = [];
   double _discountAmount = 0;

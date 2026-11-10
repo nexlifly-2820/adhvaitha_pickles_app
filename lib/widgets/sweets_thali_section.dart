@@ -13,6 +13,7 @@ import '../product_listing_page.dart';
 import '../navigation_util.dart';
 import '../product_manager.dart';
 import '../app_config_repository.dart';
+import '../image_util.dart';
 
 // ============================ MODELS ============================
 
@@ -207,10 +208,9 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
   Future<void> _go(int i, {bool user = false}) async {
     if (!mounted || _n < 2) return;
     final next = (i % _n + _n) % _n;
-    final steps = i - _cur;
-    if (steps == 0) return;
+    if (next == _cur && !_turn.isAnimating) return;
     _fromRot = _rotNow;
-    _toRot = _toRot - steps * 2 * math.pi / _n;
+    _toRot = -next * 2 * math.pi / _n;
     _card.reverse();
     setState(() => _cur = next);
     _turn.forward(from: 0);
@@ -222,8 +222,12 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
         user ? Duration(milliseconds: _effectiveData.intervalMs + 4000) : null);
   }
 
-  double get _rotNow =>
-      _fromRot + (_toRot - _fromRot) * Curves.easeOutBack.transform(_turn.value);
+  double get _rotNow {
+    if (_n == 0) return 0;
+    final target = -_cur * 2 * math.pi / _n;
+    if (!_turn.isAnimating) return target;
+    return _fromRot + (_toRot - _fromRot) * Curves.easeOutBack.transform(_turn.value);
+  }
 
   @override
   void dispose() {
@@ -661,7 +665,7 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
 
   Widget _productCard(SwProduct p, SweetsData d) {
     final vi =
-        (_variant[p.id] ?? 0).clamp(0, math.max(0, p.variants.length - 1));
+        (_variant[p.id] ?? 0).clamp(0, math.max(0, p.variants.length - 1)).toInt();
     final v = p.variants.isEmpty ? null : p.variants[vi];
     final off = v != null && v.mrp > v.price
         ? ((1 - v.price / v.mrp) * 100).round()
@@ -710,6 +714,8 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
                               children: [
                                 Text(
                                   p.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.fraunces(
                                     fontSize: 22,
                                     height: 1.1,
@@ -718,6 +724,8 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
                                 ),
                                 Text(
                                   p.tagline,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.poppins(
                                     fontSize: 10.5,
                                     color: const Color(0xFF8A7660),
@@ -1023,24 +1031,8 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
     );
   }
 
-  Widget _buildImg(String u) {
-    if (u.isEmpty) {
-      return const SizedBox();
-    }
-    if (u.startsWith('http')) {
-      return Image.network(
-        u,
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => const SizedBox(),
-      );
-    }
-    String assetPath = u.startsWith('assets/') ? u : 'assets/images/$u';
-    return Image.asset(
-      assetPath,
-      fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => const SizedBox(),
-    );
-  }
+  Widget _buildImg(String u) =>
+      buildSmartImage(u, fit: BoxFit.contain);
 
   static const SweetsData defaultSweetsData = SweetsData(
     enabled: true,

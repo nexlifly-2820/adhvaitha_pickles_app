@@ -13,6 +13,7 @@ import '../order_manager.dart';
 import '../models.dart' as app_models;
 import '../image_util.dart';
 import 'order_placed_screen.dart';
+import 'order_details_screen.dart';
 import '../navigation_util.dart';
 
 Color _hex(String? s, [Color fb = const Color(0xFFE85A4F)]) {
@@ -335,7 +336,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                   child: GestureDetector(
                     onTap: () => widget.onOpenOrder != null
                         ? widget.onOpenOrder!(_live!.orderId)
-                        : _openReceiptScreen(_live!.orderId),
+                        : _openOrderDetailsScreen(_live!.orderId),
                     child: LiveBanner(
                         info: _live!,
                         logo: _logo(64),
@@ -397,7 +398,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                           : _openReceiptScreen(_orders[i].id),
                       onTap: () => widget.onOpenOrder != null
                           ? widget.onOpenOrder!(_orders[i].id)
-                          : _openReceiptScreen(_orders[i].id),
+                          : _openOrderDetailsScreen(_orders[i].id),
                       onRate: (s) => _rate(_orders[i], s),
                     ),
                   ),
@@ -408,11 +409,23 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
     );
   }
 
+  void _openOrderDetailsScreen(String orderId) {
+    AppNavigator.push(
+      context,
+      OrderDetailsScreen(
+        orderId: orderId,
+        onReceipt: (id) => _openReceiptScreen(id),
+        onInvoice: (id) => _openReceiptScreen(id),
+      ),
+    );
+  }
+
   void _openReceiptScreen(String orderId) {
     AppNavigator.push(
       context,
       OrderPlacedScreen(
         receiptUrl: 'https://admin.adhvaithafoods.in/api/orders/$orderId/receipt',
+        onTrack: (id) => _openOrderDetailsScreen(id),
       ),
     );
   }

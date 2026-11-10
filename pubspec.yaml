@@ -30,6 +30,10 @@ dependencies:
   video_player: ^2.9.2
   cached_network_image: ^3.3.1
   sqflite: 2.3.3+1
+  webview_flutter: ^4.14.1
+  webview_flutter_android: ^4.14.1
+  just_audio: ^0.9.40
+  shared_preferences: ^2.2.3
 
 dev_dependencies:
   flutter_test:
@@ -41,6 +45,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/spice_widget.html
+    - assets/category_turntable.html
 
 flutter_launcher_icons:
   android: true

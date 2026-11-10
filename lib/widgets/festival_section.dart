@@ -1,21 +1,16 @@
 // festival_section.dart
-// Backend-driven or local fallback festival / occasion section.
+// Backend-driven festival / occasion section (Blinkit "Celebrate Karwa Chauth" style).
+// Same design for every occasion - only the JSON from your backend changes.
 
-import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
-import '../models.dart' as app_models;
-import '../cart_manager.dart';
-import '../wishlist_manager.dart';
-import '../product_detail_page.dart';
-import '../product_listing_page.dart';
-import '../navigation_util.dart';
-import '../app_config_repository.dart';
-import 'loading_spinner.dart';
 
+// ============================ MODELS ============================
+
+/// A link = product filter, e.g. {"tag":"pindi-vantalu"} or {"category":"sweets"} or {"maxPrice":299}
 typedef ProductLink = Map<String, dynamic>;
 
 class FestivalTile {
@@ -23,13 +18,6 @@ class FestivalTile {
   final String image;  // transparent PNG cut-out of the main product
   final String image2; // optional smaller second product (bottom-right)
   final ProductLink link;
-  FestivalTile({
-    required this.title,
-    required this.image,
-    required this.image2,
-    required this.link,
-  });
-
   FestivalTile.fromJson(Map<String, dynamic> j)
       : title = j['title'] ?? '',
         image = j['image'] ?? '',
@@ -39,27 +27,15 @@ class FestivalTile {
 
 class FestivalTheme {
   final Color bgTop, bgBottom, tile, tileBorder, title, kicker, strip, chipBg, accent;
-  FestivalTheme({
-    required this.bgTop,
-    required this.bgBottom,
-    required this.tile,
-    required this.tileBorder,
-    required this.title,
-    required this.kicker,
-    required this.strip,
-    required this.chipBg,
-    required this.accent,
-  });
-
   FestivalTheme.fromJson(Map<String, dynamic> j)
-      : bgTop = _hex(j['bgTop'], const Color(0xFFF9DFB3)),
-        bgBottom = _hex(j['bgBottom'], const Color(0xFFF6D6A2)),
-        tile = _hex(j['tile'], const Color(0xFFB81D3B)),
-        tileBorder = _hex(j['line'] ?? j['tileBorder'], const Color(0xFFEFCF8C)),
-        title = _hex(j['title'], const Color(0xFF7A1240)),
-        kicker = _hex(j['kicker'], const Color(0xFF5A1030)),
-        strip = _hex(j['strip'], const Color(0xFFD98F2E)),
-        chipBg = _hex(j['chipBg'], const Color(0xFFFDF3DD)),
+      : bgTop = _hex(j['bgTop'], const Color(0xFFFAE3B9)),
+        bgBottom = _hex(j['bgBottom'], const Color(0xFFF5D39B)),
+        tile = _hex(j['tile'], const Color(0xFFB5203F)),
+        tileBorder = _hex(j['line'] ?? j['tileBorder'], const Color(0xFFECD08F)),
+        title = _hex(j['title'], const Color(0xFF7C1443)),
+        kicker = _hex(j['kicker'], const Color(0xFF5C1532)),
+        strip = _hex(j['strip'], const Color(0xFFD8932F)),
+        chipBg = _hex(j['chipBg'], const Color(0xFFFDF3DC)),
         accent = _hex(j['accent'], const Color(0xFFE9952C));
 }
 
@@ -68,22 +44,7 @@ class FestivalConfig {
   final FestivalTheme theme;
   final List<FestivalTile> tiles, chips;
   final List<String> strip;
-  final ProductLink products;
-
-  FestivalConfig({
-    required this.id,
-    required this.kicker,
-    required this.title,
-    required this.subtitle,
-    required this.art,
-    required this.chipsTitle,
-    required this.theme,
-    required this.tiles,
-    required this.chips,
-    required this.strip,
-    required this.products,
-  });
-
+  final ProductLink products; // default product row filter
   FestivalConfig.fromJson(Map<String, dynamic> j)
       : id = j['id'] ?? '',
         kicker = j['kicker'] ?? 'CELEBRATE',
@@ -98,124 +59,78 @@ class FestivalConfig {
         products = Map<String, dynamic>.from(j['products'] ?? {});
 }
 
+class Product {
+  final String id, name, image, unit;
+  final int price;
+  final String? badge;
+  Product.fromJson(Map<String, dynamic> j)
+      : id = j['id'],
+        name = j['name'] ?? '',
+        image = j['image'] ?? '',
+        unit = j['unit'] ?? '',
+        price = (j['price'] ?? 0).round(),
+        badge = j['badge'];
+}
+
 Color _hex(dynamic v, Color fallback) {
   if (v is! String || v.isEmpty) return fallback;
   final h = v.replaceFirst('#', '');
   return Color(int.parse(h.length == 6 ? 'FF$h' : h, radix: 16));
 }
 
-// ============================ API & FALLBACK DATA ============================
+// ============================ API ============================
 
 class FestivalApi {
   final String baseUrl;
-  FestivalApi([this.baseUrl = 'https://api.ambhujakshi.com']);
+  FestivalApi(this.baseUrl);
 
+  /// Returns the active festival config, or null when no festival is running.
   Future<FestivalConfig?> activeFestival() async {
     try {
-      if (baseUrl.isEmpty) return _defaultSankrantiConfig();
-      final r = await http.get(Uri.parse('$baseUrl/api/home/festival')).timeout(const Duration(seconds: 3));
-      if (r.statusCode != 200) return _defaultSankrantiConfig();
+      final endpoint = baseUrl.endsWith('/api') ? '$baseUrl/home/festival' : '$baseUrl/api/home/festival';
+      final r = await http.get(Uri.parse(endpoint));
+      if (r.statusCode != 200) return null;
       final body = jsonDecode(r.body);
-      if (body == null || body['festival'] == null) return _defaultSankrantiConfig();
+      if (body == null || body['festival'] == null) return null;
       return FestivalConfig.fromJson(Map<String, dynamic>.from(body['festival']));
     } catch (_) {
-      return _defaultSankrantiConfig();
+      return null;
     }
   }
 
-  static FestivalConfig _defaultSankrantiConfig() {
-    return FestivalConfig(
-      id: 'sankranti-2027',
-      kicker: 'CELEBRATE',
-      title: 'Sankranti',
-      subtitle: 'Pindi vantalu, sweets & gift boxes, made fresh',
-      art: '',
-      chipsTitle: 'FESTIVE SPECIALS',
-      theme: FestivalTheme(
-        bgTop: const Color(0xFFF9DFB3),
-        bgBottom: const Color(0xFFF6D6A2),
-        tile: const Color(0xFFB81D3B),
-        tileBorder: const Color(0xFFEFCF8C),
-        title: const Color(0xFF7A1240),
-        kicker: const Color(0xFF5A1030),
-        strip: const Color(0xFFD98F2E),
-        chipBg: const Color(0xFFFDF3DD),
-        accent: const Color(0xFFE9952C),
-      ),
-      tiles: [
-        FestivalTile(
-          title: 'Pindi\nVantalu',
-          image: 'assets/images/snacks.png',
-          image2: 'assets/images/sweets.png',
-          link: {'category': 'Snacks'},
-        ),
-        FestivalTile(
-          title: 'Festive\nSweets',
-          image: 'assets/images/sweets.png',
-          image2: 'assets/images/snacks.png',
-          link: {'category': 'Sweets'},
-        ),
-        FestivalTile(
-          title: 'Gifting\nCorner',
-          image: 'assets/images/combos.png',
-          image2: 'assets/images/pickles.png',
-          link: {'category': 'Combos'},
-        ),
-        FestivalTile(
-          title: 'Pickles\n& Podis',
-          image: 'assets/images/pickles.png',
-          image2: 'assets/images/spices.png',
-          link: {'category': 'Pickles'},
-        ),
-      ],
-      strip: const ['HOMEMADE', 'STONE-GROUND', 'FRESH BATCHES', 'PAN-INDIA'],
-      chips: [
-        FestivalTile(
-          title: 'Sankranti\nEssentials',
-          image: 'assets/images/sweets.png',
-          image2: '',
-          link: {'tag': 'sankranti'},
-        ),
-        FestivalTile(
-          title: 'Snacks\n& More',
-          image: 'assets/images/snacks.png',
-          image2: '',
-          link: {'category': 'Snacks'},
-        ),
-        FestivalTile(
-          title: 'Traditional\nSweets',
-          image: 'assets/images/combos.png',
-          image2: '',
-          link: {'category': 'Sweets'},
-        ),
-        FestivalTile(
-          title: 'Pickles\n& Podis',
-          image: 'assets/images/pickles.png',
-          image2: '',
-          link: {'category': 'Pickles'},
-        ),
-        FestivalTile(
-          title: 'Under\n₹299',
-          image: 'assets/images/spices.png',
-          image2: '',
-          link: {'maxPrice': 299},
-        ),
-      ],
-      products: const {'tag': 'sankranti', 'limit': 10},
-    );
+  /// GET /api/products?tag=..&category=..&maxPrice=..&limit=..
+  Future<List<Product>> products(ProductLink link, {int limit = 10}) async {
+    try {
+      final endpoint = baseUrl.endsWith('/api') ? '$baseUrl/products' : '$baseUrl/api/products';
+      final q = {...link.map((k, v) => MapEntry(k, '$v')), 'limit': '${link['limit'] ?? limit}'};
+      final r = await http.get(Uri.parse(endpoint).replace(queryParameters: q));
+      if (r.statusCode != 200) return [];
+      final list = (jsonDecode(r.body)['products'] ?? []) as List;
+      return list.map((e) => Product.fromJson(Map<String, dynamic>.from(e))).toList();
+    } catch (_) {
+      return [];
+    }
   }
 }
 
-// ============================ MAIN WIDGET ============================
+// ============================ WIDGET ============================
+// All sizes are in "design units" on a 390-wide screen (s = screenWidth / 390),
+// measured from the Blinkit reference so the layout matches it 1:1.
 
 class FestivalSection extends StatefulWidget {
-  final FestivalApi? api;
-  final List<app_models.Product> allProducts;
+  final FestivalApi api;
+  final void Function(String title, ProductLink link)? onOpenProducts;
+  final ValueChanged<Product>? onAddToCart;
+  final ValueChanged<Product>? onProductTap;
+  final ValueChanged<Product>? onWishlist;
 
   const FestivalSection({
     super.key,
-    this.api,
-    required this.allProducts,
+    required this.api,
+    this.onOpenProducts,
+    this.onAddToCart,
+    this.onProductTap,
+    this.onWishlist,
   });
 
   @override
@@ -224,79 +139,76 @@ class FestivalSection extends StatefulWidget {
 
 class _FestivalSectionState extends State<FestivalSection> {
   FestivalConfig? _cfg;
+  List<Product> _products = [];
   int _chip = 0;
-  StreamSubscription? _configSub;
+  bool _loadingProducts = false;
 
   @override
   void initState() {
     super.initState();
-    _listenToConfig();
+    _load();
   }
 
-  void _listenToConfig() {
-    _configSub = AppConfigRepository().getFestivalConfigStream().listen((data) {
+  Future<void> _load() async {
+    try {
+      FestivalConfig? cfg = await widget.api.activeFestival();
+      if (cfg == null) {
+        cfg = FestivalConfig.fromJson({
+          "id": "festive_special",
+          "kicker": "FESTIVAL OF HARVEST",
+          "title": "Sankranti Feast & Delicacies",
+          "subtitle": "Celebrate the harvest with authentic home-made festival sweets & pickles.",
+          "theme": {
+            "bgTop": "#C3132F",
+            "bgBottom": "#8A0F2A",
+            "tile": "#C3132F",
+            "tileBorder": "#F3C06C",
+            "title": "#FFFFFF",
+            "kicker": "#FFE39A",
+            "strip": "#E9952C",
+            "chipBg": "#FDF1DC",
+            "accent": "#F6C453"
+          },
+          "art": "assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg",
+          "chipsTitle": "FESTIVE SPECIALS",
+          "tiles": [],
+          "chips": [
+            {"title": "Pickles", "image": "assets/images/avakaya_pickle.png", "link": {"category": "Pickles"}},
+            {"title": "Sweets", "image": "assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg", "link": {"category": "Sweets"}},
+            {"title": "Snacks", "image": "assets/images/karam_janthukalu_murukku_strings_snack.jpg", "link": {"category": "Snacks"}}
+          ],
+          "strip": ["🚚 Free Delivery on Festive Combos", "🎁 Free Gift Box on orders above ₹999"],
+          "products": {"category": "Pickles"}
+        });
+      }
       if (!mounted) return;
-      if (data.isEmpty || data['enabled'] == false) {
-        setState(() => _cfg = null);
-      } else {
-        setState(() => _cfg = FestivalConfig.fromJson(data));
-      }
-    });
+      setState(() => _cfg = cfg);
+      await _loadProducts(cfg.chips.isNotEmpty ? cfg.chips.first.link : cfg.products);
+    } catch (_) {}
   }
 
-  @override
-  void dispose() {
-    _configSub?.cancel();
-    super.dispose();
-  }
-
-  List<app_models.Product> _filterProducts(ProductLink link) {
-    if (widget.allProducts.isEmpty) return [];
-
-    final category = link['category']?.toString().toLowerCase();
-    final tag = link['tag']?.toString().toLowerCase();
-    final maxPrice = link['maxPrice'] is num ? (link['maxPrice'] as num).toDouble() : null;
-
-    return widget.allProducts.where((p) {
-      if (maxPrice != null) {
-        final rawPrice = p.getRawPriceForWeight(p.defaultWeight);
-        if (rawPrice > maxPrice) return false;
-      }
-      if (category != null && category.isNotEmpty) {
-        final catList = category.split(',').map((e) => e.trim()).toList();
-        final pCat = p.category.toLowerCase();
-        final matches = catList.any((c) => pCat.contains(c));
-        if (!matches) return false;
-      }
-      if (tag != null && tag.isNotEmpty) {
-        if (tag == 'sankranti' || tag == 'bestseller') {
-          return p.isBestSeller || p.category == 'Sweets' || p.category == 'Snacks';
-        }
-        if (tag == 'combo' || tag == 'gift-box') {
-          return p.category == 'Combos' || p.name.contains('Laddu');
-        }
-      }
-      return true;
-    }).toList();
+  Future<void> _loadProducts(ProductLink link) async {
+    setState(() => _loadingProducts = true);
+    try {
+      final list = await widget.api.products(link);
+      if (mounted) setState(() => _products = list);
+    } finally {
+      if (mounted) setState(() => _loadingProducts = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final cfg = _cfg;
-    if (cfg == null) return const SizedBox.shrink();
+    if (cfg == null) return const SizedBox.shrink(); // hidden when no active festival
     final s = MediaQuery.of(context).size.width / 390;
     final t = cfg.theme;
-
-    final currentLink = (cfg.chips.isNotEmpty && _chip < cfg.chips.length)
-        ? cfg.chips[_chip].link
-        : cfg.products;
-    final displayedProducts = _filterProducts(currentLink);
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       _hero(cfg, t, s),
       if (cfg.strip.isNotEmpty) _strip(cfg, t, s),
       if (cfg.chips.isNotEmpty) _chips(cfg, t, s),
-      _productRow(displayedProducts, s),
+      _productRow(s),
     ]);
   }
 
@@ -306,14 +218,11 @@ class _FestivalSectionState extends State<FestivalSection> {
       height: 246 * s,
       child: Stack(clipBehavior: Clip.none, children: [
         Positioned.fill(child: CustomPaint(painter: _HeroBgPainter(t))),
-        // Top Kites Graphic
-        Positioned(
-          left: 270 * s,
-          top: 24 * s,
-          width: 100 * s,
-          height: 80 * s,
-          child: CustomPaint(painter: _KitesArtPainter()),
-        ),
+        if (cfg.art.isNotEmpty)
+          Positioned(
+            left: 270 * s, top: 24 * s, width: 112 * s, height: 82 * s,
+            child: _img(cfg.art, fit: BoxFit.contain),
+          ),
         Positioned(
           left: 25 * s, top: 39 * s,
           child: Text(cfg.kicker,
@@ -326,8 +235,8 @@ class _FestivalSectionState extends State<FestivalSection> {
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(cfg.title,
-                style: GoogleFonts.philosopher(
-                    color: t.title, fontSize: 36 * s, fontWeight: FontWeight.w900, height: 1.1)),
+                style: GoogleFonts.cinzelDecorative(
+                    color: t.title, fontSize: 33 * s, fontWeight: FontWeight.w700, height: 1.2, letterSpacing: .3)),
           ),
         ),
         for (var i = 0; i < cfg.tiles.length && i < 4; i++)
@@ -341,13 +250,11 @@ class _FestivalSectionState extends State<FestivalSection> {
 
   Widget _tile(FestivalTile tile, FestivalTheme t, double s) {
     return GestureDetector(
-      onTap: () {
-        final cat = tile.link['category']?.toString() ?? 'All';
-        AppNavigator.push(context, ProductListingPage(category: cat.split(',').first));
-      },
+      onTap: () => widget.onOpenProducts?.call(tile.title.replaceAll('\n', ' '), tile.link),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10 * s),
         child: DecoratedBox(
+          // crimson with a soft lighter glow in the middle (like the reference)
           decoration: BoxDecoration(
             gradient: RadialGradient(
               center: const Alignment(0, -.16),
@@ -361,10 +268,12 @@ class _FestivalSectionState extends State<FestivalSection> {
             ),
           ),
           child: Stack(clipBehavior: Clip.none, children: [
+            // main product cut-out sits ON the red (colour stays visible around it)
             Positioned(
               left: 1 * s, bottom: 14 * s, width: 74 * s, height: 60 * s,
               child: _img(tile.image, fit: BoxFit.contain, alignment: Alignment.bottomCenter),
             ),
+            // second product, layered bottom-right
             if (tile.image2.isNotEmpty)
               Positioned(
                 right: 2 * s, bottom: 4 * s, width: 46 * s, height: 34 * s,
@@ -413,6 +322,7 @@ class _FestivalSectionState extends State<FestivalSection> {
 
   // ---------------- FESTIVE SPECIALS TABS ----------------
   Widget _chips(FestivalConfig cfg, FestivalTheme t, double s) {
+    // slot positions: selected tab = 16 (left foot) + 110.5 + 6 ; others = 87
     final lefts = <double>[];
     double x = 0;
     for (var i = 0; i < cfg.chips.length; i++) {
@@ -450,7 +360,6 @@ class _FestivalSectionState extends State<FestivalSection> {
             Positioned(left: 0, right: 0, bottom: 0, height: 1.4, child: ColoredBox(color: t.tileBorder)),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
               child: SizedBox(
                 width: totalW * s,
                 height: 111 * s,
@@ -463,6 +372,7 @@ class _FestivalSectionState extends State<FestivalSection> {
                       height: 111 * s,
                       child: _chipItem(cfg.chips[i], i == _chip, t, s, () {
                         setState(() => _chip = i);
+                        _loadProducts(cfg.chips[i].link);
                       }),
                     ),
                 ]),
@@ -526,32 +436,26 @@ class _FestivalSectionState extends State<FestivalSection> {
   }
 
   // ---------------- PRODUCT ROW ----------------
-  Widget _productRow(List<app_models.Product> products, double s) {
-    if (products.isEmpty) {
-      return SizedBox(
-        height: 214 * s,
-        child: const RoyalLoadingSpinner(size: 38, message: 'Loading Festive Delicacies...'),
-      );
+  Widget _productRow(double s) {
+    if (_loadingProducts && _products.isEmpty) {
+      return SizedBox(height: 210 * s, child: const Center(child: CircularProgressIndicator()));
     }
     return Container(
       color: Colors.white,
       height: 214 * s,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
         padding: EdgeInsets.fromLTRB(10 * s, 14 * s, 10 * s, 0),
-        itemCount: products.length,
+        itemCount: _products.length,
         separatorBuilder: (_, __) => SizedBox(width: 10 * s),
-        itemBuilder: (_, i) => _productCard(products[i], s),
+        itemBuilder: (_, i) => _productCard(_products[i], s),
       ),
     );
   }
 
-  Widget _productCard(app_models.Product p, double s) {
+  Widget _productCard(Product p, double s) {
     return GestureDetector(
-      onTap: () {
-        AppNavigator.push(context, ProductDetailPage(product: p, allProducts: widget.allProducts));
-      },
+      onTap: () => widget.onProductTap?.call(p),
       child: SizedBox(
         width: 112 * s,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -565,34 +469,25 @@ class _FestivalSectionState extends State<FestivalSection> {
               borderRadius: BorderRadius.circular(11 * s),
               child: Stack(fit: StackFit.expand, children: [
                 _img(p.image),
-                Positioned(
-                  left: 0, top: 0,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 7 * s, vertical: 2 * s),
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(bottomRight: Radius.circular(8 * s))),
-                    child: Text(p.isBestSeller ? 'Bestseller' : 'Fresh',
-                        style: GoogleFonts.poppins(
-                            color: const Color(0xFFC3132F), fontSize: 9 * s, fontWeight: FontWeight.w600)),
+                if (p.badge != null)
+                  Positioned(
+                    left: 0, top: 0,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 7 * s, vertical: 2 * s),
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.only(bottomRight: Radius.circular(8 * s))),
+                      child: Text(p.badge!,
+                          style: GoogleFonts.poppins(
+                              color: const Color(0xFFC3132F), fontSize: 9 * s, fontWeight: FontWeight.w600)),
+                    ),
                   ),
-                ),
                 Positioned(
                   right: 4 * s, top: 2 * s,
-                  child: ListenableBuilder(
-                    listenable: WishlistManager(),
-                    builder: (context, _) {
-                      final isFav = WishlistManager().isFavorite(p);
-                      return GestureDetector(
-                        onTap: () => WishlistManager().toggleFavorite(p),
-                        child: Icon(
-                          isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                          color: isFav ? Colors.red : Colors.white,
-                          size: 18 * s,
-                          shadows: const [Shadow(color: Colors.black45, blurRadius: 3)],
-                        ),
-                      );
-                    },
+                  child: GestureDetector(
+                    onTap: () => widget.onWishlist?.call(p),
+                    child: Icon(Icons.favorite_border, color: Colors.white, size: 18 * s,
+                        shadows: const [Shadow(color: Colors.black45, blurRadius: 3)]),
                   ),
                 ),
               ]),
@@ -600,18 +495,9 @@ class _FestivalSectionState extends State<FestivalSection> {
           ),
           SizedBox(height: 6 * s),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text(p.defaultWeight, style: GoogleFonts.poppins(color: const Color(0xFF555555), fontSize: 11 * s)),
+            Text(p.unit, style: GoogleFonts.poppins(color: const Color(0xFF555555), fontSize: 11 * s)),
             GestureDetector(
-              onTap: () {
-                CartManager().addToCart(p, weight: p.defaultWeight);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${p.name} added to cart!'),
-                    duration: const Duration(seconds: 1),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
+              onTap: () => widget.onAddToCart?.call(p),
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 12 * s, vertical: 3 * s),
                 decoration: BoxDecoration(
@@ -625,7 +511,7 @@ class _FestivalSectionState extends State<FestivalSection> {
             ),
           ]),
           SizedBox(height: 4 * s),
-          Text(p.defaultPrice,
+          Text('₹${p.price}',
               style: GoogleFonts.poppins(
                   color: const Color(0xFF1B1B1B), fontSize: 16 * s, fontWeight: FontWeight.w700)),
           Text(p.name,
@@ -637,20 +523,27 @@ class _FestivalSectionState extends State<FestivalSection> {
     );
   }
 
+  String _abs(String u) {
+    if (u.isEmpty || u.startsWith('http') || u.startsWith('assets/')) return u;
+    const origin = 'https://admin.adhvaithafoods.in';
+    return u.startsWith('/') ? '$origin$u' : '$origin/$u';
+  }
+
   Widget _img(String url, {BoxFit fit = BoxFit.cover, Alignment alignment = Alignment.center}) {
     if (url.isEmpty) return const SizedBox();
-    if (url.startsWith('http')) {
-      return Image.network(url, fit: fit, alignment: alignment, width: double.infinity, height: double.infinity,
-          errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey));
-    }
-    String assetPath = url.startsWith('assets/') ? url : 'assets/images/$url';
-    return Image.asset(assetPath, fit: fit, alignment: alignment, width: double.infinity, height: double.infinity,
-        errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported_outlined, color: Colors.grey));
+    final fullUrl = _abs(url);
+    return fullUrl.startsWith('http')
+        ? Image.network(fullUrl, fit: fit, alignment: alignment, width: double.infinity, height: double.infinity,
+            errorBuilder: (_, __, ___) => Image.asset('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', fit: fit, alignment: alignment, errorBuilder: (_, __, ___) => const SizedBox()))
+        : Image.asset(fullUrl, fit: fit, alignment: alignment, width: double.infinity, height: double.infinity,
+            errorBuilder: (_, __, ___) => Image.asset('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', fit: fit, alignment: alignment, errorBuilder: (_, __, ___) => const SizedBox()));
   }
 }
 
 // ============================ PAINTERS ============================
 
+/// Peach background with the wavy dome edge, dotted edge line,
+/// diamond trellis behind the art and small flower rosettes.
 class _HeroBgPainter extends CustomPainter {
   final FestivalTheme t;
   _HeroBgPainter(this.t);
@@ -681,6 +574,7 @@ class _HeroBgPainter extends CustomPainter {
   void paint(Canvas c, Size z) {
     final k = z.width / 390;
 
+    // peach body
     final body = _edge(k, 0)
       ..lineTo(z.width, z.height)
       ..lineTo(0, z.height)
@@ -695,6 +589,7 @@ class _HeroBgPainter extends CustomPainter {
             stops: const [0, .55, 1],
           ).createShader(Offset.zero & z));
 
+    // dotted line under the edge
     final dot = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5
@@ -706,6 +601,7 @@ class _HeroBgPainter extends CustomPainter {
       }
     }
 
+    // diamond trellis (rhombus centred at 308,70)
     const cx = 308.0, cy = 70.0, hw = 74.0, hh = 48.0;
     final lat = Paint()..color = Colors.white.withOpacity(.6);
     final seen = <String>{};
@@ -728,6 +624,7 @@ class _HeroBgPainter extends CustomPainter {
           Offset((cx + hw * math.cos(a) / d * 1.05) * k, (cy + hh * math.sin(a) / d * 1.05) * k), 1.2 * k, rim);
     }
 
+    // flower rosettes
     void rosette(double x, double y, double r, double o) {
       final petal = Paint()..color = Colors.white.withOpacity(o);
       for (var a = 0; a < 8; a++) {
@@ -748,6 +645,7 @@ class _HeroBgPainter extends CustomPainter {
   bool shouldRepaint(covariant _HeroBgPainter old) => old.t != t;
 }
 
+/// Selected tab: rounded top corners + curved feet that run into the baseline.
 class _TabPainter extends CustomPainter {
   final Color fill, line;
   final double s;
@@ -764,7 +662,7 @@ class _TabPainter extends CustomPainter {
       ..quadraticBezierTo(w, 0, w, r)
       ..lineTo(w, h + 1)
       ..close();
-    c.drawPath(body, Paint()..color = fill);
+    c.drawPath(body, Paint()..color = fill); // hides the baseline under the tab
 
     final outline = Path()
       ..moveTo(-f, h - .7)
@@ -785,37 +683,4 @@ class _TabPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _TabPainter old) => old.fill != fill || old.line != line || old.s != s;
-}
-
-class _KitesArtPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final yellowPaint = Paint()..color = const Color(0xFFF6C453);
-    final kite1 = Path()
-      ..moveTo(30, 10)
-      ..lineTo(60, 30)
-      ..lineTo(30, 55)
-      ..lineTo(0, 30)
-      ..close();
-    canvas.drawPath(kite1, yellowPaint);
-
-    final linePaint = Paint()
-      ..color = const Color(0xFF8B0000).withOpacity(0.5)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-    canvas.drawLine(const Offset(30, 55), const Offset(15, 75), linePaint);
-
-    final redPaint = Paint()..color = const Color(0xFFB81D3B);
-    final kite2 = Path()
-      ..moveTo(55, 25)
-      ..lineTo(80, 42)
-      ..lineTo(55, 62)
-      ..lineTo(30, 42)
-      ..close();
-    canvas.drawPath(kite2, redPaint);
-    canvas.drawLine(const Offset(55, 62), const Offset(40, 80), linePaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

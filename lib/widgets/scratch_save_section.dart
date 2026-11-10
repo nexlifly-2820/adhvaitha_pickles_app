@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../app_config_repository.dart';
+import '../image_util.dart';
 
 // ============================ MODELS ============================
 
@@ -231,45 +232,18 @@ class _ScratchSaveSectionState extends State<ScratchSaveSection>
                     card: active,
                     s: s,
                     onScratch: (c) async {
-                      if (widget.onScratch != null) {
-                        final revealed = await widget.onScratch!(c);
-                        final updatedCards = _rewardsData.cards
-                            .map((x) => x.id == c.id ? revealed : x)
-                            .toList();
-                        setState(() {
-                          _rewardsData = RewardsData(
-                            ordersDone: _rewardsData.ordersDone,
-                            cards: updatedCards,
-                          );
-                        });
-                        return revealed;
-                      } else {
-                        // Default mock scratch reveal
-                        final revealed = RewardCard(
-                          id: c.id,
-                          status: 'revealed',
-                          title: c.title.isNotEmpty ? c.title : '₹100 OFF',
-                          subtitle: c.subtitle.isNotEmpty
-                              ? c.subtitle
-                              : 'on orders above ₹799',
-                          code: c.code.isNotEmpty ? c.code : 'ROYAL100',
-                          image: c.image.isNotEmpty
-                              ? c.image
-                              : 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-                          validDays: c.validDays,
-                          step: c.step,
+                      final fn = widget.onScratch ?? (card) => AppConfigRepository().scratchRewardCard(card);
+                      final revealed = await fn(c);
+                      final updatedCards = _rewardsData.cards
+                          .map((x) => x.id == c.id ? revealed : x)
+                          .toList();
+                      setState(() {
+                        _rewardsData = RewardsData(
+                          ordersDone: _rewardsData.ordersDone,
+                          cards: updatedCards,
                         );
-                        final updatedCards = _rewardsData.cards
-                            .map((x) => x.id == c.id ? revealed : x)
-                            .toList();
-                        setState(() {
-                          _rewardsData = RewardsData(
-                            ordersDone: _rewardsData.ordersDone,
-                            cards: updatedCards,
-                          );
-                        });
-                        return revealed;
-                      }
+                      });
+                      return revealed;
                     },
                     onCopy: (code) {
                       HapticFeedback.lightImpact();
@@ -704,24 +678,8 @@ class _ActiveCardState extends State<_ActiveCard>
     }
   }
 
-  Widget _buildImg(String u, double w) {
-    if (u.isEmpty) return SizedBox(width: w);
-    if (u.startsWith('http')) {
-      return Image.network(
-        u,
-        width: w,
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => Icon(Icons.gif, size: w * 0.5, color: Colors.grey),
-      );
-    }
-    String assetPath = u.startsWith('assets/') ? u : 'assets/images/$u';
-    return Image.asset(
-      assetPath,
-      width: w,
-      fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => Icon(Icons.gif, size: w * 0.5, color: Colors.grey),
-    );
-  }
+  Widget _buildImg(String u, double w) =>
+      buildSmartImage(u, width: w, fit: BoxFit.contain);
 
   @override
   Widget build(BuildContext context) {
@@ -1153,9 +1111,9 @@ class _CrownPainter extends CustomPainter {
     Path petal(List<double> a) => Path()
       ..moveTo(o(a[0], a[1]).dx, o(a[0], a[1]).dy)
       ..cubicTo(o(a[2], a[3]).dx, o(a[2], a[3]).dy, o(a[4], a[5]).dx,
-          o(a[5]).dy, o(a[6], a[7]).dx, o(a[6], a[7]).dy)
+          o(a[4], a[5]).dy, o(a[6], a[7]).dx, o(a[6], a[7]).dy)
       ..cubicTo(o(a[8], a[9]).dx, o(a[8], a[9]).dy, o(a[10], a[11]).dx,
-          o(a[11]).dy, o(a[0], a[1]).dx, o(a[0], a[1]).dy);
+          o(a[10], a[11]).dy, o(a[0], a[1]).dx, o(a[0], a[1]).dy);
 
     for (final p in [
       [60, 50, 44, 44, 24, 40, 6, 42, 18, 54, 40, 56],

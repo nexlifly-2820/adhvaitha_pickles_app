@@ -14,6 +14,7 @@ import '../product_listing_page.dart';
 import '../navigation_util.dart';
 import '../product_manager.dart';
 import '../app_config_repository.dart';
+import '../image_util.dart';
 
 // ============================ MODELS ============================
 
@@ -291,13 +292,17 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
             right: 0,
             child: IgnorePointer(
               child: Center(
-                child: AnimatedBuilder(
-                  animation: _fire,
-                  builder: (_, __) => Transform.rotate(
-                    angle: _fire.value * 2 * math.pi / 10,
-                    child: CustomPaint(
-                      size: const Size(320, 320),
-                      painter: _KolamPainter(),
+                child: SizedBox(
+                  width: 320,
+                  height: 320,
+                  child: AnimatedBuilder(
+                    animation: _fire,
+                    builder: (_, __) => Transform.rotate(
+                      angle: _fire.value * 2 * math.pi / 10,
+                      child: CustomPaint(
+                        size: const Size(320, 320),
+                        painter: _KolamPainter(),
+                      ),
                     ),
                   ),
                 ),
@@ -359,87 +364,92 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
     );
   }
 
-  Widget _board(FreshPicksData activeData) => AnimatedBuilder(
-        animation: _sway,
-        builder: (_, child) => Transform.rotate(
-          alignment: const Alignment(0, -1.6),
-          angle: math.sin(_sway.value * 2 * math.pi) * .026,
-          child: child,
-        ),
-        child: Container(
-          width: 250,
-          margin: const EdgeInsets.only(top: 4),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(6),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFA8743C),
-                Color(0xFF6B4220),
-                Color(0xFFB98448),
-                Color(0xFF5E3A1A)
-              ],
+  Widget _board(FreshPicksData activeData) => SizedBox(
+        height: 102,
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _sway,
+            builder: (_, child) => Transform.rotate(
+              alignment: const Alignment(0, -1.6),
+              angle: math.sin(_sway.value * 2 * math.pi) * .026,
+              child: child,
             ),
-            boxShadow: const [
-              BoxShadow(
-                  color: Color(0x99000000), blurRadius: 20, offset: Offset(0, 10))
-            ],
-          ),
-          padding: const EdgeInsets.all(8),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(-.4, -.6),
-                radius: 1.4,
-                colors: [Color(0xFF34463C), Color(0xFF1F2B25)],
+            child: Container(
+              width: 250,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFA8743C),
+                    Color(0xFF6B4220),
+                    Color(0xFFB98448),
+                    Color(0xFF5E3A1A)
+                  ],
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                      color: Color(0x99000000), blurRadius: 16, offset: Offset(0, 8))
+                ],
               ),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  '✦ ${activeData.kicker} ✦',
-                  style: GoogleFonts.poppins(
-                    fontSize: 9,
-                    letterSpacing: 2.4,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFFF6C453),
+              padding: const EdgeInsets.all(6),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(-.4, -.6),
+                    radius: 1.4,
+                    colors: [Color(0xFF34463C), Color(0xFF1F2B25)],
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(text: '${activeData.title} '),
-                      TextSpan(
-                        text: activeData.titleAccent,
-                        style: const TextStyle(color: Color(0xFFFFB37A)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '✦ ${activeData.kicker} ✦',
+                      style: GoogleFonts.poppins(
+                        fontSize: 8.5,
+                        letterSpacing: 2.2,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFFF6C453),
                       ),
-                    ],
-                  ),
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.fraunces(
-                    fontSize: 25,
-                    fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.w600,
-                    height: 1.1,
-                    color: const Color(0xFFF4EFE2),
-                    shadows: const [
-                      Shadow(color: Color(0x40FFFFFF), blurRadius: 6)
-                    ],
-                  ),
-                ),
-                if (activeData.subtitle.isNotEmpty)
-                  Text(
-                    activeData.subtitle,
-                    style: GoogleFonts.fraunces(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                      color: const Color(0xD9CFE3D5),
                     ),
-                  ),
-              ],
+                    const SizedBox(height: 1),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(text: '${activeData.title} '),
+                          TextSpan(
+                            text: activeData.titleAccent,
+                            style: const TextStyle(color: Color(0xFFFFB37A)),
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.fraunces(
+                        fontSize: 21,
+                        fontStyle: FontStyle.italic,
+                        fontWeight: FontWeight.w600,
+                        height: 1.1,
+                        color: const Color(0xFFF4EFE2),
+                        shadows: const [
+                          Shadow(color: Color(0x40FFFFFF), blurRadius: 6)
+                        ],
+                      ),
+                    ),
+                    if (activeData.subtitle.isNotEmpty)
+                      Text(
+                        activeData.subtitle,
+                        style: GoogleFonts.fraunces(
+                          fontSize: 10,
+                          fontStyle: FontStyle.italic,
+                          color: const Color(0xD9CFE3D5),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -468,7 +478,7 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                 final float = math.sin(t * 2 * math.pi * 2) * 3;
 
                 return Stack(
-                  clipBehavior: Clip.none,
+                  clipBehavior: Clip.hardEdge,
                   children: [
                     Positioned(
                       left: cx - 150,
@@ -651,7 +661,7 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
 
   Widget _card(FPProduct p) {
     final vi =
-        (_variant[p.id] ?? 0).clamp(0, math.max(0, p.variants.length - 1));
+        (_variant[p.id] ?? 0).clamp(0, math.max(0, p.variants.length - 1)).toInt();
     final v = p.variants.isEmpty ? null : p.variants[vi];
     final off = v != null && v.mrp > v.price
         ? ((1 - v.price / v.mrp) * 100).round()
@@ -659,11 +669,12 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
     final added = v != null && _added == '${p.id}-${v.id}';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
+        height: 154,
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(26),
           gradient: const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -682,10 +693,10 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
         child: GestureDetector(
           onTap: () => _openProductDetail(p),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
             decoration: BoxDecoration(
               color: const Color(0xFFFFFBF2),
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(20),
             ),
             child: FadeTransition(
               opacity: _info,
@@ -694,6 +705,7 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                     Tween(begin: const Offset(0, .08), end: Offset.zero)
                         .animate(_info),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
@@ -705,14 +717,18 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                             children: [
                               Text(
                                 p.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.fraunces(
-                                  fontSize: 22,
+                                  fontSize: 20,
                                   height: 1.1,
                                   color: const Color(0xFF2A1A12),
                                 ),
                               ),
                               Text(
                                 p.tagline,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.poppins(
                                   fontSize: 10.5,
                                   color: const Color(0xFF8A7660),
@@ -722,81 +738,75 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                           ),
                         ),
                         if (p.badge.isNotEmpty)
-                          AnimatedBuilder(
-                            animation: _sway,
-                            builder: (_, child) => Transform.scale(
-                              scale: 1 +
-                                  .08 *
-                                      math
-                                          .sin(_sway.value * 2 * math.pi * 3)
-                                          .abs(),
-                              child: child,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _orange,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: _orange,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                p.badge,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1,
-                                  color: Colors.white,
-                                ),
+                            child: Text(
+                              p.badge,
+                              style: GoogleFonts.poppins(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1,
+                                color: Colors.white,
                               ),
                             ),
                           ),
                       ],
                     ),
-                    if (p.variants.length > 1) ...[
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 4,
-                        children: [
-                          for (var k = 0; k < p.variants.length; k++)
-                            GestureDetector(
-                              onTap: () => setState(() => _variant[p.id] = k),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 9, vertical: 5),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  color: k == vi
-                                      ? _brown
-                                      : const Color(0xFFF2EADB),
-                                ),
-                                child: Text(
-                                  p.variants[k].label,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: !p.variants[k].inStock
-                                        ? Colors.black26
-                                        : k == vi
-                                            ? Colors.white
-                                            : const Color(0xFF6B5A48),
-                                    decoration: p.variants[k].inStock
-                                        ? null
-                                        : TextDecoration.lineThrough,
+                    SizedBox(
+                      height: 28,
+                      child: p.variants.length > 1
+                          ? ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: p.variants.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 4),
+                              itemBuilder: (_, k) => GestureDetector(
+                                onTap: () =>
+                                    setState(() => _variant[p.id] = k),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 9, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    color: k == vi
+                                        ? _brown
+                                        : const Color(0xFFF2EADB),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    p.variants[k].label,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: !p.variants[k].inStock
+                                          ? Colors.black26
+                                          : k == vi
+                                              ? Colors.white
+                                              : const Color(0xFF6B5A48),
+                                      decoration: p.variants[k].inStock
+                                          ? null
+                                          : TextDecoration.lineThrough,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                    ],
-                    if (v != null) ...[
-                      const SizedBox(height: 10),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    if (v != null)
                       Row(
                         children: [
                           Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text.rich(
                                   TextSpan(
@@ -816,7 +826,7 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                                     ],
                                   ),
                                   style: GoogleFonts.poppins(
-                                    fontSize: 21,
+                                    fontSize: 19,
                                     fontWeight: FontWeight.w800,
                                     color: const Color(0xFF2A1A12),
                                   ),
@@ -825,7 +835,7 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                                   Text(
                                     '$off% OFF',
                                     style: GoogleFonts.poppins(
-                                      fontSize: 9.5,
+                                      fontSize: 9,
                                       fontWeight: FontWeight.w700,
                                       color: const Color(0xFF2E7D32),
                                     ),
@@ -890,9 +900,9 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 250),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 18, vertical: 10),
+                                  horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(12),
                                 gradient: LinearGradient(
                                   colors: !v.inStock
                                       ? [Colors.grey, Colors.grey.shade700]
@@ -906,14 +916,6 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                                               Color(0xFFC2410C)
                                             ],
                                 ),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x66C2410C),
-                                    blurRadius: 14,
-                                    offset: Offset(0, 8),
-                                    spreadRadius: -6,
-                                  ),
-                                ],
                               ),
                               child: Text(
                                 !v.inStock
@@ -922,7 +924,7 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                                         ? '✓ Added'
                                         : '+ ADD',
                                 style: GoogleFonts.poppins(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w800,
                                   color: Colors.white,
                                 ),
@@ -931,16 +933,15 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                           ),
                         ],
                       ),
-                    ],
-                  ]),
+                  ],
                 ),
               ),
             ),
           ),
         ),
-      );
+      ),
+    );
   }
-
   Widget _shelf() => Padding(
         padding: const EdgeInsets.fromLTRB(14, 22, 14, 0),
         child: Column(
@@ -954,14 +955,14 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                 separatorBuilder: (_, __) => const SizedBox(width: 14),
                 itemBuilder: (_, i) => GestureDetector(
                   onTap: () => _go(i, user: true),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 400),
-                    margin: EdgeInsets.only(
-                        top: i == _cur ? 2 : 12, bottom: i == _cur ? 10 : 0),
-                    width: 52,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
+                  child: Transform.translate(
+                    offset: Offset(0, i == _cur ? -6 : 0),
+                    child: Container(
+                      width: 52,
+                      margin: const EdgeInsets.only(top: 8, bottom: 4),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
                         Container(
                           decoration: BoxDecoration(
                             borderRadius: const BorderRadius.vertical(
@@ -1015,6 +1016,7 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                 ),
               ),
             ),
+            ),
             Container(
               height: 10,
               decoration: BoxDecoration(
@@ -1036,28 +1038,8 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
         ),
       );
 
-  Widget _buildImg(String u, double w, double h) {
-    if (u.isEmpty) {
-      return SizedBox(width: w, height: h);
-    }
-    if (u.startsWith('http')) {
-      return Image.network(
-        u,
-        width: w,
-        height: h,
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => SizedBox(width: w, height: h),
-      );
-    }
-    String assetPath = u.startsWith('assets/') ? u : 'assets/images/$u';
-    return Image.asset(
-      assetPath,
-      width: w,
-      height: h,
-      fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => SizedBox(width: w, height: h),
-    );
-  }
+  Widget _buildImg(String u, double w, double h) =>
+      buildSmartImage(u, width: w, height: h, fit: BoxFit.contain);
 
   static const FreshPicksData defaultFreshPicksData = FreshPicksData(
     enabled: true,

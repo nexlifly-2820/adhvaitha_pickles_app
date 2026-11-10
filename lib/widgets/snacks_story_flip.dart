@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../product_listing_page.dart';
 import '../navigation_util.dart';
 import '../app_config_repository.dart';
+import '../image_util.dart';
 
 class Ingredient {
   final String name, image;
@@ -311,24 +312,8 @@ class _FlipCardState extends State<_FlipCard> with SingleTickerProviderStateMixi
     super.dispose();
   }
 
-  Widget _buildImg(String u, {BoxFit fit = BoxFit.cover}) {
-    if (u.isEmpty) {
-      return const Center(child: Icon(Icons.restaurant, color: Colors.grey));
-    }
-    if (u.startsWith('http')) {
-      return Image.network(
-        u,
-        fit: fit,
-        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
-      );
-    }
-    String assetPath = u.startsWith('assets/') ? u : 'assets/images/$u';
-    return Image.asset(
-      assetPath,
-      fit: fit,
-      errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: Colors.grey),
-    );
-  }
+  Widget _buildImg(String u, {BoxFit fit = BoxFit.cover}) =>
+      buildSmartImage(u, fit: fit);
 
   @override
   Widget build(BuildContext context) {

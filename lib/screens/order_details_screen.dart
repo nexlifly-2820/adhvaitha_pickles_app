@@ -17,6 +17,9 @@ import '../image_util.dart';
 import '../cart_manager.dart';
 import '../product_manager.dart';
 import '../order_manager.dart';
+import '../models.dart' as app_models;
+import '../navigation_util.dart';
+import 'order_placed_screen.dart';
 
 double _n(dynamic v) => (v as num?)?.toDouble() ?? 0;
 String _rs(double v) => '₹${v.toStringAsFixed(v % 1 == 0 ? 0 : 2)}';
@@ -162,19 +165,48 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     _loadFromLocalOrderManager();
   }
 
+  void _handleTrackLive(String orderId) {
+    HapticFeedback.mediumImpact();
+    if (widget.onTrack != null) {
+      widget.onTrack!(orderId);
+    } else {
+      _load(silent: true);
+      if (_scroll.hasClients) {
+        _scroll.animateTo(
+          _scroll.position.maxScrollExtent * 0.6,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Live delivery tracking updated! 🛵'),
+          duration: Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   void _loadFromLocalOrderManager() {
     final localOrders = OrderManager().orders;
     final match = localOrders.firstWhere(
       (o) => o.id == widget.orderId,
       orElse: () => localOrders.isNotEmpty
           ? localOrders.first
-          : Order(
+          : app_models.Order(
               id: widget.orderId,
               date: DateTime.now(),
               items: [],
               total: 60.0,
+              subtotal: 60.0,
+              deliveryFee: 0.0,
+              discountAmount: 0.0,
               status: 'Placed',
               paymentMethod: 'Paid Online',
+              shippingAddress: 'Main Road, Srikakulam',
+              batchId: 'BCH-2026106',
+              spiceOrigin: 'Guntur',
             ),
     );
 
@@ -216,15 +248,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         "items": match.items.isNotEmpty
             ? match.items
                 .map((i) => {
-                      "productId": i.product.id,
+                      "productId": i.product.name.toLowerCase().replaceAll(' ', '_'),
                       "variantId": i.weight,
                       "name": i.product.name,
                       "variant": i.weight,
                       "image": i.product.image,
                       "category": i.product.category,
                       "qty": i.quantity,
-                      "price": i.price,
-                      "mrp": i.price * 1.15,
+                      "price": i.product.getRawPriceForWeight(i.weight),
+                      "mrp": i.product.getRawPriceForWeight(i.weight) * 1.15,
                       "tagColor": "#C2273A"
                     })
                 .toList()
@@ -685,9 +717,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             Expanded(
               flex: 8,
               child: GestureDetector(
-                onTap: () => widget.onTrack != null
-                    ? widget.onTrack!(widget.orderId)
-                    : Navigator.maybePop(context),
+                onTap: () => _handleTrackLive(widget.orderId),
                 child: Container(
                   height: 52,
                   alignment: Alignment.center,

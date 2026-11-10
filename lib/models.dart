@@ -199,7 +199,13 @@ class Product {
 
   // Helper to get raw price for calculations
   double getRawPriceForWeight(String weight) {
-    return weightPriceMap[weight] ?? 0;
+    if (weightPriceMap.containsKey(weight) && (weightPriceMap[weight] ?? 0) > 0) {
+      return weightPriceMap[weight]!;
+    }
+    if (weightPriceMap.isNotEmpty) {
+      return weightPriceMap.values.first;
+    }
+    return 199.0;
   }
 
   // Get default price (usually first weight in map)

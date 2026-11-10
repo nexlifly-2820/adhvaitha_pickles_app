@@ -1,771 +1,1128 @@
-// art_of_pairing.dart
-// "The Art of Pairing" - swipe the big combo card; the pairing cards below change to match it.
+// art_of_pairing.dart — "The Art of Pairing" (matches art_of_pairing_explained.mp4)
+//   • PairingHomeCard   → the compact card on the home page (couples change every few seconds, opens the full page)
+//   • PairingScreen     → full-screen page: two product cards meet, heart + "Best with" meal, "Made for each other",
+//                         weight toggle, View combo sheet, Add the couple → − In cart · n +, swipe / "More perfect couples".
+// Everything comes from the admin dashboard: pairing_backend.js → GET /api/pairing
+//
+// pubspec.yaml:  http: ^1.2.0   google_fonts: ^6.2.1
 
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../product_listing_page.dart';
-import '../navigation_util.dart';
-import '../combo_detail_page.dart';
-import '../app_config_repository.dart';
+import 'package:http/http.dart' as http;
 
-Color _hex(String h) {
+const Color _maroon = Color(0xFF7A1426);
+const Color _rose = Color(0xFFC2185B);
+const Color _roseText = Color(0xFFA0506A);
+const Color _gold = Color(0xFFC9963F);
+const Color _goldLine = Color(0xFFEBCB8B);
+const Color _ink = Color(0xFF2A1A14);
+const Color _brown = Color(0xFF8A6A52);
+const Color _bgA = Color(0xFFFFFFFF), _bgB = Color(0xFFFFF4EC), _bgC = Color(0xFFF9E3D6);
+
+// ───────────── data ─────────────
+class PairSide {
+  final String productId, name, bio, image;
+  final List<String> tags;
+  PairSide(this.productId, this.name, this.bio, this.image, this.tags);
+}
+
+class PairWeight {
+  final String label, aVariantId, bVariantId;
+  final double price, mrp;
+  PairWeight(this.label, this.price, this.mrp, this.aVariantId, this.bVariantId);
+}
+
+class PairCouple {
+  final String id, name, tag, mealIcon, mealName, lovedText, tip;
+  final PairSide a, b;
+  final List<PairWeight> weights;
+  PairCouple(this.id, this.name, this.tag, this.mealIcon, this.mealName, this.lovedText, this.a, this.b, this.weights, [this.tip = '']);
+}
+
+class PairSettings {
+  String eyebrow = 'CURATED COMBOS', title = 'The Art of', titleAccent = 'Pairing', subtitle = "Amma's rishta — flavours made for each other";
+  String explainText = '2 jars Amma pairs together · one combo price';
+  String matchText = 'Made for each other', buttonText = "Meet Amma's perfect couples", moreText = 'MORE PERFECT COUPLES';
+  bool enabled = true;
+}
+
+class PairingData {
+  final PairSettings settings;
+  final List<PairCouple> couples;
+  PairingData(this.settings, this.couples);
+}
+
+typedef PairAdd = Future<bool> Function(PairCouple couple, PairWeight weight, int qtyChange);
+
+double _n(dynamic v) => (v is num) ? v.toDouble() : (double.tryParse('$v') ?? 0.0);
+String _rs(double v) => '₹${v % 1 == 0 ? v.toInt() : v.toStringAsFixed(2)}';
+
+String _abs(String apiBase, String u) {
+  if (u.isEmpty || u.startsWith('http') || u.startsWith('assets/')) return u;
+  final String origin = apiBase.replaceAll(RegExp(r'/api/?$'), '');
+  return u.startsWith('/') ? '$origin$u' : '$origin/$u';
+}
+
+Future<PairingData?> _fetch(String apiBase, Map<String, String>? headers) async {
+  List<PairCouple> remoteCs = [];
+  PairSettings st = PairSettings();
   try {
-    final clean = h.replaceFirst('#', '');
-    return Color(int.parse(clean.length == 6 ? 'FF$clean' : clean, radix: 16));
-  } catch (_) {
-    return const Color(0xFF7A0F12);
+    final http.Response r = await http.get(Uri.parse('$apiBase/pairing'), headers: headers).timeout(const Duration(seconds: 8));
+    if (r.statusCode == 200 && !r.body.trim().startsWith('<!DOCTYPE') && !r.body.trim().startsWith('<html')) {
+      final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
+      final Map<String, dynamic> s = (j['settings'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+      st = PairSettings()
+        ..enabled = s['enabled'] != false
+        ..eyebrow = '${s['eyebrow'] ?? 'CURATED COMBOS'}'
+        ..title = '${s['title'] ?? 'The Art of'}'
+        ..titleAccent = '${s['titleAccent'] ?? 'Pairing'}'
+        ..subtitle = '${s['subtitle'] ?? "Amma's rishta — flavours made for each other"}'
+        ..explainText = '${s['explainText'] ?? '2 jars Amma pairs together · one combo price'}'
+        ..matchText = '${s['matchText'] ?? 'Made for each other'}'
+        ..buttonText = '${s['buttonText'] ?? "Meet Amma's perfect couples"}'
+        ..moreText = '${s['moreText'] ?? 'MORE PERFECT COUPLES'}';
+      PairSide side(dynamic raw) {
+        final Map<String, dynamic> m = (raw as Map<String, dynamic>?) ?? <String, dynamic>{};
+        return PairSide('${m['productId'] ?? ''}', '${m['name'] ?? ''}', '${m['bio'] ?? ''}', _abs(apiBase, '${m['image'] ?? ''}'),
+            ((m['tags'] as List?) ?? <dynamic>[]).map((dynamic e) => '$e').toList());
+      }
+
+      for (final dynamic raw in (j['couples'] as List?) ?? <dynamic>[]) {
+        final Map<String, dynamic> m = raw as Map<String, dynamic>;
+        final List<PairWeight> ws = <PairWeight>[];
+        for (final dynamic w in (m['weights'] as List?) ?? <dynamic>[]) {
+          final Map<String, dynamic> x = w as Map<String, dynamic>;
+          ws.add(PairWeight('${x['label'] ?? ''}', _n(x['price']), _n(x['mrp']), '${x['aVariantId'] ?? ''}', '${x['bVariantId'] ?? ''}'));
+        }
+        if (ws.isEmpty) continue;
+        remoteCs.add(PairCouple('${m['id']}', '${m['name'] ?? ''}', '${m['tag'] ?? ''}', '${m['mealIcon'] ?? ''}', '${m['mealName'] ?? ''}', '${m['lovedText'] ?? ''}',
+            side(m['a']), side(m['b']), ws, '${m['tip'] ?? ''}'));
+      }
+    }
+  } catch (_) {}
+
+  // Local fallback pairing data with 4 gorgeous couples
+  final fallbackJson = <String, dynamic>{
+    "settings": {
+      "enabled": true,
+      "eyebrow": "CURATED COMBOS",
+      "title": "The Art of",
+      "titleAccent": "Pairing",
+      "subtitle": "Amma's rishta — flavours made for each other",
+      "explainText": "2 jars Amma pairs together · one combo price",
+      "matchText": "Made for each other",
+      "buttonText": "Meet Amma's perfect couples",
+      "moreText": "MORE PERFECT COUPLES"
+    },
+    "couples": [
+      {
+        "id": "c1",
+        "name": "Avakaya & Karam Podi",
+        "tag": "TRADITIONAL DUO",
+        "mealIcon": "🍚",
+        "mealName": "Steaming Rice & Ghee",
+        "lovedText": "A timeless Coastal Andhra pairing that brings pure soul comfort to every meal.",
+        "tip": "🍽 Avakaya with hot rice & ghee, podi on the side",
+        "a": {
+          "productId": "avakaya",
+          "name": "Bellam Avakaya",
+          "bio": "Sun-cured raw mango pieces aged in sweet jaggery and pungent mustard spices.",
+          "image": "assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg",
+          "tags": ["Sun-dried", "Jaadi aged"]
+        },
+        "b": {
+          "productId": "karam_podi",
+          "name": "Idli Karam Podi",
+          "bio": "Stone-ground roasted lentils and spices for idlis, dosas and hot rice.",
+          "image": "assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg",
+          "tags": ["Stone ground", "Aromatic"]
+        },
+        "weights": [
+          {"label": "500g Combo", "price": 349, "mrp": 430, "aVariantId": "v2", "bVariantId": "v5"},
+          {"label": "1kg Combo", "price": 680, "mrp": 840, "aVariantId": "v3", "bVariantId": "v5"}
+        ]
+      },
+      {
+        "id": "c2",
+        "name": "Murukku & Sunnunda",
+        "tag": "SNACK & SWEET",
+        "mealIcon": "☕",
+        "mealName": "Evening Chai",
+        "lovedText": "The ultimate tea-time combination of crunchy spiral murukku and wholesome ghee laddus.",
+        "tip": "🍽 Crunchy murukku with chai, sunnunda to finish",
+        "a": {
+          "productId": "murukku",
+          "name": "Kara Murukku",
+          "bio": "Crispy spiral festive savory made with rice flour and ajwain.",
+          "image": "assets/images/karam_janthukalu_murukku_strings_snack.jpg",
+          "tags": ["Crispy", "Ajwain"]
+        },
+        "b": {
+          "productId": "sunnunda",
+          "name": "Sunnunda Laddu",
+          "bio": "Roasted urad dal blended with pure cow ghee and unrefined jaggery.",
+          "image": "assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg",
+          "tags": ["Pure Ghee", "Traditional"]
+        },
+        "weights": [
+          {"label": "Standard Combo", "price": 319, "mrp": 395, "aVariantId": "v6", "bVariantId": "v8"},
+          {"label": "Family Pack", "price": 599, "mrp": 740, "aVariantId": "v7", "bVariantId": "v9"}
+        ]
+      },
+      {
+        "id": "c3",
+        "name": "Gongura & Kandi Podi",
+        "tag": "ANDHRA PRIDE",
+        "mealIcon": "🍲",
+        "mealName": "Hot Rice",
+        "lovedText": "Tangy sorrel leaves meeting nutty roasted pigeon pea powder for authentic village flavor.",
+        "tip": "🍽 Kandi podi + ghee first, then rice with Gongura",
+        "a": {
+          "productId": "gongura",
+          "name": "Gongura Pickle",
+          "bio": "Sour, leafy & proudly Andhra sorrel leaves pickle.",
+          "image": "assets/images/gongura_pickle.png",
+          "tags": ["Sour", "Pride"]
+        },
+        "b": {
+          "productId": "kandi_podi",
+          "name": "Kandi Podi",
+          "bio": "Nutty, warm & roasted to perfection for hot rice.",
+          "image": "assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg",
+          "tags": ["Roasted", "Comfort"]
+        },
+        "weights": [
+          {"label": "500g Combo", "price": 359, "mrp": 420, "aVariantId": "v5", "bVariantId": "v5"},
+          {"label": "1kg Combo", "price": 664, "mrp": 779, "aVariantId": "v6", "bVariantId": "v5"}
+        ]
+      },
+      {
+        "id": "c4",
+        "name": "Usiri & Mixture",
+        "tag": "CRUNCHY ZEST",
+        "mealIcon": "🥣",
+        "mealName": "Curd Rice",
+        "lovedText": "Tangy amla pickle paired with crunchy spicy mixture for the ultimate curd rice companion.",
+        "tip": "🍽 Cool curd rice with usiri pickle and mixture on top",
+        "a": {
+          "productId": "usiri",
+          "name": "Bellam Avakaya",
+          "bio": "Zesty gooseberry pickle with a cool and healthy heart.",
+          "image": "assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg",
+          "tags": ["Zesty", "Healthy"]
+        },
+        "b": {
+          "productId": "mixture",
+          "name": "Khara Mixture",
+          "bio": "Crunchy assorted savory snack mix with peanuts and sev.",
+          "image": "assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg",
+          "tags": ["Crunchy", "Spicy"]
+        },
+        "weights": [
+          {"label": "Standard Combo", "price": 299, "mrp": 350, "aVariantId": "v1", "bVariantId": "v10"},
+          {"label": "Family Pack", "price": 554, "mrp": 649, "aVariantId": "v2", "bVariantId": "v11"}
+        ]
+      }
+    ]
+  };
+
+  PairSide side(dynamic raw) {
+    final Map<String, dynamic> m = (raw as Map<String, dynamic>?) ?? <String, dynamic>{};
+    return PairSide('${m['productId'] ?? ''}', '${m['name'] ?? ''}', '${m['bio'] ?? ''}', _abs(apiBase, '${m['image'] ?? ''}'),
+        ((m['tags'] as List?) ?? <dynamic>[]).map((dynamic e) => '$e').toList());
   }
+
+  final List<PairCouple> fallbackCs = <PairCouple>[];
+  for (final dynamic raw in (fallbackJson['couples'] as List?) ?? <dynamic>[]) {
+    final Map<String, dynamic> m = raw as Map<String, dynamic>;
+    final List<PairWeight> ws = <PairWeight>[];
+    for (final dynamic w in (m['weights'] as List?) ?? <dynamic>[]) {
+      final Map<String, dynamic> x = w as Map<String, dynamic>;
+      ws.add(PairWeight('${x['label'] ?? ''}', _n(x['price']), _n(x['mrp']), '${x['aVariantId'] ?? ''}', '${x['bVariantId'] ?? ''}'));
+    }
+    if (ws.isEmpty) continue;
+    fallbackCs.add(PairCouple('${m['id']}', '${m['name'] ?? ''}', '${m['tag'] ?? ''}', '${m['mealIcon'] ?? ''}', '${m['mealName'] ?? ''}', '${m['lovedText'] ?? ''}',
+        side(m['a']), side(m['b']), ws, '${m['tip'] ?? ''}'));
+  }
+
+  final List<PairCouple> finalCs = [...remoteCs];
+  for (final fallbackC in fallbackCs) {
+    if (!finalCs.any((c) => c.name.toLowerCase() == fallbackC.name.toLowerCase())) {
+      finalCs.add(fallbackC);
+    }
+  }
+
+  return PairingData(st, finalCs);
 }
 
-class PairItem {
-  final String id, tag, imageA, imageB, name, bestWith;
-  final int price;
-  PairItem({
-    required this.id,
-    required this.tag,
-    required this.imageA,
-    required this.imageB,
-    required this.name,
-    required this.bestWith,
-    required this.price,
-  });
-
-  PairItem.fromJson(Map<String, dynamic> j)
-      : id = j['id']?.toString() ?? '',
-        tag = j['tag']?.toString() ?? '',
-        imageA = j['imageA']?.toString() ?? j['imgA']?.toString() ?? '',
-        imageB = j['imageB']?.toString() ?? j['imgB']?.toString() ?? '',
-        name = j['name']?.toString() ?? j['title']?.toString() ?? '',
-        bestWith = j['bestWith']?.toString() ?? j['sub']?.toString() ?? '',
-        price = (j['price'] is num) ? (j['price'] as num).round() : 299;
+Widget _bowl(String url, double w) {
+  if (url.isEmpty) return SizedBox(width: w, height: w * 0.8);
+  final Widget fallback = Image.asset(
+    'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+    width: w,
+    height: w * 0.8,
+    fit: BoxFit.contain,
+    errorBuilder: (_, __, ___) => SizedBox(width: w, height: w * 0.8),
+  );
+  if (url.startsWith('assets/')) {
+    return Image.asset(url, width: w, height: w * 0.8, fit: BoxFit.contain, errorBuilder: (BuildContext c, Object e, StackTrace? s) => fallback);
+  }
+  return Image.network(url, width: w, height: w * 0.8, fit: BoxFit.contain, gaplessPlayback: true, errorBuilder: (BuildContext c, Object e, StackTrace? s) => fallback);
 }
 
-class HeroCombo {
-  final String id, kicker, title, desc, imageA, imageB;
-  final int price;
-  final List<Color> colors;
-  final List<PairItem> pairs;
+const BoxDecoration _bg = BoxDecoration(
+  gradient: RadialGradient(center: Alignment(0, -0.15), radius: 0.95, colors: <Color>[_bgA, _bgB, _bgC], stops: <double>[0.0, 0.45, 1.0]),
+);
 
-  HeroCombo({
-    required this.id,
-    required this.kicker,
-    required this.title,
-    required this.desc,
-    required this.imageA,
-    required this.imageB,
-    required this.price,
-    required this.colors,
-    required this.pairs,
-  });
+Widget _title(PairSettings s, double size) => Text.rich(
+      TextSpan(children: <InlineSpan>[
+        TextSpan(text: '${s.title} ', style: GoogleFonts.playfairDisplay(fontSize: size, fontWeight: FontWeight.w700, color: _maroon)),
+        TextSpan(text: s.titleAccent, style: GoogleFonts.greatVibes(fontSize: size * 1.33, color: _gold)),
+      ]),
+      textAlign: TextAlign.center,
+    );
 
-  HeroCombo.fromJson(Map<String, dynamic> j)
-      : id = j['id']?.toString() ?? '',
-        kicker = j['kicker']?.toString() ?? 'THE ROYAL COMBO',
-        title = j['title']?.toString() ?? j['name']?.toString() ?? '',
-        desc = j['desc']?.toString() ?? j['subtitle']?.toString() ?? '',
-        imageA = j['imageA']?.toString() ?? j['imgA']?.toString() ?? '',
-        imageB = j['imageB']?.toString() ?? j['imgB']?.toString() ?? '',
-        price = (j['price'] is num) ? (j['price'] as num).round() : 379,
-        colors = (j['colors'] is List)
-            ? (j['colors'] as List).map((e) => _hex(e.toString())).toList()
-            : [const Color(0xFF5C0A0D), const Color(0xFF7A0F12), const Color(0xFF9B1D22)],
-        pairs = ((j['pairs'] ?? j['subs'] ?? j['subPairings'] ?? []) as List)
-            .map((e) => PairItem.fromJson(Map<String, dynamic>.from(e)))
-            .toList();
+class _Heart extends StatelessWidget {
+  final double size;
+  const _Heart(this.size);
+  @override
+  Widget build(BuildContext context) => SizedBox(width: size, height: size * 0.94, child: const CustomPaint(painter: _HeartPainter()));
 }
 
-class ArtOfPairing extends StatefulWidget {
-  final List<HeroCombo> combos;
-  final ValueChanged<HeroCombo>? onAddHero;
-  final ValueChanged<PairItem>? onAddPair;
-  final ValueChanged<PairItem>? onTapPair;
-  final ValueChanged<PairItem>? onWishlist;
-  final VoidCallback? onViewAll;
-
-  const ArtOfPairing({
-    super.key,
-    required this.combos,
-    this.onAddHero,
-    this.onAddPair,
-    this.onTapPair,
-    this.onWishlist,
-    this.onViewAll,
-  });
+class _HeartPainter extends CustomPainter {
+  const _HeartPainter();
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double k = size.width / 64;
+    canvas.scale(k, k);
+    final Path outer = Path()
+      ..moveTo(32, 56)
+      ..cubicTo(14, 42, 2, 32, 2, 18)
+      ..cubicTo(2, 9, 9, 2, 18, 2)
+      ..cubicTo(24, 2, 29, 5, 32, 10)
+      ..cubicTo(35, 5, 40, 2, 46, 2)
+      ..cubicTo(55, 2, 62, 9, 62, 18)
+      ..cubicTo(62, 32, 50, 42, 32, 56)
+      ..close();
+    canvas.drawShadow(outer, const Color(0x66C2185B), 4, false);
+    canvas.drawPath(outer, Paint()..color = Colors.white);
+    canvas.drawPath(outer, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = _gold);
+    final Path inner = Path()
+      ..moveTo(32, 46)
+      ..cubicTo(20, 37, 12, 30, 12, 21)
+      ..cubicTo(12, 16, 16, 12, 21, 12)
+      ..cubicTo(25, 12, 29, 14, 32, 18)
+      ..cubicTo(35, 14, 39, 12, 43, 12)
+      ..cubicTo(48, 12, 52, 16, 52, 21)
+      ..cubicTo(52, 30, 44, 37, 32, 46)
+      ..close();
+    canvas.drawPath(inner, Paint()..color = const Color(0xFFD6336C));
+  }
 
   @override
-  State<ArtOfPairing> createState() => _ArtOfPairingState();
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _ArtOfPairingState extends State<ArtOfPairing> {
-  static const cream = Color(0xFFFFF8EC);
-  late final PageController _pc = PageController(viewportFraction: 362 / 390);
+// ═════════════════════════════ HOME CARD ═════════════════════════════
+class PairingHomeCard extends StatefulWidget {
+  final String apiBase;
+  final Map<String, String>? headers;
+  final PairAdd? onAddCouple;
+  final void Function(PairCouple couple, PairWeight weight)? onViewCombo;
+  final VoidCallback? onCart;
+  const PairingHomeCard({super.key, required this.apiBase, this.headers, this.onAddCouple, this.onViewCombo, this.onCart});
+  @override
+  State<PairingHomeCard> createState() => _PairingHomeCardState();
+}
+
+class _PairingHomeCardState extends State<PairingHomeCard> with SingleTickerProviderStateMixin {
+  PairingData? _data;
   int _i = 0;
-  StreamSubscription? _pairingsSub;
-  List<HeroCombo> _liveCombos = [];
+  Timer? _timer;
+  late AnimationController _beat;
 
   @override
   void initState() {
     super.initState();
-    _listenToPairingsConfig();
-  }
-
-  void _listenToPairingsConfig() {
-    _pairingsSub = AppConfigRepository().getPairingsStream().listen((data) {
-      if (!mounted) return;
-      if (data.isNotEmpty) {
-        final parsed = data.map((e) => HeroCombo.fromJson(e)).where((c) => c.pairs.isNotEmpty).toList();
-        if (parsed.isNotEmpty) {
-          setState(() => _liveCombos = parsed);
-        }
-      }
-    });
+    _beat = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat();
+    _load();
   }
 
   @override
   void dispose() {
-    _pairingsSub?.cancel();
-    _pc.dispose();
+    _timer?.cancel();
+    _beat.dispose();
     super.dispose();
   }
 
-  List<HeroCombo> get _effectiveCombos {
-    if (_liveCombos.length >= 3) {
-      return _liveCombos;
-    }
-    final valid = widget.combos.where((c) => c.pairs.isNotEmpty).toList();
-    if (valid.length >= 3) {
-      return valid;
-    }
-    return _defaultCombos;
+  Future<void> _load() async {
+    try {
+      final PairingData? d = await _fetch(widget.apiBase, widget.headers);
+      if (!mounted || d == null) return;
+      setState(() => _data = d);
+      _timer?.cancel();
+      if (d.couples.length > 1) {
+        _timer = Timer.periodic(const Duration(milliseconds: 3200), (Timer t) {
+          if (mounted) setState(() => _i = (_i + 1) % d.couples.length);
+        });
+      }
+    } catch (_) {}
   }
 
-  Widget _img(String u, {double? w}) {
-    if (u.isEmpty) {
-      return SizedBox(width: w, child: const Icon(Icons.restaurant, color: Colors.grey));
-    }
-    if (u.startsWith('http')) {
-      return Image.network(
-        u,
-        width: w,
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
-      );
-    }
-    String assetPath = u.startsWith('assets/') ? u : 'assets/images/$u';
-    return Image.asset(
-      assetPath,
-      width: w,
-      fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
-    );
+  void _open() {
+    final PairingData? d = _data;
+    if (d == null) return;
+    HapticFeedback.selectionClick();
+    Navigator.of(context).push(PageRouteBuilder<void>(
+      transitionDuration: const Duration(milliseconds: 450),
+      pageBuilder: (BuildContext c, Animation<double> a, Animation<double> b) =>
+          PairingScreen(data: d, initialIndex: _i, onAddCouple: widget.onAddCouple, onViewCombo: widget.onViewCombo, onCart: widget.onCart),
+      transitionsBuilder: (BuildContext c, Animation<double> a, Animation<double> b, Widget child) => FadeTransition(opacity: a, child: child),
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final s = MediaQuery.of(context).size.width / 390;
-    final combos = _effectiveCombos;
-    if (combos.isEmpty) return const SizedBox.shrink();
-
-    if (_i >= combos.length) _i = 0;
-    final cur = combos[_i];
-
-    return Container(
-      color: cream,
-      padding: EdgeInsets.symmetric(vertical: 18 * s),
+    final PairingData? d = _data;
+    if (d == null || !d.settings.enabled || d.couples.isEmpty) return const SizedBox.shrink();
+    final PairCouple c = d.couples[_i % d.couples.length];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ---------- HEADER ----------
+        children: <Widget>[
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14 * s),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'CURATED COMBOS',
-                        style: GoogleFonts.poppins(
-                          fontSize: 10 * s,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2.5 * s,
-                          color: const Color(0xFFB8860B),
-                        ),
+            padding: const EdgeInsets.only(left: 6, bottom: 8),
+            child: Text(d.settings.eyebrow, style: GoogleFonts.poppins(fontSize: 9.5, fontWeight: FontWeight.w700, letterSpacing: 3, color: _gold)),
+          ),
+          GestureDetector(
+            onTap: _open,
+            child: LayoutBuilder(builder: (BuildContext ctx, BoxConstraints bc) {
+              final double w = bc.maxWidth;
+              return SizedBox(
+                width: w,
+                height: w * 378 / 366,
+                child: FittedBox(
+                  fit: BoxFit.fill,
+                  child: SizedBox(
+                    width: 366,
+                    height: 378,
+                    child: Container(
+                      decoration: _bg.copyWith(
+                        borderRadius: BorderRadius.circular(26),
+                        border: Border.all(color: const Color(0x8CC9963F), width: 1.5),
+                        boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x807A1426), blurRadius: 36, offset: Offset(0, 20), spreadRadius: -22)],
                       ),
-                      Text(
-                        'The Art of Pairing',
-                        style: GoogleFonts.fraunces(
-                          fontSize: 24 * s,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF2A1A12),
-                          height: 1.15,
-                        ),
+                      child: Stack(
+                        children: <Widget>[
+                          Positioned(
+                            right: 14,
+                            top: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(color: const Color(0xFFFDE8EC), borderRadius: BorderRadius.circular(10)),
+                              child: Text('${d.couples.length} couples', style: GoogleFonts.poppins(fontSize: 9.5, fontWeight: FontWeight.w700, color: _rose)),
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 30,
+                            child: Column(children: <Widget>[
+                              _title(d.settings, 27),
+                              const SizedBox(height: 2),
+                              Text(d.settings.subtitle, style: GoogleFonts.kalam(fontSize: 13.5, fontWeight: FontWeight.w700, color: _roseText)),
+                            ]),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 108,
+                            height: 160,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 500),
+                              transitionBuilder: (Widget ch, Animation<double> a) =>
+                                  FadeTransition(opacity: a, child: SlideTransition(position: Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero).animate(a), child: ch)),
+                              child: Stack(key: ValueKey<String>(c.id), children: <Widget>[
+                                Positioned(left: 68, top: 10, child: Transform.rotate(angle: -0.14, child: _mini(c.a))),
+                                Positioned(right: 68, top: 10, child: Transform.rotate(angle: 0.14, child: _mini(c.b))),
+                              ]),
+                            ),
+                          ),
+                          Positioned(
+                            left: 161,
+                            top: 166,
+                            child: AnimatedBuilder(
+                              animation: _beat,
+                              builder: (BuildContext c2, Widget? ch) {
+                                final double t = _beat.value;
+                                final double s = t < 0.15 ? 1 + t : (t < 0.3 ? 1.15 - (t - 0.15) : (t < 0.45 ? 1 + (t - 0.3) * 0.66 : math.max(1.0, 1.1 - (t - 0.45))));
+                                return Transform.scale(scale: s, child: ch);
+                              },
+                              child: const _Heart(44),
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 262,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 400),
+                              child: Text(c.name, key: ValueKey<String>('n${c.id}'), textAlign: TextAlign.center, style: GoogleFonts.greatVibes(fontSize: 28, color: _rose)),
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 298,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 400),
+                              child: Text.rich(
+                                TextSpan(children: <InlineSpan>[
+                                  TextSpan(text: '2 jars · ${_rs(c.weights.first.price)}'),
+                                  if (c.weights.first.mrp > c.weights.first.price)
+                                    TextSpan(text: ' · Save ${_rs(c.weights.first.mrp - c.weights.first.price)}', style: const TextStyle(color: Color(0xFF1F8A4C))),
+                                ]),
+                                key: ValueKey<String>('s${c.id}'),
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w700, color: _maroon),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 324,
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(22),
+                                  gradient: const LinearGradient(colors: <Color>[Color(0xFFD6336C), _maroon]),
+                                  boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x99C2185B), blurRadius: 20, offset: Offset(0, 10), spreadRadius: -8)],
+                                ),
+                                child: Text('💞 ${d.settings.buttonText}  ›', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 2 * s),
-                      Text(
-                        "Pick your meal, we'll pick the perfect match",
-                        style: GoogleFonts.poppins(
-                          fontSize: 12 * s,
-                          color: const Color(0xFF7A6A5E),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    if (widget.onViewAll != null) {
-                      widget.onViewAll!();
-                    } else {
-                      AppNavigator.push(context, const ProductListingPage(category: 'Combos'));
-                    }
-                  },
-                  child: Text(
-                    'View all ›',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12.5 * s,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF7A0F12),
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
-          SizedBox(height: 14 * s),
-
-          // ---------- HERO CAROUSEL ----------
-          SizedBox(
-            height: 148 * s,
-            child: PageView.builder(
-              controller: _pc,
-              padEnds: false,
-              itemCount: combos.length,
-              onPageChanged: (i) => setState(() => _i = i),
-              itemBuilder: (_, i) => Padding(
-                padding: EdgeInsets.only(
-                  left: 14 * s,
-                  right: (i == combos.length - 1 ? 14 : 0) * s,
-                ),
-                child: _hero(combos[i], s),
-              ),
-            ),
-          ),
-          SizedBox(height: 8 * s),
-
-          // ---------- PAGINATION DOTS ----------
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(combos.length, (k) {
-              final on = k == _i;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                margin: EdgeInsets.symmetric(horizontal: 2.5 * s),
-                width: (on ? 18 : 6) * s,
-                height: 6 * s,
-                decoration: BoxDecoration(
-                  color: on ? const Color(0xFF7A0F12) : const Color(0xFFD9C9B0),
-                  borderRadius: BorderRadius.circular(3 * s),
-                ),
               );
             }),
-          ),
-
-          // ---------- "Pairs for ..." ----------
-          Padding(
-            padding: EdgeInsets.fromLTRB(14 * s, 12 * s, 14 * s, 0),
-            child: Text.rich(
-              TextSpan(
-                style: GoogleFonts.poppins(fontSize: 12.5 * s, color: const Color(0xFF7A6A5E)),
-                children: [
-                  const TextSpan(text: 'Pairs for '),
-                  TextSpan(
-                    text: cur.title,
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF2A1A12)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // ---------- PAIRING CARDS (ANIMATED SWITCHER) ----------
-          SizedBox(
-            height: 278 * s,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 420),
-              switchInCurve: Curves.easeOutBack,
-              transitionBuilder: (child, a) => FadeTransition(
-                opacity: a,
-                child: SlideTransition(
-                  position: Tween(begin: const Offset(.12, 0), end: Offset.zero).animate(a),
-                  child: child,
-                ),
-              ),
-              child: ListView.separated(
-                key: ValueKey(cur.id),
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(14 * s, 12 * s, 14 * s, 4 * s),
-                itemCount: cur.pairs.length,
-                separatorBuilder: (_, __) => SizedBox(width: 10 * s),
-                itemBuilder: (_, k) => _pairCard(cur.pairs[k], s),
-              ),
-            ),
           ),
         ],
       ),
     );
   }
 
-  // ---------------- HERO CARD ----------------
-  Widget _hero(HeroCombo h, double s) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16 * s),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: const Alignment(-1, -.4),
-            end: const Alignment(1, .4),
-            colors: h.colors,
-            stops: const [0, .6, 1],
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -40 * s,
-              top: -40 * s,
-              child: Container(
-                width: 180 * s,
-                height: 180 * s,
-                decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x24FFD778)),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(16 * s, 14 * s, 12 * s, 14 * s),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          h.kicker,
-                          style: GoogleFonts.poppins(
-                            fontSize: 9.5 * s,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.6 * s,
-                            color: const Color(0xFFF6C453),
-                          ),
-                        ),
-                        SizedBox(height: 3 * s),
-                        Text(
-                          h.title,
-                          maxLines: 2,
-                          style: GoogleFonts.fraunces(
-                            fontSize: 21 * s,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            height: 1.15,
-                          ),
-                        ),
-                        SizedBox(height: 4 * s),
-                        Text(
-                          '${h.desc} · 2 items',
-                          style: GoogleFonts.poppins(fontSize: 11 * s, color: const Color(0xFFFFE2C8)),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: 9 * s),
-                        Row(
-                          children: [
-                            Text(
-                              '₹${h.price}',
-                              style: GoogleFonts.poppins(
-                                fontSize: 17 * s,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                            ),
-                            SizedBox(width: 8 * s),
-                            _addBtn(
-                              s,
-                              filled: true,
-                              onTap: () {
-                                HapticFeedback.mediumImpact();
-                                if (widget.onAddHero != null) {
-                                  widget.onAddHero!(h);
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('${h.title} added to cart!'),
-                                      duration: const Duration(seconds: 1),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    width: 150 * s,
-                    height: 110 * s,
-                    child: Stack(
-                      children: [
-                        Positioned(left: 0, top: 6 * s, child: _img(h.imageA, w: 100 * s)),
-                        Positioned(right: 0, bottom: 0, child: _img(h.imageB, w: 86 * s)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ---------------- PAIRING CARD ----------------
-  Widget _pairCard(PairItem p, double s) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        if (widget.onTapPair != null) {
-          widget.onTapPair!(p);
-        } else {
-          AppNavigator.push(context, ComboDetailPage(pairItem: p));
-        }
-      },
-      child: Container(
-        width: 160 * s,
+  Widget _mini(PairSide s) => Container(
+        width: 112,
+        height: 140,
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14 * s),
-          border: Border.all(color: const Color(0xFFEFE4D2)),
-          boxShadow: const [BoxShadow(color: Color(0x0F502800), blurRadius: 6, offset: Offset(0, 2))],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _goldLine, width: 1.5),
+          boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x807A1426), blurRadius: 24, offset: Offset(0, 14), spreadRadius: -14)],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14 * s),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Visual Header with Dual Cutouts & Plus
-              Container(
-                height: 112 * s,
-                decoration: const BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment(0, .2),
-                    radius: .85,
-                    colors: [Color(0xFFFFF3D9), Color(0xFFFBE6C0)],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(left: 4 * s, bottom: 8 * s, child: _img(p.imageA, w: 84 * s)),
-                    Positioned(right: 4 * s, bottom: 8 * s, child: _img(p.imageB, w: 84 * s)),
-                    Align(
-                      alignment: const Alignment(0, .1),
-                      child: Container(
-                        width: 24 * s,
-                        height: 24 * s,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          boxShadow: [BoxShadow(color: Color(0x2E000000), blurRadius: 5, offset: Offset(0, 2))],
-                        ),
-                        child: Text(
-                          '+',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16 * s,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF7A0F12),
-                            height: 1,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (p.tag.isNotEmpty)
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8 * s, vertical: 3 * s),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1F8A3A),
-                            borderRadius: BorderRadius.only(bottomRight: Radius.circular(10 * s)),
-                          ),
-                          child: Text(
-                            p.tag,
-                            style: GoogleFonts.poppins(
-                              fontSize: 9 * s,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    Positioned(
-                      right: 6 * s,
-                      top: 4 * s,
-                      child: GestureDetector(
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          if (widget.onWishlist != null) {
-                            widget.onWishlist!(p);
-                          }
-                        },
-                        child: Icon(Icons.favorite_border, size: 17 * s, color: const Color(0xFFB9A48A)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Body
-              Padding(
-                padding: EdgeInsets.fromLTRB(10 * s, 8 * s, 10 * s, 10 * s),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 7 * s, vertical: 1 * s),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFBEAEA),
-                        borderRadius: BorderRadius.circular(6 * s),
-                      ),
-                      child: Text(
-                        '2 items',
-                        style: GoogleFonts.poppins(
-                          fontSize: 9.5 * s,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF7A0F12),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 4 * s),
-                    SizedBox(
-                      height: 33 * s,
-                      child: Text(
-                        p.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
-                          fontSize: 13 * s,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF222222),
-                          height: 1.25,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 2 * s),
-                    Text.rich(
-                      TextSpan(
-                        style: GoogleFonts.poppins(fontSize: 10.5 * s, color: const Color(0xFF7A6A5E)),
-                        children: [
-                          const TextSpan(text: 'Best with '),
-                          TextSpan(
-                            text: p.bestWith,
-                            style: const TextStyle(color: Color(0xFFB8860B), fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 7 * s),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '₹${p.price}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 15 * s,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF1B1B1B),
-                          ),
-                        ),
-                        _addBtn(
-                          s,
-                          onTap: () {
-                            HapticFeedback.mediumImpact();
-                            if (widget.onAddPair != null) {
-                              widget.onAddPair!(p);
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('${p.name} added to cart!'),
-                                  duration: const Duration(seconds: 1),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        child: Column(children: <Widget>[
+          Container(
+            height: 84,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const RadialGradient(center: Alignment(0, 0.2), colors: <Color>[Color(0xFFFFF4E4), Color(0xFFF6DDBE)])),
+            child: _bowl(s.image, 90),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _addBtn(double s, {bool filled = false, VoidCallback? onTap}) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: (filled ? 16 : 14) * s, vertical: 4 * s),
-          decoration: BoxDecoration(
-            color: filled ? Colors.white : const Color(0xFFF2FBF4),
-            borderRadius: BorderRadius.circular(8 * s),
-            border: filled ? null : Border.all(color: const Color(0xFF1F8A3A), width: 1.5),
-          ),
-          child: Text(
-            'ADD',
-            style: GoogleFonts.poppins(
-              fontSize: 12 * s,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF1F8A3A),
-            ),
-          ),
-        ),
+          const SizedBox(height: 6),
+          FittedBox(fit: BoxFit.scaleDown, child: Text(s.name, maxLines: 1, style: GoogleFonts.playfairDisplay(fontSize: 14, fontWeight: FontWeight.w700, color: _maroon))),
+        ]),
       );
 }
 
-// DEFAULT SAMPLE COMBOS FOR 3 UNIQUE MOMENTS
-final List<HeroCombo> _defaultCombos = [
-  // 1. 🔴 BREAKFAST: Dosa's Best Friends (Karam Podi + Avakaya)
-  HeroCombo.fromJson({
-    'id': 'breakfast',
-    'kicker': 'BREAKFAST',
-    'title': "Dosa's Best Friends",
-    'desc': 'Karam Podi + Avakaya',
-    'price': 379,
-    'imageA': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
-    'imageB': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-    'colors': ['#5C0A0D', '#7A0F12', '#9B1D22'],
-    'pairs': [
-      {
-        'id': 'br1',
-        'tag': '',
-        'imageA': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
-        'imageB': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-        'name': 'Karam Podi + Avakaya',
-        'bestWith': 'Dosa · Idli',
-        'price': 379,
-      },
-      {
-        'id': 'br2',
-        'tag': '',
-        'imageA': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
-        'imageB': 'assets/images/palli_patti_peanut_and_jaggery_chikki.jpg',
-        'name': 'Karam Podi + Masala Peanuts',
-        'bestWith': 'Dosa · Idli',
-        'price': 299,
-      },
-      {
-        'id': 'br3',
-        'tag': '',
-        'imageA': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-        'imageB': 'assets/images/palli_patti_peanut_and_jaggery_chikki.jpg',
-        'name': 'Avakaya + Masala Peanuts',
-        'bestWith': 'Dosa · Upma',
-        'price': 329,
-      },
-    ],
-  }),
+// ═════════════════════════════ FULL PAGE ═════════════════════════════
+class PairingScreen extends StatefulWidget {
+  final PairingData data;
+  final int initialIndex;
+  final PairAdd? onAddCouple;
+  final void Function(PairCouple couple, PairWeight weight)? onViewCombo;
+  final VoidCallback? onCart;
+  const PairingScreen({super.key, required this.data, this.initialIndex = 0, this.onAddCouple, this.onViewCombo, this.onCart});
+  @override
+  State<PairingScreen> createState() => _PairingScreenState();
+}
 
-  // 2. 🟢 EVENING TEA: Chai's Crunchy Partners (Murukku + Banana Chips)
-  HeroCombo.fromJson({
-    'id': 'evening_tea',
-    'kicker': 'EVENING TEA',
-    'title': "Chai's Crunchy Partners",
-    'desc': 'Murukku + Banana Chips',
-    'price': 299,
-    'imageA': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
-    'imageB': 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg',
-    'colors': ['#18453B', '#235D4E', '#2E7563'],
-    'pairs': [
-      {
-        'id': 'et1',
-        'tag': '',
-        'imageA': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
-        'imageB': 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg',
-        'name': 'Murukku + Banana Chips',
-        'bestWith': 'Evening tea',
-        'price': 299,
-      },
-      {
-        'id': 'et2',
-        'tag': '',
-        'imageA': 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg',
-        'imageB': 'assets/images/palli_patti_peanut_and_jaggery_chikki.jpg',
-        'name': 'Spicy Mixture + Masala Peanuts',
-        'bestWith': 'Evening tea',
-        'price': 279,
-      },
-      {
-        'id': 'et3',
-        'tag': '',
-        'imageA': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
-        'imageB': 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg',
-        'name': 'Murukku + Spicy Mixture',
-        'bestWith': 'Evening tea',
-        'price': 319,
-      },
-    ],
-  }),
+class _PairingScreenState extends State<PairingScreen> with TickerProviderStateMixin {
+  int _cur = 0, _w = 0, _qty = 0;
+  bool _busy = false, _switching = false;
+  late AnimationController _in; // cards fly in & meet (0..1, 1.6 s)
+  late AnimationController _out; // cards leave (0..1)
+  late AnimationController _beat;
+  late AnimationController _burst;
+  final List<List<double>> _conf = <List<double>>[];
+  final Map<String, int> _cartQty = <String, int>{}; // "coupleId|weight" → qty added from this page
 
-  // 3. 🟠 AFTER MEALS: Sweet Endings (Sunnunda Laddu + Murukku)
-  HeroCombo.fromJson({
-    'id': 'after_meals',
-    'kicker': 'AFTER MEALS',
-    'title': 'Sweet Endings',
-    'desc': 'Sunnunda Laddu + Murukku',
-    'price': 399,
-    'imageA': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
-    'imageB': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
-    'colors': ['#8B4513', '#A0522D', '#B8860B'],
-    'pairs': [
-      {
-        'id': 'am1',
-        'tag': '',
-        'imageA': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
-        'imageB': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
-        'name': 'Sunnunda Laddu + Murukku',
-        'bestWith': 'After meals · Gifting',
-        'price': 399,
-      },
-      {
-        'id': 'am2',
-        'tag': '',
-        'imageA': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
-        'imageB': 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg',
-        'name': 'Sunnunda Laddu + Banana Chips',
-        'bestWith': 'After meals · Gifting',
-        'price': 379,
-      },
-      {
-        'id': 'am3',
-        'tag': '',
-        'imageA': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
-        'imageB': 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg',
-        'name': 'Sunnunda Laddu + Spicy Mixture',
-        'bestWith': 'After meals · Gifting',
-        'price': 389,
-      },
-    ],
-  }),
-];
+  List<PairCouple> get _cs => widget.data.couples;
+  PairCouple get _c => _cs[_cur];
+  PairWeight get _wt => _c.weights[math.max(0, math.min(_w, _c.weights.length - 1))];
+  String get _key => '${_c.id}|$_w';
+
+  @override
+  void initState() {
+    super.initState();
+    _cur = math.max(0, math.min(widget.initialIndex, _cs.length - 1));
+    _in = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
+    _out = AnimationController(vsync: this, duration: const Duration(milliseconds: 480));
+    _beat = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
+    _burst = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
+    final math.Random r = math.Random(9);
+    for (int k = 0; k < 30; k++) {
+      final double a = k / 30 * math.pi * 2, d = 70 + r.nextDouble() * 110;
+      _conf.add(<double>[math.cos(a) * d, math.sin(a) * d - 40, r.nextDouble() * 10, (k % 5).toDouble()]);
+    }
+    _in.addListener(() {
+      if (_in.value >= 0.72 && _burst.status == AnimationStatus.dismissed) {
+        HapticFeedback.lightImpact();
+        _burst.forward(from: 0);
+        _beat.repeat();
+      }
+    });
+    _in.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _in.dispose();
+    _out.dispose();
+    _beat.dispose();
+    _burst.dispose();
+    super.dispose();
+  }
+
+  Future<void> _goTo(int i) async {
+    if (_switching || i == _cur || _cs.isEmpty) return;
+    _switching = true;
+    HapticFeedback.selectionClick();
+    _beat.stop();
+    await _out.forward(from: 0);
+    if (!mounted) return;
+    setState(() {
+      _cur = i;
+      _w = 0;
+      _qty = _cartQty[_key] ?? 0;
+    });
+    _out.value = 0;
+    _burst.value = 0;
+    _burst.reset();
+    await _in.forward(from: 0);
+    _switching = false;
+  }
+
+  Future<void> _change(int delta) async {
+    if (_busy) return;
+    final int next = math.max(0, math.min(20, _qty + delta));
+    if (next == _qty) return;
+    setState(() => _busy = true);
+    bool ok = true;
+    if (widget.onAddCouple != null) ok = await widget.onAddCouple!(_c, _wt, next - _qty);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      if (ok) {
+        _qty = next;
+        _cartQty[_key] = next;
+      }
+    });
+    if (ok && delta > 0) {
+      HapticFeedback.mediumImpact();
+      if (next == 1) _burst.forward(from: 0);
+    }
+    if (!ok) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not update the cart. Please try again.')));
+  }
+
+  void _viewCombo() {
+    if (widget.onViewCombo != null) {
+      widget.onViewCombo!(_c, _wt);
+      return;
+    }
+    final PairCouple c = _c;
+    final PairWeight w = _wt;
+    final double each = (w.price / 2).roundToDouble();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (BuildContext ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+            Center(child: Container(width: 42, height: 4, decoration: BoxDecoration(color: const Color(0xFFEAD3C4), borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 10),
+            Text(c.name, style: GoogleFonts.playfairDisplay(fontSize: 19, fontWeight: FontWeight.w700, color: _maroon)),
+            Text("WHAT'S INSIDE", style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: _gold)),
+            for (final PairSide s in <PairSide>[c.a, c.b])
+              Container(
+                margin: const EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: const Color(0xFFFFF7F0), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFF3E2D2))),
+                child: Row(children: <Widget>[
+                  SizedBox(width: 52, height: 46, child: _bowl(s.image, 52)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+                      Text(s.name, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: _ink)),
+                      Text('${w.label.replaceAll(' each', '')}${s.tags.isEmpty ? '' : ' · ${s.tags.join(' · ').toLowerCase()}'}', style: GoogleFonts.poppins(fontSize: 10.5, color: const Color(0xFF9A7F6A))),
+                    ]),
+                  ),
+                  Text(_rs(each), style: GoogleFonts.playfairDisplay(fontSize: 15, fontWeight: FontWeight.w700, color: _maroon)),
+                ]),
+              ),
+            const SizedBox(height: 8),
+            Center(child: TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Close', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: _roseText)))),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  double _seg(double t, double a, double b, [Curve c = Curves.easeOut]) => c.transform(((t - a) / (b - a)).clamp(0.0, 1.0));
+
+  @override
+  Widget build(BuildContext context) {
+    final MediaQueryData mq = MediaQuery.of(context);
+    return Scaffold(
+      backgroundColor: _bgB,
+      body: DecoratedBox(
+        decoration: _bg,
+        child: Padding(
+          padding: EdgeInsets.only(top: mq.padding.top, bottom: mq.padding.bottom),
+          child: Center(child: FittedBox(fit: BoxFit.contain, child: SizedBox(width: 390, height: 844, child: _page()))),
+        ),
+      ),
+    );
+  }
+
+  Widget _page() {
+    final PairSettings s = widget.data.settings;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: <Widget>[
+        // top bar
+        Positioned(
+          left: 16,
+          right: 16,
+          top: 16,
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: <Widget>[
+            _roundBtn(Icons.chevron_left_rounded, () => Navigator.maybePop(context)),
+            _roundBtn(Icons.shopping_bag_outlined, widget.onCart),
+          ]),
+        ),
+        // header
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 72,
+          child: Column(children: <Widget>[
+            Text(s.eyebrow, style: GoogleFonts.poppins(fontSize: 9.5, fontWeight: FontWeight.w700, letterSpacing: 4, color: _gold)),
+            _title(s, 30),
+            Text(s.subtitle, style: GoogleFonts.kalam(fontSize: 14, fontWeight: FontWeight.w700, color: _roseText)),
+            if (s.explainText.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                decoration: BoxDecoration(color: const Color(0xBFFFFFFF), borderRadius: BorderRadius.circular(10), border: Border.all(color: _goldLine)),
+                child: Text(s.explainText, style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600, color: _maroon)),
+              ),
+          ]),
+        ),
+        // couple stage (swipe here)
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 180,
+          height: 350,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragEnd: (DragEndDetails d) {
+              final double v = d.primaryVelocity ?? 0.0;
+              if (v.abs() < 150 || _cs.length < 2) return;
+              _goTo(v < 0 ? (_cur + 1) % _cs.length : (_cur - 1 + _cs.length) % _cs.length);
+            },
+            child: AnimatedBuilder(animation: Listenable.merge(<Listenable>[_in, _out, _beat, _burst]), builder: (BuildContext c, Widget? ch) => _stage(s)),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 530,
+          child: Text('‹ swipe for more couples ›', textAlign: TextAlign.center, style: GoogleFonts.poppins(fontSize: 9.5, fontWeight: FontWeight.w600, letterSpacing: 1, color: const Color(0xFFC9A0A8))),
+        ),
+        // couple card
+        Positioned(left: 16, right: 16, top: 548, child: AnimatedBuilder(animation: _in, builder: (BuildContext c, Widget? ch) {
+          final double v = _seg(_in.value, 0.78, 1.0);
+          return Opacity(opacity: v, child: Transform.translate(offset: Offset(0, 20 * (1 - v)), child: ch));
+        }, child: _card())),
+        // more couples
+        if (_cs.length > 1) Positioned(left: 0, right: 0, top: 744, child: _more(s)),
+      ],
+    );
+  }
+
+  Widget _roundBtn(IconData i, VoidCallback? onTap) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: <BoxShadow>[BoxShadow(color: Color(0x807A1426), blurRadius: 12, offset: Offset(0, 4), spreadRadius: -6)]),
+          child: Icon(i, color: _maroon, size: 20),
+        ),
+      );
+
+  Widget _stage(PairSettings s) {
+    final double t = _in.value, o = _out.value;
+    final double inL = _seg(t, 0.0, 0.5, const Cubic(0.3, 1.25, 0.5, 1.0));
+    final double inR = _seg(t, 0.1, 0.6, const Cubic(0.3, 1.25, 0.5, 1.0));
+    final double meet = _seg(t, 0.62, 0.75);
+    final double pop = _seg(t, 0.72, 0.85, Curves.elasticOut);
+    final double text = _seg(t, 0.8, 0.95, const Cubic(0.3, 1.6, 0.5, 1.0));
+    final double beat = _beat.isAnimating ? (1 + 0.12 * math.max(0.0, math.sin(_beat.value * math.pi * 2))) : 1.0;
+    final double outE = Curves.easeIn.transform(o);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: <Widget>[
+        Positioned(
+          left: 25,
+          right: 25,
+          top: 90,
+          height: 240,
+          child: IgnorePointer(child: DecoratedBox(decoration: BoxDecoration(gradient: RadialGradient(colors: <Color>[const Color(0x59FFAABE).withOpacity(0.35 * meet), const Color(0x00FFAABE)])))),
+        ),
+        // left card
+        Positioned(
+          left: 14,
+          top: 30,
+          child: Opacity(
+            opacity: (1 - outE).clamp(0.0, 1.0),
+            child: Transform.translate(
+              offset: Offset(-260 * (1 - inL) - 120 * outE, 60 * outE),
+              child: Transform.rotate(angle: (-0.52 * (1 - inL)) + (-0.14 + 0.07 * meet) * inL - 0.35 * outE, child: _bigCard(_c.a)),
+            ),
+          ),
+        ),
+        // right card
+        Positioned(
+          right: 14,
+          top: 30,
+          child: Opacity(
+            opacity: (1 - outE).clamp(0.0, 1.0),
+            child: Transform.translate(
+              offset: Offset(260 * (1 - inR) + 120 * outE, 60 * outE),
+              child: Transform.rotate(angle: (0.52 * (1 - inR)) + (0.14 - 0.07 * meet) * inR + 0.35 * outE, child: _bigCard(_c.b)),
+            ),
+          ),
+        ),
+        // heart
+        Positioned(
+          left: 172,
+          top: 44,
+          child: Opacity(opacity: (pop * (1 - outE)).clamp(0.0, 1.0), child: Transform.scale(scale: pop * beat, child: const _Heart(46))),
+        ),
+        // meal badge
+        if (_c.mealName.isNotEmpty || _c.mealIcon.isNotEmpty)
+          Positioned(
+            left: 167,
+            top: 96,
+            child: Opacity(
+              opacity: (pop * (1 - outE)).clamp(0.0, 1.0),
+              child: Transform.scale(
+                scale: 0.5 + 0.5 * pop,
+                child: SizedBox(
+                  width: 56,
+                  child: Column(children: <Widget>[
+                    Container(
+                      width: 50,
+                      height: 50,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: _goldLine, width: 2),
+                        boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x807A1426), blurRadius: 16, offset: Offset(0, 8), spreadRadius: -8)],
+                      ),
+                      child: Text(_c.mealIcon, style: const TextStyle(fontSize: 24)),
+                    ),
+                    const SizedBox(height: 6),
+                    Text('BEST WITH\n${_c.mealName}', textAlign: TextAlign.center, style: GoogleFonts.poppins(fontSize: 8, height: 1.25, fontWeight: FontWeight.w700, color: _maroon)),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        // "Made for each other"
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 282,
+          child: Opacity(
+            opacity: (text * (1 - outE)).clamp(0.0, 1.0),
+            child: Transform.scale(scale: 0.6 + 0.4 * text, child: Text(s.matchText, textAlign: TextAlign.center, style: GoogleFonts.greatVibes(fontSize: 36, color: _rose))),
+          ),
+        ),
+        // serving tip
+        if (_c.tip.isNotEmpty)
+          Positioned(
+            left: 24,
+            right: 24,
+            top: 324,
+            child: Opacity(
+              opacity: (_seg(t, 0.88, 1.0) * (1 - outE)).clamp(0.0, 1.0),
+              child: Transform.translate(
+                offset: Offset(0, 8 * (1 - _seg(t, 0.88, 1.0))),
+                child: Text(_c.tip, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.kalam(fontSize: 13.5, fontWeight: FontWeight.w700, color: const Color(0xFF8A5A44))),
+              ),
+            ),
+          ),
+        // confetti
+        if (_burst.value > 0 && _burst.value < 1)
+          Positioned(left: 195, top: 80, child: IgnorePointer(child: CustomPaint(painter: _ConfettiPainter(_burst.value, _conf)))),
+      ],
+    );
+  }
+
+  Widget _bigCard(PairSide p) {
+    return Container(
+      width: 160,
+      height: 240,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _goldLine, width: 1.5),
+        boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x737A1426), blurRadius: 30, offset: Offset(0, 18), spreadRadius: -16)],
+      ),
+      child: Column(children: <Widget>[
+        Container(
+          height: 126,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), gradient: const RadialGradient(center: Alignment(0, 0.2), colors: <Color>[Color(0xFFFFF4E4), Color(0xFFF6DDBE)])),
+          child: _bowl(p.image, 130),
+        ),
+        const SizedBox(height: 8),
+        FittedBox(fit: BoxFit.scaleDown, child: Text(p.name, maxLines: 1, style: GoogleFonts.playfairDisplay(fontSize: 18, fontWeight: FontWeight.w700, color: _maroon))),
+        const SizedBox(height: 2),
+        Text(p.bio, maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: GoogleFonts.kalam(fontSize: 13.5, height: 1.2, fontWeight: FontWeight.w700, color: const Color(0xFF9A6A52))),
+        const Spacer(),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
+          for (final String t in p.tags)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: _goldLine)),
+              child: Text(t, style: GoogleFonts.poppins(fontSize: 8.5, fontWeight: FontWeight.w700, color: _roseText)),
+            ),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _card() {
+    final PairCouple c = _c;
+    final PairWeight w = _wt;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 13, 16, 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFF0D9B0), width: 1.5),
+        boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x807A1426), blurRadius: 30, offset: Offset(0, 16), spreadRadius: -18)],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: <Widget>[
+        Row(children: <Widget>[
+          if (c.tag.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), gradient: const LinearGradient(colors: <Color>[Color(0xFF9E1B32), Color(0xFF6A1022)])),
+              child: Text(c.tag, style: GoogleFonts.poppins(fontSize: 9.5, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: Colors.white)),
+            ),
+          const Spacer(),
+          if (c.lovedText.isNotEmpty) Text('💗 ${c.lovedText}', style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w700, color: _gold)),
+        ]),
+        const SizedBox(height: 6),
+        Text(c.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.playfairDisplay(fontSize: 20, fontWeight: FontWeight.w700, color: _ink)),
+        const SizedBox(height: 9),
+        Row(children: <Widget>[
+          if (c.weights.length > 1) Expanded(child: _weightToggle(c)),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: _viewCombo,
+            child: Container(
+              padding: const EdgeInsets.only(bottom: 1),
+              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFF2A9BF), width: 1.5))),
+              child: Text('View combo ›', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: _rose)),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 11),
+        Row(children: <Widget>[
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+              Row(crossAxisAlignment: CrossAxisAlignment.end, children: <Widget>[
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: Text(_rs(w.price), key: ValueKey<String>(_key), style: GoogleFonts.playfairDisplay(fontSize: 22, fontWeight: FontWeight.w700, color: _ink)),
+                ),
+                if (w.mrp > w.price)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 3),
+                    child: Text(_rs(w.mrp), style: GoogleFonts.poppins(fontSize: 10.5, color: const Color(0xFFB8A493), decoration: TextDecoration.lineThrough, decorationColor: const Color(0xFFB8A493))),
+                  ),
+              ]),
+              if (w.mrp > w.price) Text('Save ${_rs(w.mrp - w.price)}', style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w700, color: const Color(0xFF1F8A4C))),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(width: 155, height: 44, child: _addButton()),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _weightToggle(PairCouple c) {
+    const double segW = 76;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(color: const Color(0xFFF7EADB), borderRadius: BorderRadius.circular(12)),
+        child: Stack(children: <Widget>[
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutBack,
+            left: segW * _w,
+            top: 0,
+            bottom: 0,
+            width: segW,
+            child: Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(9), boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x737A1426), blurRadius: 8, offset: Offset(0, 3), spreadRadius: -4)])),
+          ),
+          Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
+            for (int k = 0; k < c.weights.length && k < 3; k++)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (k == _w) return;
+                  HapticFeedback.selectionClick();
+                  setState(() {
+                    _w = k;
+                    _qty = _cartQty[_key] ?? 0;
+                  });
+                },
+                child: SizedBox(
+                  width: segW,
+                  height: 28,
+                  child: Center(child: Text(c.weights[k].label, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: k == _w ? _maroon : const Color(0xFFA08A78)))),
+                ),
+              ),
+          ]),
+        ]),
+      ),
+    );
+  }
+
+  Widget _addButton() {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: _qty == 0
+          ? GestureDetector(
+              key: const ValueKey<String>('add'),
+              onTap: () => _change(1),
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  gradient: const LinearGradient(colors: <Color>[Color(0xFFD6336C), _maroon]),
+                  boxShadow: const <BoxShadow>[BoxShadow(color: Color(0xB3C2185B), blurRadius: 18, offset: Offset(0, 10), spreadRadius: -8)],
+                ),
+                child: _busy
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                    : Text('💞 Add both · ${_rs(_wt.price)}', maxLines: 1, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+              ),
+            )
+          : Container(
+              key: const ValueKey<String>('qty'),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(15), gradient: const LinearGradient(colors: <Color>[Color(0xFF22A35A), Color(0xFF178048)])),
+              child: Row(children: <Widget>[
+                IconButton(onPressed: () => _change(-1), icon: const Icon(Icons.remove_rounded, color: Colors.white, size: 20), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 32, minHeight: 32)),
+                Expanded(child: Center(child: Text('In cart · $_qty', style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white)))),
+                IconButton(onPressed: () => _change(1), icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20), padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 32, minHeight: 32)),
+              ]),
+            ),
+    );
+  }
+
+  Widget _more(PairSettings s) {
+    return Column(children: <Widget>[
+      Text(s.moreText, style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 2.5, color: _roseText)),
+      const SizedBox(height: 8),
+      SizedBox(
+        height: 52,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(horizontal: _cs.length <= 4 ? (390 - _cs.length * 72 - (_cs.length - 1) * 10) / 2 : 16, vertical: 4),
+          itemCount: _cs.length,
+          separatorBuilder: (BuildContext c, int i) => const SizedBox(width: 10),
+          itemBuilder: (BuildContext c, int k) {
+            final bool on = k == _cur;
+            return GestureDetector(
+              onTap: () => _goTo(k),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: 72,
+                transform: Matrix4.translationValues(0, on ? -3 : 0, 0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: on ? const Color(0xFFD6336C) : const Color(0xFFF0D9B0), width: on ? 2 : 1),
+                  boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x737A1426), blurRadius: 12, offset: Offset(0, 6), spreadRadius: -8)],
+                ),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
+                  SizedBox(width: 30, height: 30, child: _bowl(_cs[k].a.image, 30)),
+                  SizedBox(width: 30, height: 30, child: _bowl(_cs[k].b.image, 30)),
+                ]),
+              ),
+            );
+          },
+        ),
+      ),
+    ]);
+  }
+}
+
+class _ConfettiPainter extends CustomPainter {
+  final double t;
+  final List<List<double>> parts;
+  _ConfettiPainter(this.t, this.parts);
+  static const List<Color> _cols = <Color>[Color(0xFFFF6B8E), Color(0xFFF6C453), Color(0xFFC2185B), Colors.white, Color(0xFF7FD39A)];
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double e = const Cubic(0.1, 0.7, 0.3, 1.0).transform(t);
+    for (final List<double> p in parts) {
+      canvas.save();
+      canvas.translate(p[0] * e, p[1] * e);
+      canvas.rotate(p[2] * e);
+      canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(-3.5, -5, 7, 10), const Radius.circular(2)), Paint()..color = _cols[p[3].toInt()].withOpacity(1 - t));
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConfettiPainter o) => o.t != t;
+}

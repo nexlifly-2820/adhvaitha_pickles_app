@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'category_tabs.dart';
 
 class HeaderCategory {
   final String name;
@@ -275,61 +276,19 @@ class _HomeHeaderState extends State<HomeHeader> {
   }
 
   Widget _categoryRow(double s) {
-    final cats = widget.categories.take(6).toList();
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: List.generate(cats.length, (i) {
-        final c = cats[i];
-        final on = i == widget.selectedCategory;
-        return GestureDetector(
-          onTap: () => widget.onCategoryTap?.call(i),
-          behavior: HitTestBehavior.opaque,
-          child: SizedBox(
-            width: 60 * s,
-            child: Column(children: [
-              Stack(clipBehavior: Clip.none, children: [
-                SizedBox(
-                  width: 30 * s,
-                  height: 30 * s,
-                  child: Center(
-                    child: c.icon.startsWith('http')
-                        ? Image.network(c.icon, width: 28 * s, height: 28 * s)
-                        : Text(c.icon, style: TextStyle(fontSize: 24 * s)),
-                  ),
-                ),
-                if (c.badge != null)
-                  Positioned(
-                    top: -8 * s,
-                    right: -16 * s,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 5 * s, vertical: 1 * s),
-                      decoration: BoxDecoration(
-                          color: const Color(0xFFE63946), borderRadius: BorderRadius.circular(6 * s)),
-                      child: Text(c.badge!,
-                          style: TextStyle(color: Colors.white, fontSize: 8 * s, fontWeight: FontWeight.w700)),
-                    ),
-                  ),
-              ]),
-              SizedBox(height: 3 * s),
-              Text(c.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: on ? Colors.white : Colors.white.withOpacity(.85),
-                    fontSize: 11.5 * s,
-                    fontWeight: on ? FontWeight.w700 : FontWeight.w400,
-                  )),
-              SizedBox(height: 4 * s),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                width: on ? 30 * s : 0,
-                height: 3 * s,
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(3 * s)),
-              ),
-            ]),
-          ),
-        );
-      }),
+    return CategoryTabs(
+      apiBase: 'https://admin.adhvaithafoods.in/api',
+      initialSlug: widget.categories.isNotEmpty && widget.selectedCategory < widget.categories.length
+          ? widget.categories[widget.selectedCategory].name.toLowerCase()
+          : 'all',
+      onChanged: (tab) {
+        final idx = widget.categories.indexWhere((c) => c.name.toLowerCase() == tab.slug.toLowerCase() || c.name.toLowerCase() == tab.label.toLowerCase());
+        if (idx >= 0) {
+          widget.onCategoryTap?.call(idx);
+        } else {
+          widget.onCategoryTap?.call(0);
+        }
+      },
     );
   }
 }

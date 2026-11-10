@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../product_listing_page.dart';
 import '../navigation_util.dart';
 import '../app_config_repository.dart';
+import '../image_util.dart';
 
 class BannerItem {
   final String id, image;
@@ -97,26 +98,8 @@ class _AutoBannerCarouselState extends State<AutoBannerCarousel> {
     return defaultBanners;
   }
 
-  Widget _buildImg(String u) {
-    if (u.isEmpty) {
-      return Container(color: const Color(0xFFF2EEE8));
-    }
-    if (u.startsWith('http')) {
-      return Image.network(
-        u,
-        fit: BoxFit.cover,
-        loadingBuilder: (_, child, prog) =>
-            prog == null ? child : Container(color: const Color(0xFFF2EEE8)),
-        errorBuilder: (_, __, ___) => Container(color: const Color(0xFFF2EEE8)),
-      );
-    }
-    String assetPath = u.startsWith('assets/') ? u : 'assets/images/$u';
-    return Image.asset(
-      assetPath,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(color: const Color(0xFFF2EEE8)),
-    );
-  }
+  Widget _buildImg(String u) =>
+      buildSmartImage(u, fit: BoxFit.cover);
 
   @override
   Widget build(BuildContext context) {

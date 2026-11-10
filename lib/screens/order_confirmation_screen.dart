@@ -6,7 +6,7 @@ import '../models/order_result.dart';
 import '../services/order_service.dart';
 import '../utils/cloudinary.dart';
 import '../widgets/order_processing_view.dart';
-import '../widgets/order_placed_view.dart';
+import 'order_placed_screen.dart';
 import '../cart_manager.dart';
 import '../order_manager.dart';
 import '../main.dart';
@@ -257,15 +257,16 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
     }
 
     if (_animFinished && !_isApiLoading && _orderResult != null) {
-      return OrderPlacedView(
-        key: const ValueKey('OrderPlacedView'),
+      return OrderPlacedScreen(
+        key: const ValueKey('OrderPlacedScreen'),
+        receiptUrl: 'https://admin.adhvaithafoods.in/api/orders/${_orderResult!.orderId}/receipt',
         orderResult: _orderResult!,
-        onTrackOrder: () {
+        onTrack: (id) {
           final mainScreen = MainScreen.of(context);
           Navigator.popUntil(context, (route) => route.isFirst);
           mainScreen?.setIndex(3);
         },
-        onContinueShopping: () {
+        onHome: () {
           final mainScreen = MainScreen.of(context);
           Navigator.popUntil(context, (route) => route.isFirst);
           mainScreen?.setIndex(0);

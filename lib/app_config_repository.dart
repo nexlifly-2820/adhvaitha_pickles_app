@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'api_service.dart';
+import 'widgets/scratch_save_section.dart';
 
 class AppConfigRepository {
   // 1. Banners & Ad Banners
@@ -360,6 +361,926 @@ class AppConfigRepository {
     }
   }
 
+  // 19. Letters from Home Customer Reviews
+  Stream<Map<String, dynamic>> getReviewsStream() async* {
+    yield _defaultReviewsData;
+    try {
+      final data = await ApiService.getAppConfig('reviews');
+      debugPrint("Reviews API fetched data: $data");
+      if (data.isNotEmpty) {
+        yield Map<String, dynamic>.from(data);
+      } else {
+        yield _defaultReviewsData;
+      }
+    } catch (e) {
+      debugPrint('Error loading reviews: $e');
+      yield _defaultReviewsData;
+    }
+  }
+
+  Future<bool> saveReviewsConfig(Map<String, dynamic> reviewsData) async {
+    try {
+      return await ApiService.saveAppConfig('reviews', reviewsData);
+    } catch (e) {
+      debugPrint('Error saving reviews config: $e');
+      return true;
+    }
+  }
+
+  // 20. The AmbhuJakshi Promise (Trust Section)
+  Stream<Map<String, dynamic>> getTrustStream() async* {
+    yield _defaultTrustData;
+    try {
+      final data = await ApiService.getAppConfig('trust');
+      debugPrint("Trust API fetched data: $data");
+      if (data.isNotEmpty) {
+        yield Map<String, dynamic>.from(data);
+      } else {
+        yield _defaultTrustData;
+      }
+    } catch (e) {
+      debugPrint('Error loading trust data: $e');
+      yield _defaultTrustData;
+    }
+  }
+
+  Future<bool> saveTrustConfig(Map<String, dynamic> trustData) async {
+    try {
+      return await ApiService.saveAppConfig('trust', trustData);
+    } catch (e) {
+      debugPrint('Error saving trust config: $e');
+      return true;
+    }
+  }
+
+  // 21. Pickles Showcase Section
+  Stream<Map<String, dynamic>> getPicklesStream() async* {
+    yield _defaultPicklesData;
+    try {
+      final data = await ApiService.getAppConfig('pickles');
+      debugPrint("Pickles API fetched data: $data");
+      if (data.isNotEmpty) {
+        yield Map<String, dynamic>.from(data);
+      } else {
+        yield _defaultPicklesData;
+      }
+    } catch (e) {
+      debugPrint('Error loading pickles data: $e');
+      yield _defaultPicklesData;
+    }
+  }
+
+  Future<bool> savePicklesConfig(Map<String, dynamic> picklesData) async {
+    try {
+      return await ApiService.saveAppConfig('pickles', picklesData);
+    } catch (e) {
+      debugPrint('Error saving pickles config: $e');
+      return true;
+    }
+  }
+
+  // 18. Scratch & Save Rewards
+  Stream<Map<String, dynamic>> getRewardsStream() async* {
+    yield _defaultRewardsData;
+    try {
+      final data = await ApiService.getAppConfig('rewards');
+      debugPrint("Rewards API fetched data: $data");
+      if (data.isNotEmpty && (data.containsKey('cards') || data.containsKey('ordersDone'))) {
+        yield Map<String, dynamic>.from(data);
+      } else {
+        yield _defaultRewardsData;
+      }
+    } catch (e) {
+      debugPrint('Error loading rewards: $e');
+      yield _defaultRewardsData;
+    }
+  }
+
+  Future<bool> saveRewardsConfig(Map<String, dynamic> rewardsData) async {
+    try {
+      return await ApiService.saveAppConfig('rewards', rewardsData);
+    } catch (e) {
+      debugPrint('Error saving rewards config: $e');
+      return true;
+    }
+  }
+
+  // 19. Most Loved Section
+  Stream<Map<String, dynamic>> getMostLovedStream() async* {
+    yield _defaultMostLovedData;
+    try {
+      final data = await ApiService.getAppConfig('most_loved');
+      debugPrint("Most Loved API fetched data: $data");
+      if (data.isNotEmpty) {
+        yield Map<String, dynamic>.from(data);
+      } else {
+        yield _defaultMostLovedData;
+      }
+    } catch (e) {
+      debugPrint('Error loading most_loved: $e');
+      yield _defaultMostLovedData;
+    }
+  }
+
+  Future<bool> saveMostLovedConfig(Map<String, dynamic> mostLovedData) async {
+    try {
+      return await ApiService.saveAppConfig('most_loved', mostLovedData);
+    } catch (e) {
+      debugPrint('Error saving most_loved config: $e');
+      return true;
+    }
+  }
+
+  // 20. Best Sellers Section
+  Stream<Map<String, dynamic>> getBestSellersStream() async* {
+    yield _defaultBestSellersData;
+    try {
+      final data = await ApiService.getAppConfig('best_sellers');
+      debugPrint("Best Sellers API fetched data: $data");
+      if (data.isNotEmpty && (data.containsKey('categories') || data.containsKey('settings'))) {
+        yield Map<String, dynamic>.from(data);
+      } else {
+        yield _defaultBestSellersData;
+      }
+    } catch (e) {
+      debugPrint('Error loading best_sellers: $e');
+      yield _defaultBestSellersData;
+    }
+  }
+
+  Future<bool> saveBestSellersConfig(Map<String, dynamic> bestSellersData) async {
+    try {
+      return await ApiService.saveAppConfig('best_sellers', bestSellersData);
+    } catch (e) {
+      debugPrint('Error saving best_sellers config: $e');
+      return true;
+    }
+  }
+
+  // 21. Fresh Picks Section
+  Stream<Map<String, dynamic>> getFreshPicksStream() async* {
+    yield _defaultFreshPicksData;
+    try {
+      final data = await ApiService.getAppConfig('fresh_picks');
+      debugPrint("Fresh Picks API fetched data: $data");
+      if (data.isNotEmpty && (data.containsKey('products') || data.containsKey('settings'))) {
+        yield Map<String, dynamic>.from(data);
+      } else {
+        yield _defaultFreshPicksData;
+      }
+    } catch (e) {
+      debugPrint('Error loading fresh_picks: $e');
+      yield _defaultFreshPicksData;
+    }
+  }
+
+  Future<bool> saveFreshPicksConfig(Map<String, dynamic> freshPicksData) async {
+    try {
+      return await ApiService.saveAppConfig('fresh_picks', freshPicksData);
+    } catch (e) {
+      debugPrint('Error saving fresh_picks config: $e');
+      return true;
+    }
+  }
+
+  // 23. Spice Grinder Section
+  Stream<Map<String, dynamic>> getSpicesStream() async* {
+    yield _defaultSpicesData;
+    try {
+      final data = await ApiService.getAppConfig('spices_grinder');
+      debugPrint("Spices Grinder API fetched data: $data");
+      if (data.isNotEmpty && (data.containsKey('products') || data.containsKey('settings'))) {
+        yield Map<String, dynamic>.from(data);
+      } else {
+        yield _defaultSpicesData;
+      }
+    } catch (e) {
+      debugPrint('Error loading spices_grinder: $e');
+      yield _defaultSpicesData;
+    }
+  }
+
+  Future<bool> saveSpicesConfig(Map<String, dynamic> spicesData) async {
+    try {
+      return await ApiService.saveAppConfig('spices_grinder', spicesData);
+    } catch (e) {
+      debugPrint('Error saving spices_grinder config: $e');
+      return true;
+    }
+  }
+
+  // 22. Sweets Thali Section
+  Stream<Map<String, dynamic>> getSweetsStream() async* {
+    yield _defaultSweetsData;
+    try {
+      final data = await ApiService.getAppConfig('sweets');
+      debugPrint("Sweets API fetched data: $data");
+      if (data.isNotEmpty && (data.containsKey('products') || data.containsKey('settings'))) {
+        yield Map<String, dynamic>.from(data);
+      } else {
+        yield _defaultSweetsData;
+      }
+    } catch (e) {
+      debugPrint('Error loading sweets: $e');
+      yield _defaultSweetsData;
+    }
+  }
+
+  Future<bool> saveSweetsConfig(Map<String, dynamic> sweetsData) async {
+    try {
+      return await ApiService.saveAppConfig('sweets', sweetsData);
+    } catch (e) {
+      debugPrint('Error saving sweets config: $e');
+      return true;
+    }
+  }
+
+  Future<RewardCard> scratchRewardCard(RewardCard card) async {
+    try {
+      final res = await ApiService.scratchCard(card.id);
+      if (res.isNotEmpty) {
+        return RewardCard.fromJson(res);
+      }
+    } catch (e) {
+      debugPrint('Error scratching card in repo: $e');
+    }
+    // Fallback if server offline / test mode
+    return RewardCard(
+      id: card.id,
+      status: 'revealed',
+      title: card.title.isNotEmpty ? card.title : '₹100 OFF',
+      subtitle: card.subtitle.isNotEmpty ? card.subtitle : 'on orders above ₹799',
+      code: card.code.isNotEmpty ? card.code : 'ROYAL100',
+      image: card.image.isNotEmpty
+          ? card.image
+          : 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+      validDays: card.validDays > 0 ? card.validDays : 7,
+      step: card.step,
+      unlockAfter: card.unlockAfter,
+      big: card.big,
+    );
+  }
+
+  static final Map<String, dynamic> _defaultRewardsData = {
+    'ordersDone': 1,
+    'cards': [
+      {
+        'id': 'c1',
+        'step': 1,
+        'status': 'new',
+        'title': '₹100 OFF',
+        'subtitle': 'on orders above ₹799',
+        'code': 'ROYAL100',
+        'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+        'validDays': 7,
+        'unlockAfter': 0,
+      },
+      {
+        'id': 'c2',
+        'step': 2,
+        'status': 'locked',
+        'title': '15% OFF',
+        'subtitle': 'on all pickles & powders',
+        'code': 'HERITAGE15',
+        'image': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
+        'validDays': 10,
+        'unlockAfter': 1,
+      },
+      {
+        'id': 'c3',
+        'step': 3,
+        'status': 'locked',
+        'title': 'FREE SWEET BOX',
+        'subtitle': 'Sunnunda Laddu on ₹999+',
+        'code': 'FREESWEET',
+        'image': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+        'validDays': 14,
+        'unlockAfter': 2,
+      },
+      {
+        'id': 'c4',
+        'step': 4,
+        'status': 'locked',
+        'title': '₹500 OFF BUMPER',
+        'subtitle': 'Royal privilege gift box',
+        'code': 'BUMPER500',
+        'image': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+        'validDays': 30,
+        'unlockAfter': 3,
+        'big': true,
+      },
+    ],
+  };
+
+  static final Map<String, dynamic> _defaultMostLovedData = {
+    'settings': {
+      'enabled': true,
+      'kicker': 'THE LOVE CHART',
+      'title': 'Most loved',
+      'titleAccent': 'products',
+      'intervalMs': 2500,
+      'maxItems': 10
+    },
+    'products': [
+      {
+        'id': 'p1',
+        'name': 'Bellam Avakaya',
+        'short': 'Avakaya',
+        'tagline': 'sweet jaggery meets fiery mango',
+        'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+        'colors': ['#F7B733', '#E2722B'],
+        'rating': 4.8,
+        'soldToday': 320,
+        'loves': '2.1k',
+        'spice': 2,
+        'badge': '👑 No.1 this week',
+        'variants': [
+          {'id': 'v1', 'label': '250g', 'price': 120, 'mrp': 136, 'inStock': true},
+          {'id': 'v2', 'label': '500g', 'price': 230, 'mrp': 260, 'inStock': true},
+          {'id': 'v3', 'label': '1kg', 'price': 440, 'mrp': 500, 'inStock': true}
+        ]
+      },
+      {
+        'id': 'p2',
+        'name': 'Idli Karam Podi',
+        'short': 'Karam Podi',
+        'tagline': 'authentic gun powder spice blend',
+        'image': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
+        'colors': ['#8E1B2B', '#5C0A0D'],
+        'rating': 4.9,
+        'soldToday': 280,
+        'loves': '1.8k',
+        'spice': 3,
+        'badge': '🔥 Bestseller',
+        'variants': [
+          {'id': 'v4', 'label': '200g', 'price': 139, 'mrp': 150, 'inStock': true},
+          {'id': 'v5', 'label': '500g', 'price': 320, 'mrp': 350, 'inStock': true}
+        ]
+      },
+      {
+        'id': 'p3',
+        'name': 'Kara Murukku',
+        'short': 'Murukku',
+        'tagline': 'crispy spiral festive savory',
+        'image': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+        'colors': ['#18453B', '#235D4E'],
+        'rating': 4.7,
+        'soldToday': 195,
+        'loves': '1.4k',
+        'spice': 1,
+        'badge': '✨ Crunchy',
+        'variants': [
+          {'id': 'v6', 'label': '250g', 'price': 129, 'mrp': 140, 'inStock': true},
+          {'id': 'v7', 'label': '500g', 'price': 249, 'mrp': 270, 'inStock': true}
+        ]
+      },
+      {
+        'id': 'p4',
+        'name': 'Sunnunda Laddu',
+        'short': 'Sunnunda',
+        'tagline': 'roasted urad dal & pure cow ghee',
+        'image': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+        'colors': ['#8B4513', '#B8860B'],
+        'rating': 4.9,
+        'soldToday': 210,
+        'loves': '1.9k',
+        'spice': 0,
+        'badge': '🍯 Ghee Special',
+        'variants': [
+          {'id': 'v8', 'label': '250g', 'price': 199, 'mrp': 220, 'inStock': true},
+          {'id': 'v9', 'label': '500g', 'price': 380, 'mrp': 420, 'inStock': true}
+        ]
+      },
+      {
+        'id': 'p5',
+        'name': 'Gongura Pickle',
+        'short': 'Gongura',
+        'tagline': 'tangy sorrel leaves with garlic',
+        'image': 'assets/images/gongura_pickle.png',
+        'colors': ['#1E7A46', '#0F3F33'],
+        'rating': 4.9,
+        'soldToday': 245,
+        'loves': '1.6k',
+        'spice': 3,
+        'badge': '🌿 Andhra Pride',
+        'variants': [
+          {'id': 'v10', 'label': '250g', 'price': 130, 'mrp': 145, 'inStock': true},
+          {'id': 'v11', 'label': '500g', 'price': 245, 'mrp': 275, 'inStock': true}
+        ]
+      }
+    ]
+  };
+
+  static final Map<String, dynamic> _defaultBestSellersData = {
+    'settings': {
+      'enabled': true,
+      'kicker': "THIS MONTH'S CHAMPIONS",
+      'title': 'Best',
+      'titleAccent': 'sellers',
+      'subtitle': 'Ranked by real orders from 12,000+ homes',
+      'intervalMs': 4000,
+      'rows': 3
+    },
+    'categories': [
+      {
+        'id': 'all',
+        'name': 'All',
+        'emoji': '🔥',
+        'items': [
+          {
+            'id': 'p1',
+            'variantId': 'v1',
+            'name': 'Bellam Avakaya',
+            'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+            'price': 120,
+            'mrp': 136,
+            'sold': '12K+',
+            'rating': 4.8,
+            'move': 'up',
+            'moveBy': 2
+          },
+          {
+            'id': 'p2',
+            'variantId': 'v4',
+            'name': 'Idli Karam Podi',
+            'image': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
+            'price': 139,
+            'mrp': 150,
+            'sold': '9.8K+',
+            'rating': 4.9,
+            'move': 'up',
+            'moveBy': 1
+          },
+          {
+            'id': 'p3',
+            'variantId': 'v8',
+            'name': 'Sunnunda Laddu',
+            'image': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+            'price': 199,
+            'mrp': 220,
+            'sold': '8.4K+',
+            'rating': 4.9,
+            'move': 'new',
+            'moveBy': 0
+          },
+          {
+            'id': 'p4',
+            'variantId': 'v6',
+            'name': 'Kara Murukku',
+            'image': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+            'price': 129,
+            'mrp': 140,
+            'sold': '6.2K+',
+            'rating': 4.7,
+            'move': 'up',
+            'moveBy': 3
+          },
+          {
+            'id': 'p5',
+            'variantId': 'v10',
+            'name': 'Khara Mixture',
+            'image': 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg',
+            'price': 149,
+            'mrp': 165,
+            'sold': '5.5K+',
+            'rating': 4.6,
+            'move': 'down',
+            'moveBy': 1
+          },
+          {
+            'id': 'p6',
+            'variantId': 'v12',
+            'name': 'Gongura Pickle',
+            'image': 'assets/images/gongura_pickle.png',
+            'price': 130,
+            'mrp': 145,
+            'sold': '7.1K+',
+            'rating': 4.9,
+            'move': 'up',
+            'moveBy': 2
+          },
+          {
+            'id': 'p7',
+            'variantId': 'v14',
+            'name': 'Usiri Pickle',
+            'image': 'assets/images/avakaya_pickle.png',
+            'price': 130,
+            'mrp': 150,
+            'sold': '6.8K+',
+            'rating': 4.8,
+            'move': 'up',
+            'moveBy': 1
+          },
+          {
+            'id': 'p8',
+            'variantId': 'v16',
+            'name': 'Chakinalu',
+            'image': 'assets/images/chakralu.png',
+            'price': 110,
+            'mrp': 130,
+            'sold': '8.2K+',
+            'rating': 4.8,
+            'move': 'new',
+            'moveBy': 0
+          }
+        ]
+      },
+      {
+        'id': 'pickles',
+        'name': 'Pickles',
+        'emoji': '🥭',
+        'items': [
+          {
+            'id': 'p1',
+            'variantId': 'v1',
+            'name': 'Bellam Avakaya',
+            'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+            'price': 120,
+            'mrp': 136,
+            'sold': '12K+',
+            'rating': 4.8,
+            'move': 'up',
+            'moveBy': 2
+          },
+          {
+            'id': 'p6',
+            'variantId': 'v11',
+            'name': 'Allam Pickle',
+            'image': 'assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg',
+            'price': 140,
+            'mrp': 160,
+            'sold': '7.1K+',
+            'rating': 4.7,
+            'move': 'up',
+            'moveBy': 1
+          },
+          {
+            'id': 'p7',
+            'variantId': 'v12',
+            'name': 'Usiri Pickle',
+            'image': 'assets/images/usiri_pickle_amlagooseberry_pickle.jpg',
+            'price': 130,
+            'mrp': 145,
+            'sold': '5.8K+',
+            'rating': 4.6,
+            'move': '',
+            'moveBy': 0
+          }
+        ]
+      },
+      {
+        'id': 'powders',
+        'name': 'Powders',
+        'emoji': '🌶️',
+        'items': [
+          {
+            'id': 'p2',
+            'variantId': 'v4',
+            'name': 'Idli Karam Podi',
+            'image': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
+            'price': 139,
+            'mrp': 150,
+            'sold': '9.8K+',
+            'rating': 4.9,
+            'move': 'up',
+            'moveBy': 1
+          },
+          {
+            'id': 'p8',
+            'variantId': 'v13',
+            'name': 'Allam Karam Podi',
+            'image': 'assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg',
+            'price': 145,
+            'mrp': 160,
+            'sold': '6.4K+',
+            'rating': 4.8,
+            'move': 'up',
+            'moveBy': 2
+          },
+          {
+            'id': 'p9',
+            'variantId': 'v14',
+            'name': 'Karvepaku Podi',
+            'image': 'assets/images/karvepaku_karam_podi_curry_leaves_powder.jpg',
+            'price': 135,
+            'mrp': 150,
+            'sold': '4.9K+',
+            'rating': 4.7,
+            'move': 'new',
+            'moveBy': 0
+          }
+        ]
+      },
+      {
+        'id': 'sweets',
+        'name': 'Sweets',
+        'emoji': '🍯',
+        'items': [
+          {
+            'id': 'p3',
+            'variantId': 'v8',
+            'name': 'Sunnunda Laddu',
+            'image': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+            'price': 199,
+            'mrp': 220,
+            'sold': '8.4K+',
+            'rating': 4.9,
+            'move': 'new',
+            'moveBy': 0
+          },
+          {
+            'id': 'p10',
+            'variantId': 'v15',
+            'name': 'Dry Fruits Laddu',
+            'image': 'assets/images/dry_fruit_laddu.png',
+            'price': 299,
+            'mrp': 350,
+            'sold': '5.2K+',
+            'rating': 5.0,
+            'move': 'up',
+            'moveBy': 1
+          }
+        ]
+      },
+      {
+        'id': 'snacks',
+        'name': 'Snacks',
+        'emoji': '🥨',
+        'items': [
+          {
+            'id': 'p4',
+            'variantId': 'v6',
+            'name': 'Kara Murukku',
+            'image': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+            'price': 129,
+            'mrp': 140,
+            'sold': '6.2K+',
+            'rating': 4.7,
+            'move': 'up',
+            'moveBy': 3
+          },
+          {
+            'id': 'p5',
+            'variantId': 'v10',
+            'name': 'Khara Mixture',
+            'image': 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg',
+            'price': 149,
+            'mrp': 165,
+            'sold': '5.5K+',
+            'rating': 4.6,
+            'move': 'down',
+            'moveBy': 1
+          }
+        ]
+      }
+    ]
+  };
+
+  static final Map<String, dynamic> _defaultFreshPicksData = {
+    'settings': {
+      'enabled': true,
+      'kicker': 'FRESH OFF THE STOVE',
+      'title': 'Fresh picks,',
+      'titleAccent': 'just for you',
+      'subtitle': "new from Amma's kitchen this week",
+      'intervalMs': 3400
+    },
+    'products': [
+      {
+        'id': 'p1',
+        'name': 'Chakinalu',
+        'tagline': 'Sankranti spiral snack',
+        'image': 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg',
+        'madeLabel': 'Made today, 6 AM',
+        'batch': 'Batch #24',
+        'badge': 'NEW',
+        'variants': [
+          {'id': 'v1', 'label': '250g', 'price': 100, 'mrp': 115, 'inStock': true},
+          {'id': 'v2', 'label': '500g', 'price': 190, 'mrp': 220, 'inStock': true}
+        ]
+      },
+      {
+        'id': 'p2',
+        'name': 'Idli Karam Podi',
+        'tagline': 'freshly roasted & ground spice powder',
+        'image': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
+        'madeLabel': 'Made today, 7 AM',
+        'batch': 'Batch #25',
+        'badge': 'HOT',
+        'variants': [
+          {'id': 'v3', 'label': '200g', 'price': 139, 'mrp': 150, 'inStock': true},
+          {'id': 'v4', 'label': '500g', 'price': 320, 'mrp': 350, 'inStock': true}
+        ]
+      },
+      {
+        'id': 'p3',
+        'name': 'Sunnunda Laddu',
+        'tagline': 'ghee-infused roasted urad laddus',
+        'image': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+        'madeLabel': 'Made today, 5 AM',
+        'batch': 'Batch #22',
+        'badge': 'FRESH',
+        'variants': [
+          {'id': 'v5', 'label': '250g', 'price': 199, 'mrp': 220, 'inStock': true},
+          {'id': 'v6', 'label': '500g', 'price': 380, 'mrp': 420, 'inStock': true}
+        ]
+      }
+    ]
+  };
+
+  static final Map<String, dynamic> _defaultSweetsData = {
+    'settings': {
+      'enabled': true,
+      'kicker': 'MITHAI THALI',
+      'title': 'Traditional sweets,',
+      'titleAccent': 'timeless joy',
+      'subtitle': 'Pure ghee. Jaggery. Just like Ammamma made.',
+      'intervalMs': 2800,
+      'badges': ['🧈 Pure desi ghee', 'No preservatives'],
+      'giftTag': '🎁 Gift box available'
+    },
+    'products': [
+      {
+        'id': 'p1',
+        'name': 'Sunnunda Laddu',
+        'tagline': 'roasted urad dal & organic jaggery',
+        'image': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+        'tags': ['🧈 Pure Desi Ghee', 'No Sugar'],
+        'giftBox': true,
+        'variants': [
+          {'id': 'v1', 'label': '250g', 'price': 199, 'mrp': 220, 'inStock': true},
+          {'id': 'v2', 'label': '500g', 'price': 380, 'mrp': 420, 'inStock': true}
+        ]
+      },
+      {
+        'id': 'p2',
+        'name': 'Dry Fruits Laddu',
+        'tagline': 'almonds, cashews, dates & pistachios',
+        'image': 'assets/images/dry_fruits_laddu_premium_dry_fruits_laddu.jpg',
+        'tags': ['🥜 Loaded with nuts', 'Energy Rich'],
+        'giftBox': true,
+        'variants': [
+          {'id': 'v3', 'label': '250g', 'price': 240, 'mrp': 275, 'inStock': true},
+          {'id': 'v4', 'label': '500g', 'price': 460, 'mrp': 520, 'inStock': true}
+        ]
+      },
+      {
+        'id': 'p3',
+        'name': 'Gondh Laddu',
+        'tagline': 'edible gum, ghee & wholesome dry fruits',
+        'image': 'assets/images/gondh_laddu_edible_gum_laddu.jpg',
+        'tags': ['💪 Immunity Boost', 'Winter Special'],
+        'giftBox': false,
+        'variants': [
+          {'id': 'v5', 'label': '250g', 'price': 210, 'mrp': 235, 'inStock': true},
+          {'id': 'v6', 'label': '500g', 'price': 410, 'mrp': 450, 'inStock': true}
+        ]
+      },
+      {
+        'id': 'p4',
+        'name': 'Gulab Jamun Kova',
+        'tagline': 'rich khoya gulab jamun in cardamom syrup',
+        'image': 'assets/images/kova_gulam_jamun_rich_gulab_jamun_sweet.jpg',
+        'tags': ['🍯 Melt in mouth', 'Khoya Made'],
+        'giftBox': false,
+        'variants': [
+          {'id': 'v7', 'label': '250g', 'price': 180, 'mrp': 200, 'inStock': true},
+          {'id': 'v8', 'label': '500g', 'price': 340, 'mrp': 380, 'inStock': true}
+        ]
+      }
+    ]
+  };
+
+  static final Map<String, dynamic> _defaultSpicesData = {
+    'settings': {
+      'enabled': true,
+      'kicker': 'FROM WHOLE SPICE TO PODI',
+      'title': 'Fresh ground',
+      'titleAccent': 'spices',
+      'subtitle': 'Pounded in stone, the way Ammamma did.',
+      'cardTag': '🪨 STONE-GROUND TODAY'
+    },
+    'products': [
+      {
+        'id': 'p1',
+        'name': 'Moringa Karam Podi',
+        'tagline': 'Drumstick-leaf spice powder',
+        'image': 'assets/images/munagaku_karam_podi_moringa_leaves_spice_powder.jpg',
+        'powderColor': '#6B7A2A',
+        'accentColor': '#A8D86A',
+        'glowColor': '#3A4A14',
+        'heat': 2,
+        'throwIn': [
+          {
+            'name': 'Moringa leaves',
+            'pieces': ['assets/images/moringa_0.png', 'assets/images/moringa_1.png'],
+            'count': 3,
+            'size': 'big'
+          },
+          {
+            'name': 'Dry red chilli',
+            'pieces': ['assets/images/redchilli_0.png', 'assets/images/chillies_0.png'],
+            'count': 2,
+            'size': 'big'
+          },
+          {
+            'name': 'Cumin',
+            'pieces': ['assets/images/cumin_0.png', 'assets/images/cumin_1.png'],
+            'count': 8,
+            'size': 'small'
+          }
+        ],
+        'chips': [
+          {'name': 'Moringa leaves', 'icon': 'assets/images/moringa_0.png'},
+          {'name': 'Red chilli', 'icon': 'assets/images/redchilli_0.png'},
+          {'name': 'Cumin', 'icon': 'assets/images/cumin_0.png'}
+        ],
+        'variants': [
+          {'id': 'v1', 'label': '100g', 'price': 129, 'mrp': 149, 'inStock': true},
+          {'id': 'v2', 'label': '250g', 'price': 249, 'mrp': 280, 'inStock': true}
+        ]
+      },
+      {
+        'id': 'p2',
+        'name': 'Idli Karam Podi',
+        'tagline': 'authentic gun powder spice blend',
+        'image': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
+        'powderColor': '#B8321E',
+        'accentColor': '#FF7A45',
+        'glowColor': '#7A2A14',
+        'heat': 3,
+        'throwIn': [
+          {
+            'name': 'Red chilli',
+            'pieces': ['assets/images/redchilli_0.png', 'assets/images/chillies_1.png'],
+            'count': 4,
+            'size': 'big'
+          },
+          {
+            'name': 'Urad dal',
+            'pieces': ['assets/images/urad_0.png', 'assets/images/urad_1.png'],
+            'count': 6,
+            'size': 'small'
+          },
+          {
+            'name': 'Chana dal',
+            'pieces': ['assets/images/chanadal_0.png', 'assets/images/chanadal_1.png'],
+            'count': 6,
+            'size': 'small'
+          }
+        ],
+        'chips': [
+          {'name': 'Red chilli', 'icon': 'assets/images/redchilli_0.png'},
+          {'name': 'Urad dal', 'icon': 'assets/images/urad_0.png'},
+          {'name': 'Chana dal', 'icon': 'assets/images/chanadal_0.png'}
+        ],
+        'variants': [
+          {'id': 'v3', 'label': '200g', 'price': 139, 'mrp': 150, 'inStock': true},
+          {'id': 'v4', 'label': '500g', 'price': 320, 'mrp': 350, 'inStock': true}
+        ]
+      },
+      {
+        'id': 'p3',
+        'name': 'Karvepaku Podi',
+        'tagline': 'aromatic curry leaves spice powder',
+        'image': 'assets/images/karvepaku_karam_podi_curry_leaves_powder.jpg',
+        'powderColor': '#386B32',
+        'accentColor': '#7AC96B',
+        'glowColor': '#1E4218',
+        'heat': 2,
+        'throwIn': [
+          {
+            'name': 'Curry leaves',
+            'pieces': ['assets/images/curryleaf_0.png', 'assets/images/curryleaf_1.png'],
+            'count': 5,
+            'size': 'big'
+          },
+          {
+            'name': 'Garlic & chilli',
+            'pieces': ['assets/images/ginger_0.png', 'assets/images/redchilli_0.png'],
+            'count': 3,
+            'size': 'big'
+          },
+          {
+            'name': 'Sesame & cumin',
+            'pieces': ['assets/images/sesame_0.png', 'assets/images/cumin_0.png'],
+            'count': 8,
+            'size': 'small'
+          }
+        ],
+        'chips': [
+          {'name': 'Curry leaves', 'icon': 'assets/images/curryleaf_0.png'},
+          {'name': 'Garlic', 'icon': 'assets/images/ginger_0.png'},
+          {'name': 'Sesame', 'icon': 'assets/images/sesame_0.png'}
+        ],
+        'variants': [
+          {'id': 'v5', 'label': '100g', 'price': 119, 'mrp': 135, 'true': true},
+          {'id': 'v6', 'label': '250g', 'price': 229, 'mrp': 260, 'true': true}
+        ]
+      }
+    ]
+  };
+
   static final List<Map<String, dynamic>> _defaultAutoBannersData = [
     {'id': 'b1', 'image': 'assets/images/banner_1.jpg', 'link': {'category': 'Pickles'}},
     {'id': 'b2', 'image': 'assets/images/banner_2.jpg', 'link': {'category': 'Powders'}},
@@ -683,6 +1604,206 @@ class AppConfigRepository {
       return true;
     }
   }
+
+  static final Map<String, dynamic> _defaultReviewsData = {
+    'settings': {
+      'enabled': true,
+      'eyebrow': 'LETTERS FROM HOME',
+      'title': 'What families',
+      'titleAccent': 'write to Amma',
+      'subtitle': 'Real notes from real kitchens 💌',
+      'seeAllLabel': 'See all',
+      'writeLabel': '✍️ Write to Amma',
+      'ringText': '★ 1.2k REVIEWS ★ MADE WITH LOVE ★ ',
+      'wallTop': '#1F6B55',
+      'wallMid': '#0F3F33',
+      'wallBottom': '#082520',
+      'accent': '#FFD58A',
+      'gold': '#E9C46A',
+      'autoplayMs': 4200
+    },
+    'summary': {
+      'average': 4.9,
+      'count': 1248
+    },
+    'reviews': [
+      {
+        'id': 'r1',
+        'productId': 'p1',
+        'productName': 'Avakaya Pickle',
+        'text': 'Dear Amma, the Avakaya pickle tastes exactly like my grandmother used to make in Vijayawada. It brought back so many childhood memories!',
+        'name': 'Siri M.',
+        'meta': 'Verified Purchaser · Hyderabad',
+        'photoUrl': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+        'photoCaption': 'Opened today! 🏺',
+        'stars': 5,
+        'verified': true,
+        'tagBg': '#FDE8EA',
+        'tagFg': '#C2273A'
+      },
+      {
+        'id': 'r2',
+        'productId': 'p2',
+        'productName': 'Idli Karam Podi',
+        'text': 'The aroma of roasted chana dal and garlic when I opened the pouch was amazing. Eating hot idlis with ghee and this Podi every morning!',
+        'name': 'Rajesh V.',
+        'meta': 'Verified Purchaser · Bengaluru',
+        'photoUrl': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
+        'photoCaption': 'Perfect breakfast 😋',
+        'stars': 5,
+        'verified': true,
+        'tagBg': '#FFF0E0',
+        'tagFg': '#D2691E'
+      },
+      {
+        'id': 'r3',
+        'productId': 'p3',
+        'productName': 'Sunnunda Laddu',
+        'text': 'The pure cow ghee aroma and crunch of roasted urad dal laddus are unmatchable. My children finish the whole box in two days!',
+        'name': 'Ananya K.',
+        'meta': 'Verified Purchaser · Chennai',
+        'photoUrl': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+        'photoCaption': 'Kids loved it! 🎁',
+        'stars': 5,
+        'verified': true,
+        'tagBg': '#FEF3C7',
+        'tagFg': '#B45309'
+      }
+    ]
+  };
+
+  static final Map<String, dynamic> _defaultPicklesData = {
+    'settings': {
+      'enabled': true,
+      'eyebrow': 'HAND-MIXED · SUN-CURED',
+      'title': 'Amma\'s Pickles',
+      'viewAllLabel': 'View all →',
+      'addLabel': 'Add to cart',
+      'chilliIcon': 'assets/images/chilli.png'
+    },
+    'pickles': [
+      {
+        'productId': 'mango_avakaya',
+        'variantId': '500g',
+        'name': 'Mango Avakaya',
+        'tag': 'Best Seller',
+        'description': 'Sun-dried raw mangoes with Guntur chillies & cold-pressed sesame oil.',
+        'cureNote': '3-week sun cured',
+        'thumb': 'assets/images/mango_close.jpg',
+        'spice': 4,
+        'price': 349,
+        'mrp': 399,
+        'theme': {
+          'c1': '#C2273A',
+          'c2': '#7A0F12',
+          'accent': '#FFD58A',
+          'accent2': '#E9C46A',
+          'glow': '#FFB450'
+        },
+        'shots': [
+          {'url': 'assets/images/mango_bowl.jpg', 'caption': 'Tossed by hand in small batches', 'scaleFrom': 1.15, 'scaleTo': 1.0, 'ms': 3500},
+          {'url': 'assets/images/mango_jar.jpg', 'caption': 'Preserved in traditional bharanis', 'scaleFrom': 1.1, 'scaleTo': 1.1, 'panXFrom': 0, 'panXTo': 0.08, 'ms': 2500},
+          {'url': 'assets/images/mango_spoon.jpg', 'caption': 'Pairs perfectly with hot rice & ghee', 'scaleFrom': 1.0, 'scaleTo': 1.12, 'ms': 3000}
+        ]
+      },
+      {
+        'productId': 'lemon_pickle',
+        'variantId': '250g',
+        'name': 'Lemon Pickle',
+        'tag': 'Ammamma\'s Recipe',
+        'description': 'Juicy lemons aged with rock salt and roasted fenugreek.',
+        'cureNote': '1-year aged',
+        'thumb': 'assets/images/lemon_close.jpg',
+        'spice': 2,
+        'price': 149,
+        'mrp': 175,
+        'theme': {
+          'c1': '#D4AF37',
+          'c2': '#8A5A19',
+          'accent': '#FFF3E0',
+          'accent2': '#FFE0B2',
+          'glow': '#FFD54F'
+        },
+        'shots': [
+          {'url': 'assets/images/lemon_bowl.jpg', 'caption': 'Freshly squeezed lemons', 'scaleFrom': 1.1, 'scaleTo': 1.0, 'ms': 3000},
+          {'url': 'assets/images/lemon_jar.jpg', 'caption': 'Aged to perfection', 'scaleFrom': 1.0, 'scaleTo': 1.1, 'panYFrom': 0, 'panYTo': 0.05, 'ms': 2800},
+          {'url': 'assets/images/lemon_spoon.jpg', 'caption': 'Tangy, spicy, and irresistible', 'scaleFrom': 1.05, 'scaleTo': 1.15, 'ms': 3200}
+        ]
+      },
+      {
+        'productId': 'gongura_pickle',
+        'variantId': '250g',
+        'name': 'Gongura Pickle',
+        'tag': 'Andhra Special',
+        'description': 'Hand-picked sorrel leaves cooked with red chillies & garlic.',
+        'cureNote': 'Wood-fired',
+        'thumb': 'assets/images/gongura_close.jpg',
+        'spice': 5,
+        'price': 179,
+        'mrp': 210,
+        'theme': {
+          'c1': '#1F5A1E',
+          'c2': '#0B2E0B',
+          'accent': '#C5E1A5',
+          'accent2': '#9CCC65',
+          'glow': '#AED581'
+        },
+        'shots': [
+          {'url': 'assets/images/gongura_bowl.jpg', 'caption': 'Farm fresh Gongura leaves', 'scaleFrom': 1.2, 'scaleTo': 1.0, 'ms': 3200},
+          {'url': 'assets/images/gongura_jar.jpg', 'caption': 'The authentic taste of Andhra', 'scaleFrom': 1.0, 'scaleTo': 1.05, 'panXFrom': -0.05, 'panXTo': 0.05, 'ms': 2500},
+          {'url': 'assets/images/gongura_spoon.jpg', 'caption': 'A burst of tangy heat', 'scaleFrom': 1.0, 'scaleTo': 1.1, 'ms': 3300}
+        ]
+      },
+      {
+        'productId': 'garlic_pickle',
+        'variantId': '250g',
+        'name': 'Garlic Pickle',
+        'tag': 'Immunity Booster',
+        'description': 'Peeled garlic cloves roasted in mustard oil with traditional spices.',
+        'cureNote': 'Slow-roasted',
+        'thumb': 'assets/images/garlic_close.jpg',
+        'spice': 3,
+        'price': 199,
+        'mrp': 240,
+        'theme': {
+          'c1': '#8A4A1C',
+          'c2': '#3A1A05',
+          'accent': '#FFCC80',
+          'accent2': '#FFA726',
+          'glow': '#FFB74D'
+        },
+        'shots': [
+          {'url': 'assets/images/garlic_bowl.jpg', 'caption': 'Hand-peeled garlic cloves', 'scaleFrom': 1.15, 'scaleTo': 1.05, 'ms': 2800},
+          {'url': 'assets/images/garlic_jar.jpg', 'caption': 'Infused with aromatic spices', 'scaleFrom': 1.05, 'scaleTo': 1.15, 'panYFrom': 0.05, 'panYTo': -0.05, 'ms': 2800},
+          {'url': 'assets/images/garlic_spoon.jpg', 'caption': 'Healthy and deeply flavorful', 'scaleFrom': 1.0, 'scaleTo': 1.1, 'ms': 3400}
+        ]
+      }
+    ]
+  };
+
+  static final Map<String, dynamic> _defaultTrustData = {
+    'enabled': true,
+    'eyebrow': 'THE AMBHUJAKSHI PROMISE',
+    'heading': 'Everything we make comes',
+    'headingAccent': 'four promises',
+    'ribbon': 'SINCE 1982',
+    'logo': 'assets/images/AMBHUJAKSHI  logo.png',
+    'rating': '4.9',
+    'footer': 'Loved by 12,000+ families',
+    'tags': [
+      {'title': '100%\nNatural', 'sub': 'No preservatives', 'icon': 'leaf', 'color1': '#3FA34D', 'color2': '#1F7A35'},
+      {'title': 'Amma\'s\nRecipe', 'sub': 'Authentic taste', 'icon': 'home', 'color1': '#E96446', 'color2': '#C23A22'},
+      {'title': 'Fast\nDelivery', 'sub': 'Freshness intact', 'icon': 'truck', 'color1': '#4A90E2', 'color2': '#2A64B2'},
+      {'title': 'Secure\nPacking', 'sub': 'No leaks or spills', 'icon': 'shield', 'color1': '#9B59B6', 'color2': '#7A2C9B'}
+    ],
+    'shelf': [
+      {'label': 'Pickles', 'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', 'category': 'Pickles'},
+      {'label': 'Powders', 'image': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg', 'category': 'Powders'},
+      {'label': 'Sweets', 'image': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg', 'category': 'Sweets'},
+      {'label': 'Snacks', 'image': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg', 'category': 'Snacks'},
+      {'label': 'Gifts', 'image': 'assets/images/good_food_text.png', 'category': 'Gifts'}
+    ]
+  };
 
   static final Map<String, dynamic> _defaultFestivalData = {
     'enabled': true,

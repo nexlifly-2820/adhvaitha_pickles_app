@@ -16,6 +16,7 @@ import 'navigation_util.dart';
 import 'product_manager.dart';
 import 'notification_manager.dart';
 import 'widgets/tab_transition_video_overlay.dart';
+import 'widgets/cart_bar.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -130,16 +131,13 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildTab(int index, Widget child) {
-    return Offstage(
-      offstage: _selectedIndex != index,
-      child: Navigator(
-        key: _navigatorKeys[index],
-        onGenerateRoute: (settings) => PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => child,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        ),
+    return Navigator(
+      key: _navigatorKeys[index],
+      onGenerateRoute: (settings) => PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => child,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
       ),
     );
   }
@@ -164,11 +162,16 @@ class _MainScreenState extends State<MainScreen> {
       child: Scaffold(
         body: Stack(
           children: [
-            _buildTab(0, const HomePage()),
-            _buildTab(1, const CategoriesPage()),
-            _buildTab(2, const WishlistPage()),
-            _buildTab(3, const OrderHistoryPage()),
-            _buildTab(4, const ProfilePage()),
+            IndexedStack(
+              index: _selectedIndex,
+              children: [
+                _buildTab(0, const HomePage()),
+                _buildTab(1, const CategoriesPage()),
+                _buildTab(2, const WishlistPage()),
+                _buildTab(3, const OrderHistoryPage()),
+                _buildTab(4, const ProfilePage()),
+              ],
+            ),
             TabTransitionVideoOverlay(
               isVisible: _isTransitioning,
               onTransitionComplete: _onTransitionComplete,
@@ -217,12 +220,28 @@ class CustomBottomNavBar extends StatelessWidget {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(horizontalMargin, 0, horizontalMargin, 12),
-          child: SizedBox(
-            height: 84,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // 1. MAIN PILL BAR CONTAINER (Positioned at bottom)
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedBuilder(
+                animation: globalCartBar,
+                builder: (context, child) {
+                  if (globalCartBar.count == 0) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: CartBar(
+                      controller: globalCartBar,
+                      onViewCart: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CartPage())),
+                    ),
+                  );
+                },
+              ),
+              SizedBox(
+                height: 84,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // 1. MAIN PILL BAR CONTAINER (Positioned at bottom)
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -409,6 +428,8 @@ class CustomBottomNavBar extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+            ],
           ),
         ),
       ),
