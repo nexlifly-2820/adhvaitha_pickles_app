@@ -64,11 +64,11 @@ class Product {
   final int price;
   final String? badge;
   Product.fromJson(Map<String, dynamic> j)
-      : id = j['id'],
+      : id = '${j['id'] ?? ''}',
         name = j['name'] ?? '',
         image = j['image'] ?? '',
         unit = j['unit'] ?? '',
-        price = (j['price'] ?? 0).round(),
+        price = ((j['price'] as num?)?.round()) ?? 0,
         badge = j['badge'];
 }
 
@@ -171,7 +171,28 @@ class _FestivalSectionState extends State<FestivalSection> {
           },
           "art": "assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg",
           "chipsTitle": "FESTIVE SPECIALS",
-          "tiles": [],
+          "tiles": [
+            {
+              "title": "Pindi Vantalu",
+              "image": "assets/images/snacks.png",
+              "link": {"category": "Snacks"}
+            },
+            {
+              "title": "Festive Sweets",
+              "image": "assets/images/sweets.png",
+              "link": {"category": "Sweets"}
+            },
+            {
+              "title": "Gifting Corner",
+              "image": "assets/images/combos.png",
+              "link": {"category": "Combos"}
+            },
+            {
+              "title": "Pickles & Podis",
+              "image": "assets/images/pickles.png",
+              "link": {"category": "Pickles"}
+            }
+          ],
           "chips": [
             {"title": "Pickles", "image": "assets/images/avakaya_pickle.png", "link": {"category": "Pickles"}},
             {"title": "Sweets", "image": "assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg", "link": {"category": "Sweets"}},
@@ -190,7 +211,15 @@ class _FestivalSectionState extends State<FestivalSection> {
   Future<void> _loadProducts(ProductLink link) async {
     setState(() => _loadingProducts = true);
     try {
-      final list = await widget.api.products(link);
+      List<Product> list = await widget.api.products(link);
+      if (list.isEmpty) {
+        list = [
+          Product.fromJson({"id": "1", "name": "Bellam Avakaya", "image": "assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg", "unit": "500g", "price": 228, "badge": "BESTSELLER"}),
+          Product.fromJson({"id": "2", "name": "Idli Karam Podi", "image": "assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg", "unit": "200g", "price": 139, "badge": "HOT"}),
+          Product.fromJson({"id": "3", "name": "Kara Murukku", "image": "assets/images/karam_janthukalu_murukku_strings_snack.jpg", "unit": "250g", "price": 129, "badge": "CRISPY"}),
+          Product.fromJson({"id": "4", "name": "Sunnunda Laddu", "image": "assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg", "unit": "250g", "price": 199, "badge": "GHEE"}),
+        ];
+      }
       if (mounted) setState(() => _products = list);
     } finally {
       if (mounted) setState(() => _loadingProducts = false);
@@ -204,12 +233,15 @@ class _FestivalSectionState extends State<FestivalSection> {
     final s = MediaQuery.of(context).size.width / 390;
     final t = cfg.theme;
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      _hero(cfg, t, s),
-      if (cfg.strip.isNotEmpty) _strip(cfg, t, s),
-      if (cfg.chips.isNotEmpty) _chips(cfg, t, s),
-      _productRow(s),
-    ]);
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _hero(cfg, t, s),
+        if (cfg.strip.isNotEmpty) _strip(cfg, t, s),
+        if (cfg.chips.isNotEmpty) _chips(cfg, t, s),
+        _productRow(s),
+      ]),
+    );
   }
 
   // ---------------- HERO (246 units tall) ----------------
@@ -220,28 +252,31 @@ class _FestivalSectionState extends State<FestivalSection> {
         Positioned.fill(child: CustomPaint(painter: _HeroBgPainter(t))),
         if (cfg.art.isNotEmpty)
           Positioned(
-            left: 270 * s, top: 24 * s, width: 112 * s, height: 82 * s,
+            right: 12 * s, top: 20 * s, width: 112 * s, height: 82 * s,
             child: _img(cfg.art, fit: BoxFit.contain),
           ),
         Positioned(
-          left: 25 * s, top: 39 * s,
-          child: Text(cfg.kicker,
-              style: GoogleFonts.poppins(
-                  color: t.kicker, fontSize: 11.6 * s, fontWeight: FontWeight.w600, letterSpacing: 5.6 * s)),
-        ),
-        Positioned(
-          left: 23 * s, top: 52 * s, right: 125 * s,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(cfg.title,
-                style: GoogleFonts.cinzelDecorative(
-                    color: t.title, fontSize: 33 * s, fontWeight: FontWeight.w700, height: 1.2, letterSpacing: .3)),
+          left: 20 * s, top: 32 * s, right: 125 * s,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(cfg.kicker,
+                  style: GoogleFonts.poppins(
+                      color: t.kicker, fontSize: 11.6 * s, fontWeight: FontWeight.w600, letterSpacing: 4 * s)),
+              SizedBox(height: 2 * s),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(cfg.title,
+                    style: GoogleFonts.cinzelDecorative(
+                        color: t.title, fontSize: 30 * s, fontWeight: FontWeight.w700, height: 1.1, letterSpacing: .3)),
+              ),
+            ],
           ),
         ),
         for (var i = 0; i < cfg.tiles.length && i < 4; i++)
           Positioned(
-            left: (13 + i * 94.4) * s, top: 114 * s, width: 80.8 * s, height: 117 * s,
+            left: (10 + i * 95.0) * s, top: 114 * s, width: 85 * s, height: 117 * s,
             child: _tile(cfg.tiles[i], t, s),
           ),
       ]),

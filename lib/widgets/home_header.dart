@@ -73,9 +73,10 @@ class _HomeHeaderState extends State<HomeHeader> {
     if (url.isEmpty) return;
     
     final opts = VideoPlayerOptions(mixWithOthers: true);
+    final assetPath = url.startsWith('http') || url.startsWith('assets/') ? url : 'assets/images/$url';
     final c = url.startsWith('http')
         ? VideoPlayerController.networkUrl(Uri.parse(url), videoPlayerOptions: opts)
-        : VideoPlayerController.asset(url, videoPlayerOptions: opts);
+        : VideoPlayerController.asset(assetPath, videoPlayerOptions: opts);
     _ctrl = c;
     c.initialize().then((_) {
       if (!mounted) return;
@@ -84,7 +85,17 @@ class _HomeHeaderState extends State<HomeHeader> {
         ..setLooping(true)
         ..play();
       setState(() {});
-    }).catchError((_) {/* falls back to gradient */});
+    }).catchError((_) {
+      if (assetPath != 'assets/images/ambhujakshi-all.mp4') {
+        _ctrl?.dispose();
+        _ctrl = VideoPlayerController.asset('assets/images/ambhujakshi-all.mp4', videoPlayerOptions: opts);
+        _ctrl?.initialize().then((_) {
+          if (!mounted) return;
+          _ctrl!..setVolume(0)..setLooping(true)..play();
+          setState(() {});
+        }).catchError((__) {});
+      }
+    });
   }
 
   @override

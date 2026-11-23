@@ -613,20 +613,30 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
         ),
         // header
         Positioned(
-          left: 0,
-          right: 0,
+          left: 16,
+          right: 16,
           top: 30,
           child: Column(children: <Widget>[
             _emblem(80),
-            _goldText(_title, GoogleFonts.cinzel(fontSize: 27, fontWeight: FontWeight.w700, height: 1.0)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: _goldText(_title, GoogleFonts.cinzel(fontSize: 27, fontWeight: FontWeight.w700, height: 1.0)),
+            ),
             const SizedBox(height: 4),
-            Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
-              Container(width: 22, height: 1.5, color: _gold),
-              Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(_subtitle, style: GoogleFonts.cinzel(fontSize: 14, letterSpacing: 7, color: _gold, fontWeight: FontWeight.w700))),
-              Container(width: 22, height: 1.5, color: _gold),
-            ]),
+            Row(
+              children: <Widget>[
+                Expanded(child: Container(height: 1.5, color: _gold)),
+                Flexible(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(_subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: GoogleFonts.cinzel(fontSize: 13, letterSpacing: 4, color: _gold, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                Expanded(child: Container(height: 1.5, color: _gold)),
+              ],
+            ),
             const SizedBox(height: 2),
-            Text(_tagline, style: GoogleFonts.kalam(fontSize: 15, fontWeight: FontWeight.w700, color: _creamSoft)),
+            Text(_tagline, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.kalam(fontSize: 14, fontWeight: FontWeight.w700, color: _creamSoft)),
           ]),
         ),
         // the eye
@@ -841,38 +851,46 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
         Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(_moreText, style: GoogleFonts.cinzel(fontSize: 10, letterSpacing: 2.5, color: _gold, fontWeight: FontWeight.w700))),
         Container(width: 40, height: 1, decoration: const BoxDecoration(gradient: LinearGradient(colors: <Color>[_gold, Colors.transparent]))),
       ]),
-      const SizedBox(height: 7),
+      const SizedBox(height: 4),
       SizedBox(
-        height: 66,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: EdgeInsets.symmetric(horizontal: others.length <= 5 ? (390 - others.length * 62 - (others.length - 1) * 10) / 2 : 16),
-          itemCount: others.length,
-          separatorBuilder: (BuildContext c, int i) => const SizedBox(width: 10),
-          itemBuilder: (BuildContext c, int k) {
-            final SpecialItem o = _items[others[k]];
-            return GestureDetector(
-              onTap: () => _blinkTo(others[k]),
-              child: SizedBox(
-                width: 62,
-                child: Column(children: <Widget>[
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(center: Alignment(-0.2, -0.3), colors: <Color>[Color(0xFF6E1A32), Color(0xFF3A0A18)]),
-                      boxShadow: <BoxShadow>[BoxShadow(color: Color(0x99F6DA9A), spreadRadius: 1.5), BoxShadow(color: Color(0x99000000), blurRadius: 12, offset: Offset(0, 6), spreadRadius: -6)],
+        height: 60,
+        child: Center(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                for (int k = 0; k < others.length; k++) ...<Widget>[
+                  if (k > 0) const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => _blinkTo(others[k]),
+                    child: SizedBox(
+                      width: 60,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(center: Alignment(-0.2, -0.3), colors: <Color>[Color(0xFF6E1A32), Color(0xFF3A0A18)]),
+                              boxShadow: <BoxShadow>[BoxShadow(color: Color(0x99F6DA9A), spreadRadius: 1.5), BoxShadow(color: Color(0x99000000), blurRadius: 12, offset: Offset(0, 6), spreadRadius: -6)],
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: _img(_items[others[k]].image, BoxFit.cover),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(_items[others[k]].name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 8.5, height: 1.1, fontWeight: FontWeight.w600, color: _creamSoft)),
+                        ],
+                      ),
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: _img(o.image, BoxFit.cover),
                   ),
-                  const SizedBox(height: 4),
-                  Text(o.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w600, color: _creamSoft)),
-                ]),
-              ),
-            );
-          },
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     ]);

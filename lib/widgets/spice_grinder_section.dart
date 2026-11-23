@@ -346,21 +346,14 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
           children: [
             _header(d, p),
             _stage(p),
-            AnimatedBuilder(
-              animation: _t,
-              builder: (_, __) {
-                final show = Curves.easeOutBack.transform(
-                        _seg(_t.value, _kRise + .05, _kRise + .15)) *
-                    (1 - _seg(_t.value, 0, .05));
-                return Opacity(
-                  opacity: show.clamp(0.0, 1.0),
-                  child: Transform.translate(
-                    offset: Offset(0, 16 * (1 - show)),
-                    child: _card(p),
-                  ),
-                );
-              },
-            ),
+            AnimatedBuilder(animation: _t, builder: (_, __) {
+              // card slides up after the podi rises, fades out just before the next cycle
+              final double rise = Curves.easeOutBack.transform(_seg(_t.value, _kRise + .05, _kRise + .15));
+              final double fadeOut = 1 - _seg(_t.value, .96, 1.0);
+              final double show = (rise * fadeOut).clamp(0.0, 1.0);
+              return Opacity(opacity: show,
+                  child: Transform.translate(offset: Offset(0, 16 * (1 - show)), child: _card(p)));
+            }),
             const SizedBox(height: 12),
             _chipsRow(),
           ],

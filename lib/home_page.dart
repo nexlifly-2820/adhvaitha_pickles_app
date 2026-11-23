@@ -529,6 +529,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   onSeeAll: (cat) => AppNavigator.push(context, ProductListingPage(category: cat.name)),
                 ),
                 const SectionTitle(TitleKind.kadai),
+                const SnacksStoryFlip(items: []),
                 const FreshPicksSection(),
                 const SectionTitle(TitleKind.festive),
                 FestivalSection(

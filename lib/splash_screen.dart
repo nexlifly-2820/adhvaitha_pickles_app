@@ -31,13 +31,24 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _loadAdminSplashVideo() async {
     String videoUrl = 'assets/images/ambhujakshi-all.mp4';
     try {
-      Map<String, dynamic> config = {};
-      for (var id in ['splash_video', 'splash', 'splash_screen', 'splashscreen']) {
-        config = await ApiService.getAppConfig(id);
-        final foundUrl = config['video_url']?.toString() ?? config['url']?.toString() ?? config['video']?.toString() ?? config['link']?.toString() ?? config['media_url']?.toString();
-        if (foundUrl != null && foundUrl.isNotEmpty) {
-          videoUrl = foundUrl;
-          break;
+      for (var id in ['splash_video', 'splash', 'splash_screen', 'splashscreen', 'home_video', 'config', 'settings']) {
+        final config = await ApiService.getAppConfig(id);
+        if (config.isNotEmpty) {
+          final foundUrl = config['video_url']?.toString() ?? 
+                           config['url']?.toString() ?? 
+                           config['video']?.toString() ?? 
+                           config['link']?.toString() ?? 
+                           config['media_url']?.toString() ?? 
+                           config['videoUrl']?.toString() ?? 
+                           config['path']?.toString() ?? 
+                           config['splash_url']?.toString() ?? 
+                           config['splashVideo']?.toString();
+          if (foundUrl != null && foundUrl.isNotEmpty) {
+            videoUrl = foundUrl.startsWith('http') || foundUrl.startsWith('assets/') 
+                ? foundUrl 
+                : (foundUrl.startsWith('/') ? 'https://admin.adhvaithafoods.in$foundUrl' : 'https://admin.adhvaithafoods.in/$foundUrl');
+            break;
+          }
         }
       }
     } catch (e) {
@@ -48,9 +59,10 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _initVideo(String url) {
+    final assetPath = url.startsWith('http') || url.startsWith('assets/') ? url : 'assets/images/$url';
     _videoController = url.startsWith('http')
         ? VideoPlayerController.networkUrl(Uri.parse(url))
-        : VideoPlayerController.asset(url);
+        : VideoPlayerController.asset(assetPath);
 
     _videoController?.initialize().then((_) {
       if (!mounted) return;
@@ -62,9 +74,15 @@ class _SplashScreenState extends State<SplashScreen> {
       _videoController?.addListener(_videoListener);
     }).catchError((e) {
       debugPrint("Splash video init error: $e");
-      if (url.startsWith('http')) {
+      if (assetPath != 'assets/images/ambhujakshi-all.mp4') {
         _initVideo('assets/images/ambhujakshi-all.mp4');
       } else {
+        Timer(const Duration(seconds: 2), _navigateToNext);
+      }
+    });
+
+    Timer(const Duration(seconds: 4), () {
+      if (!_isVideoInitialized && mounted) {
         _navigateToNext();
       }
     });
