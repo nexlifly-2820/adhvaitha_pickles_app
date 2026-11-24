@@ -1567,10 +1567,7 @@ class AppConfigRepository {
 
   // 19. Home Video Configuration
   Stream<Map<String, dynamic>> getHomeVideoConfigStream() async* {
-    yield {
-      'enabled': true,
-      'video_url': 'assets/images/ambhujakshi-all.mp4',
-    };
+    // no heavy default video: wait for the real settings from the server
     try {
       final data = await ApiService.getAppConfig('home_video');
       if (data.isNotEmpty) yield data;
@@ -1890,10 +1887,29 @@ class AppConfigRepository {
       yield _defaultFeaturedVideoData;
     }
     try {
-      final data = await ApiService.getAppConfig('featured_video_section');
-      if (data.isNotEmpty) {
-        _inMemoryFeaturedVideoConfig = data;
-        yield data;
+      Map<String, dynamic> combined = {};
+      for (var id in ['sector_2', 'sector2', 'after_header_video', 'snacks_video', 'royal_recipes', 'featured_video_section', 'royal_collection', 'royal_video', 'ambhu_jakshi_royal', 'featured_video']) {
+        final data = await ApiService.getAppConfig(id);
+        if (data.isNotEmpty) {
+          combined.addAll(data);
+          final foundUrl = data['video_url']?.toString() ??
+                           data['url']?.toString() ??
+                           data['video']?.toString() ??
+                           data['link']?.toString() ??
+                           data['media_url']?.toString() ??
+                           data['file']?.toString() ??
+                           data['path']?.toString() ??
+                           data['royal_collection_video']?.toString();
+          if (foundUrl != null && foundUrl.isNotEmpty) {
+            _inMemoryFeaturedVideoConfig = combined;
+            yield combined;
+            break;
+          }
+        }
+      }
+      if (combined.isNotEmpty && !_inMemoryFeaturedVideoConfig.containsKey('video_url')) {
+        _inMemoryFeaturedVideoConfig = combined;
+        yield combined;
       }
     } catch (_) {}
   }

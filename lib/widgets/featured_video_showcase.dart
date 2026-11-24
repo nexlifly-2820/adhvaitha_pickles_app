@@ -35,12 +35,28 @@ class _FeaturedVideoShowcaseState extends State<FeaturedVideoShowcase> {
     _listenToVideoConfig();
   }
 
+  String _abs(String u) {
+    if (u.isEmpty || u.startsWith('http') || u.startsWith('assets/')) return u;
+    const origin = 'https://admin.adhvaithafoods.in';
+    return u.startsWith('/') ? '$origin$u' : '$origin/$u';
+  }
+
   void _listenToVideoConfig() {
     _configSub = AppConfigRepository().getFeaturedVideoConfigStream().listen((data) {
       if (!mounted) return;
       if (data.isNotEmpty) {
         setState(() => _config = data);
-        final url = data['video_url']?.toString() ?? 'assets/images/ambhujakshi-all.mp4';
+        final rawUrl = data['video_url']?.toString() ?? 
+                       data['url']?.toString() ?? 
+                       data['video']?.toString() ?? 
+                       data['link']?.toString() ?? 
+                       data['media_url']?.toString() ?? 
+                       data['file']?.toString() ??
+                       data['path']?.toString() ??
+                       data['royal_collection_video']?.toString() ?? 
+                       data['royal_video']?.toString() ??
+                       'assets/images/ambhujakshi-all.mp4';
+        final url = _abs(rawUrl);
         if (url != _currentVideoUrl) {
           _initializeVideo(url);
         }
@@ -53,10 +69,10 @@ class _FeaturedVideoShowcaseState extends State<FeaturedVideoShowcase> {
     await _videoController?.dispose();
 
     try {
+      final assetPath = url.startsWith('http') || url.startsWith('assets/') ? url : 'assets/images/$url';
       if (url.startsWith('http')) {
         _videoController = VideoPlayerController.networkUrl(Uri.parse(url));
       } else {
-        String assetPath = url.startsWith('assets/') ? url : 'assets/images/$url';
         _videoController = VideoPlayerController.asset(assetPath);
       }
 
@@ -74,7 +90,21 @@ class _FeaturedVideoShowcaseState extends State<FeaturedVideoShowcase> {
     } catch (e) {
       debugPrint("Featured video initialization error: $e");
       if (mounted) {
-        setState(() => _isInitialized = false);
+        try {
+          _videoController = VideoPlayerController.asset('assets/images/ambhujakshi-all.mp4');
+          await _videoController!.initialize();
+          _videoController!.setLooping(true);
+          _videoController!.setVolume(_isMuted ? 0.0 : 1.0);
+          _videoController!.play();
+          if (mounted) {
+            setState(() {
+              _isInitialized = true;
+              _isPlaying = true;
+            });
+          }
+        } catch (_) {
+          if (mounted) setState(() => _isInitialized = false);
+        }
       }
     }
   }

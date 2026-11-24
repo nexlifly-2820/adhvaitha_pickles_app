@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'category_tabs.dart';
 
 class HeaderCategory {
@@ -11,7 +12,6 @@ class HeaderCategory {
 }
 
 class HomeHeader extends StatefulWidget {
-  /// 'assets/videos/xxx.mp4' or an https:// URL coming from your backend.
   final String videoUrl;
   final String location;
   final String userName;
@@ -49,7 +49,7 @@ class HomeHeader extends StatefulWidget {
   State<HomeHeader> createState() => _HomeHeaderState();
 }
 
-class _HomeHeaderState extends State<HomeHeader> {
+class _HomeHeaderState extends State<HomeHeader> with WidgetsBindingObserver {
   static const maroon = Color(0xFF7A0F12);
   static const maroonDark = Color(0xFF3A0406);
   static const gold = Color(0xFFF6C453);
@@ -57,58 +57,96 @@ class _HomeHeaderState extends State<HomeHeader> {
   VideoPlayerController? _ctrl;
   Timer? _hintTimer;
   int _hint = 0;
+  bool _isInitialized = false;
+  bool _isVisible = true;
+  String _currentUrl = '';
 
   @override
   void initState() {
     super.initState();
-    _initVideo();
+    WidgetsBinding.instance.addObserver(this);
+    debugPrint('[HomeHeader] initState with videoUrl: ${widget.videoUrl}');
+    _initVideo(widget.videoUrl);
     _hintTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       if (!mounted || widget.searchHints.isEmpty) return;
       setState(() => _hint = (_hint + 1) % widget.searchHints.length);
     });
   }
 
-  void _initVideo() {
-    final url = widget.videoUrl;
+  @override
+  void didUpdateWidget(covariant HomeHeader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    debugPrint('[HomeHeader] didUpdateWidget old: ${oldWidget.videoUrl}, new: ${widget.videoUrl}');
+    if (oldWidget.videoUrl != widget.videoUrl) {
+      _initVideo(widget.videoUrl);
+    }
+  }
+
+  int _attempt = 0;
+
+  Future<void> _initVideo(String url, {bool isRetry = false}) async {
+    url = url.trim();
+    debugPrint('[HomeHeader] _initVideo: "$url" (retry: $isRetry)');
+    // empty = settings not loaded yet -> keep the red poster, load nothing
     if (url.isEmpty) return;
-    
-    final opts = VideoPlayerOptions(mixWithOthers: true);
-    final assetPath = url.startsWith('http') || url.startsWith('assets/') ? url : 'assets/images/$url';
-    final c = url.startsWith('http')
-        ? VideoPlayerController.networkUrl(Uri.parse(url), videoPlayerOptions: opts)
-        : VideoPlayerController.asset(assetPath, videoPlayerOptions: opts);
+    if (url == _currentUrl && _ctrl != null && _isInitialized) return;
+    _currentUrl = url;
+    if (!isRetry) _attempt = 0;
+
+    final VideoPlayerController? old = _ctrl;
+    _ctrl = null;
+    if (mounted) setState(() => _isInitialized = false);
+    await old?.dispose();
+
+    final bool isNetwork = url.startsWith('http');
+    final String assetPath = isNetwork || url.startsWith('assets/') ? url : 'assets/images/$url';
+    final VideoPlayerController c = isNetwork
+        ? VideoPlayerController.networkUrl(Uri.parse(url),
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true))
+        : VideoPlayerController.asset(assetPath,
+            videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true));
     _ctrl = c;
-    c.initialize().then((_) {
-      if (!mounted) return;
-      c
-        ..setVolume(0)
-        ..setLooping(true)
-        ..play();
-      setState(() {});
-    }).catchError((_) {
-      if (assetPath != 'assets/images/ambhujakshi-all.mp4') {
-        _ctrl?.dispose();
-        _ctrl = VideoPlayerController.asset('assets/images/ambhujakshi-all.mp4', videoPlayerOptions: opts);
-        _ctrl?.initialize().then((_) {
-          if (!mounted) return;
-          _ctrl!..setVolume(0)..setLooping(true)..play();
-          setState(() {});
-        }).catchError((__) {});
+
+    try {
+      await c.initialize().timeout(const Duration(seconds: 25));
+      if (!mounted || _ctrl != c) return;
+      await c.setVolume(0);
+      await c.setLooping(true);
+      await c.play();
+      if (mounted && _ctrl == c) setState(() => _isInitialized = true);
+      debugPrint('[HomeHeader] playing ${c.value.size}');
+    } catch (e) {
+      debugPrint('[HomeHeader] init error: $e');
+      if (!mounted || _ctrl != c) return;
+      // The phone's video decoder may be busy with another video for a moment:
+      // retry the SAME video a few times instead of loading a heavy fallback.
+      if (_attempt < 3) {
+        _attempt++;
+        _currentUrl = '';
+        final VideoPlayerController failed = c;
+        _ctrl = null;
+        await failed.dispose().catchError((Object _) {});
+        await Future<void>.delayed(Duration(seconds: 2 * _attempt));
+        if (mounted && _ctrl == null) _initVideo(url, isRetry: true);
       }
-    });
+      // after 3 retries the red poster stays (no crash, no loop)
+    }
   }
 
   @override
-  void didUpdateWidget(covariant HomeHeader old) {
-    super.didUpdateWidget(old);
-    if (old.videoUrl != widget.videoUrl) {
-      _ctrl?.dispose();
-      _initVideo();
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_ctrl == null || !_isInitialized) return;
+    if (state == AppLifecycleState.resumed && _isVisible) {
+      _ctrl?.play();
+    } else {
+      _ctrl?.pause();
     }
   }
 
   @override
   void dispose() {
+    debugPrint('[HomeHeader] dispose');
+    WidgetsBinding.instance.removeObserver(this);
     _hintTimer?.cancel();
     _ctrl?.dispose();
     super.dispose();
@@ -126,44 +164,66 @@ class _HomeHeaderState extends State<HomeHeader> {
     final w = MediaQuery.of(context).size.width;
     final s = w / 390;
     final statusBar = MediaQuery.of(context).padding.top;
-    final ready = _ctrl?.value.isInitialized ?? false;
 
-    return Container(
-      color: maroon,
-      padding: EdgeInsets.only(top: statusBar),
-      child: SizedBox(
-        width: w,
-        height: 420 * s,
-        child: Stack(
-          children: [
-            const Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment(0, .45),
-                    radius: 1.1,
-                    colors: [Color(0xFFC4262B), maroon, maroonDark],
-                    stops: [0, .5, 1],
+    return VisibilityDetector(
+      key: ValueKey<String>('home_header_video_${widget.videoUrl}'),
+      onVisibilityChanged: (info) {
+        final visible = info.visibleFraction > 0;
+        if (visible != _isVisible) {
+          _isVisible = visible;
+          debugPrint('[HomeHeader] visibility changed: $visible');
+          if (_ctrl != null && _isInitialized) {
+            if (visible) {
+              _ctrl?.play();
+            } else {
+              _ctrl?.pause();
+            }
+          }
+        }
+      },
+      child: Container(
+        color: maroon,
+        padding: EdgeInsets.only(top: statusBar),
+        child: SizedBox(
+          width: w,
+          height: 420 * s,
+          child: Stack(
+            children: [
+              // Poster background (Red gradient)
+              const Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment(0, .45),
+                      radius: 1.1,
+                      colors: [Color(0xFFC4262B), maroon, maroonDark],
+                      stops: [0, .5, 1],
+                    ),
                   ),
                 ),
               ),
-            ),
-            if (ready)
-              Positioned.fill(
-                child: FittedBox(
-                  fit: BoxFit.cover,
-                  clipBehavior: Clip.hardEdge,
-                  child: SizedBox(
-                    width: _ctrl!.value.size.width,
-                    height: _ctrl!.value.size.height,
-                    child: VideoPlayer(_ctrl!),
+              // Video Player with AnimatedOpacity fade-in
+              if (_isInitialized && _ctrl != null)
+                Positioned.fill(
+                  child: AnimatedOpacity(
+                    opacity: _isInitialized ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 400),
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      clipBehavior: Clip.hardEdge,
+                      child: SizedBox(
+                        width: _ctrl!.value.size.width > 0 ? _ctrl!.value.size.width : 1600,
+                        height: _ctrl!.value.size.height > 0 ? _ctrl!.value.size.height : 900,
+                        child: VideoPlayer(_ctrl!),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            Positioned(top: 22 * s, left: 16 * s, right: 16 * s, child: _topRow(s)),
-            Positioned(top: 110 * s, left: 16 * s, right: 16 * s, height: 50 * s, child: _searchBar(s)),
-            Positioned(top: 176 * s, left: 10 * s, right: 10 * s, child: _categoryRow(s)),
-          ],
+              Positioned(top: 22 * s, left: 16 * s, right: 16 * s, child: _topRow(s)),
+              Positioned(top: 110 * s, left: 16 * s, right: 16 * s, height: 50 * s, child: _searchBar(s)),
+              Positioned(top: 176 * s, left: 10 * s, right: 10 * s, child: _categoryRow(s)),
+            ],
+          ),
         ),
       ),
     );

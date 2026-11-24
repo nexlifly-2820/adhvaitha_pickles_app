@@ -174,10 +174,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         _adPageController.animateToPage(_currentAdPage, duration: const Duration(milliseconds: 900), curve: Curves.easeInOutCubic);
       }
     });
-
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
-      if (mounted) setState(() {});
-    });
   }
 
   Future<void> _determinePosition() async {
@@ -277,8 +273,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       if (mounted) {
         setState(() => homeVideoConfig = data);
         final enabled = data['enabled'] != false;
-        final url = data['featured_video_url']?.toString() ?? data['video_url']?.toString() ?? data['url']?.toString() ?? 'assets/images/ambhujakshi-all.mp4';
-        if (enabled) {
+        // second video ("Amma's Kitchen") = Sector 2 video, NOT the header video
+        final rawUrl = (data['featured_video_url'] ?? data['video_url'] ?? data['url'] ?? '').toString().trim();
+        final url = rawUrl.isEmpty ? 'assets/images/ambhujakshi-all.mp4' : (rawUrl.startsWith('http') || rawUrl.startsWith('assets/') ? rawUrl : 'https://admin.adhvaithafoods.in/${rawUrl.startsWith('/') ? rawUrl.substring(1) : rawUrl}');
+        if (enabled && url.isNotEmpty) {
           _initHomeVideo(url);
         }
       }
@@ -340,21 +338,31 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  String? _homeVideoUrl;
+
   void _initHomeVideo(String url) {
-    _homeVideoController?.dispose();
-    _homeVideoController = url.startsWith('http')
-        ? VideoPlayerController.networkUrl(Uri.parse(url))
-        : VideoPlayerController.asset(url);
-    _homeVideoController?.initialize().then((_) {
-      if (mounted) {
-        setState(() {
-          _isHomeVideoInitialized = true;
-        });
-        _homeVideoController?.setLooping(true);
-        _homeVideoController?.play();
-      }
-    }).catchError((e) {
-      debugPrint("Home video init error: $e");
+    if (url == _homeVideoUrl && _homeVideoController != null) return;
+    _homeVideoUrl = url;
+    final VideoPlayerController? old = _homeVideoController;
+    _homeVideoController = null;
+    _isHomeVideoInitialized = false;
+    old?.dispose();
+
+    Future.delayed(const Duration(seconds: 6), () {
+      if (!mounted || _homeVideoUrl != url) return;
+      final VideoPlayerController c = url.startsWith('http')
+          ? VideoPlayerController.networkUrl(Uri.parse(url))
+          : VideoPlayerController.asset(url.startsWith('assets/') ? url : 'assets/images/$url');
+      _homeVideoController = c;
+      c.initialize().then((_) {
+        if (!mounted || _homeVideoController != c) return;
+        c.setLooping(true);
+        c.setVolume(0);
+        c.play();
+        setState(() => _isHomeVideoInitialized = true);
+      }).catchError((Object e) {
+        debugPrint('Home video init error: $e');
+      });
     });
   }
 
@@ -423,13 +431,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final allProducts = ProductManager().products;
     final isGlobalLoading = ProductManager().isLoading;
 
-    if ((_isLoading || isGlobalLoading) && allProducts.isEmpty) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF6F6F6),
-        body: RoyalLoadingSpinner(isFullScreen: true),
-      );
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5EC),
       body: CustomScrollView(
@@ -440,10 +441,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             child: ListenableBuilder(
               listenable: CartManager(),
               builder: (context, _) {
+                final String headerVideoUrl = (homeVideoConfig['header_video_enabled'] == false)
+                    ? ''
+                    : (homeVideoConfig['header_video_url'] ?? homeVideoConfig['video_url'] ?? homeVideoConfig['header_video'] ?? homeVideoConfig['url'] ?? homeVideoConfig['video'] ?? 'https://media.nexlifly.in/videos/home-video.mp4').toString().trim();
                 return HomeHeader(
-                  videoUrl: (homeVideoConfig['header_video_enabled'] != false)
-                      ? (homeVideoConfig['header_video_url'] ?? homeVideoConfig['video_url'] ?? 'https://res.cloudinary.com/dxynqm0zo/video/upload/v1790916130/adhvaitha_foods_videos/mxcycwegghdykjsnilyo.mp4')
-                      : '',
+                  key: ValueKey<String>('header-$headerVideoUrl'), // reload header when the link changes
+                  videoUrl: headerVideoUrl,
                   location: _currentAddress,
                   userName: UserManager().userName.isNotEmpty ? UserManager().userName : 'Guest',
                   cartCount: CartManager().itemCount,
