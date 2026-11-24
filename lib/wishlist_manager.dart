@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'models.dart';
 import 'product_repository.dart';
 import 'product_manager.dart';
+import 'product_lookup.dart';
 
 class WishlistManager extends ChangeNotifier {
   static final WishlistManager _instance = WishlistManager._internal();
@@ -52,16 +53,21 @@ class WishlistManager extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-    final List<Product> catalog = <Product>[...ProductManager().products, ...ProductRepository.allProducts];
-    Product? match;
-    for (final Product p in catalog) {
-      if (_norm(p.name) == n) { match = p; break; }
-    }
-    if (match == null) {
-      for (final Product p in catalog) {
-        final String pn = _norm(p.name);
-        if (pn.isNotEmpty && (pn.contains(n) || n.contains(pn))) { match = p; break; }
-      }
+    Product? match = findCatalogProduct(name);
+    // keep the photo the customer actually saw if the catalogue one has none
+    // and keep the name the customer saw, so the heart stays filled everywhere
+    if (match != null && (_norm(match.name) != n || (match.image.trim().isEmpty && image.trim().isNotEmpty))) {
+      final Product m = match;
+      match = Product(
+        name: name,
+        description: m.description,
+        weightPriceMap: m.weightPriceMap.isNotEmpty ? m.weightPriceMap : <String, double>{'250g': price > 0 ? price : 199},
+        rating: m.rating,
+        image: image.trim().isNotEmpty ? image : m.image,
+        color: m.color,
+        category: m.category,
+        secretIngredient: m.secretIngredient,
+      );
     }
     match ??= Product(
       name: name,

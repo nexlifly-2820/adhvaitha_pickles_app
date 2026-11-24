@@ -28,6 +28,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'wishlist_manager.dart';
+import 'image_util.dart';
 import 'models.dart';
 
 class WishItem {
@@ -64,12 +65,11 @@ class WishItem {
 }
 
 Widget _wishImage(String url, {Key? key, double? width, double? height, BoxFit fit = BoxFit.contain}) {
-  if (url.startsWith('assets/')) {
-    return Image.asset(url, key: key, width: width, height: height, fit: fit,
-        errorBuilder: (_, __, ___) => SizedBox(width: width, height: height, child: const Icon(Icons.rice_bowl_rounded)));
-  }
-  return Image.network(url, key: key, width: width, height: height, fit: fit,
-      errorBuilder: (_, __, ___) => SizedBox(width: width, height: height, child: const Icon(Icons.rice_bowl_rounded)));
+  final Widget fallback = SizedBox(width: width, height: height, child: const Icon(Icons.rice_bowl_rounded, color: Color(0xFFC9A27A)));
+  final String u = url.trim();
+  if (u.isEmpty) return KeyedSubtree(key: key, child: fallback);
+  // same loader the home sections use: web link / admin-site path first, then the app's own assets
+  return KeyedSubtree(key: key, child: buildSmartImage(u, width: width, height: height, fit: fit, errorWidget: fallback));
 }
 
 String _rs(double v) {
@@ -364,7 +364,7 @@ class _WishlistPageState extends State<WishlistPage> with TickerProviderStateMix
                   offset: lifted ? const Offset(0, -.1) : Offset.zero, duration: const Duration(milliseconds: 500), curve: Curves.easeOutBack,
                   child: AnimatedScale(
                     scale: lifted ? 1.06 : 1, duration: const Duration(milliseconds: 500), curve: Curves.easeOutBack,
-                    child: Opacity(opacity: it.inStock ? 1 : .55, child: _wishImage(it.image, key: key, width: width * .8, fit: BoxFit.contain)),
+                    child: Opacity(opacity: it.inStock ? 1 : .55, child: _wishImage(it.image, key: key, width: width * .8, height: width * .8, fit: BoxFit.contain)),
                   ),
                 ),
                 Positioned(right: width * .1, top: 4, child: GestureDetector(

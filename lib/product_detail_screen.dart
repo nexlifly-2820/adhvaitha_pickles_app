@@ -28,6 +28,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'recently_viewed_store.dart';
+import 'models.dart';
+import 'product_manager.dart';
+import 'product_repository.dart';
 
 const _red = Color(0xFF9E1424), _ink = Color(0xFF2A1A12), _muted = Color(0xFF8A7660), _bg = Color(0xFFFBF6EF);
 const _green = Color(0xFF1E7A46), _line = Color(0xFFEFE4D2), _faint = Color(0xFFA88B68);
@@ -59,7 +63,8 @@ class ProductDetailScreen extends StatefulWidget {
   final ValueChanged<String>? onPlayVideo, onWriteReview, onAllReviews;
   final VoidCallback? onCart;
   final bool initiallySaved;
-  const ProductDetailScreen({super.key, required this.apiBase, required this.productId, this.headers, this.onAddToCart, this.onBuyNow,
+  final Product? product; // the product that was tapped (used until/unless the server sends details)
+  const ProductDetailScreen({super.key, required this.apiBase, required this.productId, this.product, this.headers, this.onAddToCart, this.onBuyNow,
       this.onWishlist, this.onShare, this.onPlayVideo, this.onWriteReview, this.onAllReviews, this.onCart, this.initiallySaved = false});
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -76,8 +81,79 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _applyData(_defaultProduct);
+    RecentlyViewedStore().recordSlug(widget.productId);
+    _local = widget.product ?? _findLocal(widget.productId);
+    _applyData(_local != null ? _fromProduct(_local!) : _defaultProduct);
     _load();
+  }
+
+  Product? _local;
+
+  static String _norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+  static Product? _findLocal(String slug) {
+    final String n = _norm(slug);
+    if (n.isEmpty) return null;
+    final List<Product> all = <Product>[...ProductManager().products, ...ProductRepository.allProducts];
+    for (final Product p in all) {
+      if (_norm(p.name) == n) return p;
+    }
+    for (final Product p in all) {
+      final String pn = _norm(p.name);
+      if (pn.isNotEmpty && (pn.contains(n) || n.contains(pn))) return p;
+    }
+    return null;
+  }
+
+  /// Builds the page data from the app's own product, so every product opens with its own name, photo and prices.
+  static Map<String, dynamic> _fromProduct(Product p) {
+    final List<MapEntry<String, double>> w = p.weightPriceMap.entries.toList();
+    final List<Review> rv = p.reviews.where((Review r) => r.status == 'approved').toList();
+    final List<double> bars = <double>[0, 0, 0, 0, 0];
+    for (final Review r in rv) {
+      final int k = (5 - r.rating.round()).clamp(0, 4);
+      bars[k] += 1;
+    }
+    final double total = rv.isEmpty ? 1 : rv.length.toDouble();
+    return <String, dynamic>{
+      'id': p.name,
+      'name': p.name,
+      'categoryLabel': p.subCategory.isNotEmpty && p.subCategory != 'Classic' ? '${p.category} · ${p.subCategory}' : p.category,
+      'rating': p.rating,
+      'reviewCount': rv.length,
+      'soldText': p.purchaseCount > 0 ? '${p.purchaseCount}+ sold' : '',
+      'spice': 3,
+      'spiceLabel': 'Medium',
+      'viewersToday': p.viewCount,
+      'photos': <Map<String, dynamic>>[
+        <String, dynamic>{'url': p.image, 'caption': p.origin, 'glints': <List<double>>[]},
+        if (p.storyImage.isNotEmpty) <String, dynamic>{'url': p.storyImage, 'caption': 'Made in small batches', 'glints': <List<double>>[]},
+      ],
+      'videoUrl': '',
+      'variants': <Map<String, dynamic>>[
+        for (int i = 0; i < w.length; i++)
+          <String, dynamic>{'id': 'v${i + 1}', 'label': w[i].key, 'price': w[i].value, 'mrp': (w[i].value * 1.25).roundToDouble()},
+      ],
+      'defaultVariantId': 'v1',
+      'description': p.description,
+      'highlight': p.secretIngredient.name,
+      'features': p.trustBadges.take(3).toList(),
+      'ingredients': p.ingredients.map((Map<String, String> m) => <String, dynamic>{'name': m['name'] ?? '', 'image': m['image'] ?? ''}).toList(),
+      'journey': <Map<String, dynamic>>[
+        <String, dynamic>{'icon': '📍', 'label': 'Origin', 'title': p.origin, 'text': 'Sourced from trusted local farms'},
+        <String, dynamic>{'icon': '🫙', 'label': 'Process', 'title': 'Handmade', 'text': p.preparationMethod},
+        <String, dynamic>{'icon': '🗓️', 'label': 'Shelf life', 'title': p.shelfLife, 'text': p.storageInstructions},
+      ],
+      'artisan': <String, dynamic>{'name': p.artisanName, 'since': '1982', 'quote': p.artisanDescription, 'photo': p.artisanImage},
+      'recipes': <dynamic>[],
+      'ratingBars': bars.map((double b) => rv.isEmpty ? 0.0 : b / total).toList(),
+      'reviews': rv
+          .take(5)
+          .map((Review r) => <String, dynamic>{'name': r.userName, 'stars': r.rating.round(), 'text': r.comment, 'ago': r.date})
+          .toList(),
+      'brandLine': "Bringing Andhra's authentic flavours to your home.",
+      'logo': 'assets/images/AMBHUJAKSHI  logo.png',
+    };
   }
 
   static final Map<String, dynamic> _defaultProduct = {
@@ -135,7 +211,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       final r = await http.get(Uri.parse('${widget.apiBase}/products/${widget.productId}/detail'), headers: widget.headers);
       if (r.statusCode == 200) {
         final j = jsonDecode(r.body) as Map<String, dynamic>;
-        if (j.isNotEmpty) {
+        // only use the server data if it is really for this product (never show another product's page)
+        final String got = _norm('${j['name'] ?? ''}');
+        final String want = _norm(_local?.name ?? widget.productId);
+        final bool same = got.isNotEmpty && (got == want || got.contains(want) || want.contains(got));
+        if (j.isNotEmpty && same && ((j['variants'] as List?)?.isNotEmpty ?? false)) {
           _applyData(j);
         }
       }

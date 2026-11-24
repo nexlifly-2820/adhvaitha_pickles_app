@@ -14,6 +14,7 @@ import '../product_detail_page.dart';
 import '../product_listing_page.dart';
 import '../navigation_util.dart';
 import '../product_manager.dart';
+import '../product_lookup.dart';
 import '../app_config_repository.dart';
 import '../image_util.dart';
 
@@ -245,25 +246,12 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
       return;
     }
 
-    final allProducts = ProductManager().products;
-    final cleanName = p.name.toLowerCase().trim();
-
-    Product? match;
-    if (allProducts.isNotEmpty) {
-      match = allProducts.firstWhere(
-        (prod) =>
-            prod.name.toLowerCase().contains(cleanName) ||
-            cleanName.contains(prod.name.toLowerCase()),
-        orElse: () => allProducts.first,
-      );
-    }
-
-    if (match != null) {
-      AppNavigator.push(
-          context, ProductDetailPage(product: match, allProducts: allProducts));
-    } else {
-      AppNavigator.push(context, ProductListingPage(category: p.name));
-    }
+    final match = productFor(p.name,
+        description: p.tagline,
+        image: p.image,
+        weights: {for (final v in p.variants) v.label: v.price.toDouble()},
+        category: 'Fresh Picks');
+    AppNavigator.push(context, ProductDetailPage(product: match, allProducts: ProductManager().products));
   }
 
   @override

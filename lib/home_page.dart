@@ -9,6 +9,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'kitchen_story_page.dart';
 import 'product_detail_page.dart';
 import 'product_listing_page.dart';
@@ -48,6 +49,7 @@ import 'widgets/section_titles.dart';
 import 'widgets/offers_section.dart';
 import 'widgets/recently_viewed_section.dart';
 import 'recently_viewed_store.dart';
+import 'product_lookup.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -63,38 +65,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   List<Product> get allProducts => ProductManager().products;
 
-  Product _findProduct(String query, String fallbackDesc, double fallbackPrice, String category, String image, Map<String, double> weights) {
-    if (query.trim().isEmpty) {
-      return Product(
-        name: 'Homemade Delicacy',
-        description: fallbackDesc,
-        weightPriceMap: weights.isNotEmpty ? weights : {'500g': fallbackPrice > 0 ? fallbackPrice : 199.0},
-        rating: 4.8,
-        image: image.isNotEmpty ? image : 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-        color: const Color(0xFF18453B),
-        category: category,
-        secretIngredient: IngredientDetail(name: '', description: '', image: ''),
-      );
-    }
-    try {
-      return allProducts.firstWhere((x) => x.name.toLowerCase().trim() == query.toLowerCase().trim());
-    } catch (_) {
-      try {
-        return allProducts.firstWhere((x) => x.name.toLowerCase().contains(query.toLowerCase()) || query.toLowerCase().contains(x.name.toLowerCase()));
-      } catch (_) {
-        return Product(
-          name: query,
-          description: fallbackDesc,
-          weightPriceMap: weights.isNotEmpty ? weights : {'500g': fallbackPrice > 0 ? fallbackPrice : 199.0},
-          rating: 4.8,
-          image: image.isNotEmpty ? image : 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-          color: const Color(0xFF18453B),
-          category: category,
-          secretIngredient: IngredientDetail(name: '', description: '', image: ''),
-        );
-      }
-    }
-  }
+  Product _findProduct(String query, String fallbackDesc, double fallbackPrice, String category, String image, Map<String, double> weights) =>
+      productFor(query, description: fallbackDesc, image: image, weights: weights, price: fallbackPrice, category: category);
 
   final ScrollController _scrollController = ScrollController();
   final PageController _pageController = PageController();
@@ -179,31 +151,108 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
   }
 
-  Future<void> _determinePosition() async {
+  // ---------- location (header) ----------
+  static const String _addrKey = 'home_last_address';
+  bool _locBusy = false;
+  String _locFix = ''; // 'service' | 'settings' when the user must change a phone setting
+
+  void _setAddress(String a) {
+    if (!mounted) return;
+    setState(() => _currentAddress = a);
+  }
+
+  String _formatPlace(Placemark p) {
+    String clean(String? s) => (s ?? '').trim();
+    final List<String> area = <String>[clean(p.subLocality), clean(p.thoroughfare), clean(p.name)]
+        .where((String s) => s.isNotEmpty && !RegExp(r'^[0-9+ ]+$').hasMatch(s))
+        .toList();
+    final List<String> city = <String>[clean(p.locality), clean(p.subAdministrativeArea), clean(p.administrativeArea)]
+        .where((String s) => s.isNotEmpty)
+        .toList();
+    final String a = area.isNotEmpty ? area.first : '';
+    final String c = city.isNotEmpty ? city.first : '';
+    if (a.isNotEmpty && c.isNotEmpty && a.toLowerCase() != c.toLowerCase()) return '$a, $c';
+    if (c.isNotEmpty) return clean(p.postalCode).isNotEmpty ? '$c ${clean(p.postalCode)}' : c;
+    if (a.isNotEmpty) return a;
+    return clean(p.postalCode);
+  }
+
+  Future<void> _determinePosition({bool fromTap = false}) async {
+    if (_locBusy) return;
+    // user tapped after we asked them to change a setting → open that setting
+    if (fromTap && _locFix == 'service') {
+      await Geolocator.openLocationSettings();
+    } else if (fromTap && _locFix == 'settings') {
+      await Geolocator.openAppSettings();
+    }
+    _locBusy = true;
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        setState(() => _currentAddress = "Location disabled");
+      // 1. show the last known address straight away
+      SharedPreferences? sp;
+      try {
+        sp = await SharedPreferences.getInstance();
+        final String? saved = sp.getString(_addrKey);
+        if (saved != null && saved.isNotEmpty && (_currentAddress.startsWith('Detecting') || fromTap)) _setAddress(saved);
+      } catch (_) {}
+      if (fromTap && sp?.getString(_addrKey) == null) _setAddress('Detecting location...');
+
+      // 2. location service on?
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        _locFix = 'service';
+        if (sp?.getString(_addrKey) == null) _setAddress('Turn on location');
         return;
       }
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          setState(() => _currentAddress = "Permission denied");
-          return;
-        }
+      // 3. permission
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
+      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+        _locFix = 'settings';
+        if (sp?.getString(_addrKey) == null) _setAddress('Allow location');
+        return;
+      }
+      _locFix = '';
+
+      // 4. position — quick last-known first, then a fresh fix (with a time limit so it never hangs)
+      Position? pos;
+      try {
+        pos = await Geolocator.getLastKnownPosition();
+      } catch (_) {}
+      try {
+        pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.medium, timeLimit: const Duration(seconds: 15));
+      } catch (_) {}
+      if (pos == null) {
+        if (sp?.getString(_addrKey) == null) _setAddress('Select location');
+        return;
       }
 
-      Position position = await Geolocator.getCurrentPosition();
-      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks[0];
-        setState(() => _currentAddress = "${place.subLocality}, ${place.locality}");
+      // 5. address
+      List<Placemark> marks = <Placemark>[];
+      for (int i = 0; i < 2 && marks.isEmpty; i++) {
+        try {
+          marks = await placemarkFromCoordinates(pos.latitude, pos.longitude).timeout(const Duration(seconds: 10));
+        } catch (_) {
+          await Future<void>.delayed(const Duration(milliseconds: 800));
+        }
       }
+      String addr = '';
+      for (final Placemark m in marks) {
+        addr = _formatPlace(m);
+        if (addr.contains(',')) break;
+      }
+      if (addr.isEmpty) {
+        if (sp?.getString(_addrKey) == null) _setAddress('Select location');
+        return;
+      }
+      _setAddress(addr);
+      try {
+        await sp?.setString(_addrKey, addr);
+      } catch (_) {}
     } catch (e) {
-      setState(() => _currentAddress = "Select Location");
+      debugPrint('location error: $e');
+      if (_currentAddress.startsWith('Detecting')) _setAddress('Select location');
+    } finally {
+      _locBusy = false;
     }
   }
 
@@ -469,7 +518,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     HeaderCategory('Combos', '🎁'),
                   ],
                   selectedCategory: _selectedCategoryIndex,
-                  onLocationTap: () => _determinePosition(),
+                  onLocationTap: () => _determinePosition(fromTap: true),
                   onWishlistTap: () => AppNavigator.push(context, const WishlistPage()),
                   onProfileTap: () => MainScreen.of(context)?.setIndex(4),
                   onCartTap: () => AppNavigator.push(context, const CartPage()),
@@ -536,24 +585,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   },
                   onSeeAll: (cat) => AppNavigator.push(context, ProductListingPage(category: cat.name)),
                 ),
-                const SectionTitle(TitleKind.kadai),
+                const SectionTitle(TitleKind.snackStory),
                 const SnacksStoryFlip(items: []),
+                const SectionTitle(TitleKind.kadai),
                 const FreshPicksSection(),
                 const SectionTitle(TitleKind.festive),
                 FestivalSection(
                   api: FestivalApi('https://admin.adhvaithafoods.in/api'),
                   onOpenProducts: (title, link) => AppNavigator.push(context, ProductListingPage(category: title)),
                   onAddToCart: (p) {
-                    try {
-                      final match = allProducts.firstWhere((x) => x.name.toLowerCase() == p.name.toLowerCase());
-                      CartManager().addToCart(match);
-                    } catch (_) {}
+                    CartManager().addToCart(productFor(p.name, image: p.image, price: p.price.toDouble(), category: 'Festival Specials'));
                   },
                   onProductTap: (p) {
-                    try {
-                      final match = allProducts.firstWhere((x) => x.name.toLowerCase() == p.name.toLowerCase());
-                      AppNavigator.push(context, ProductDetailPage(product: match, allProducts: allProducts));
-                    } catch (_) {}
+                    AppNavigator.push(context, ProductDetailPage(product: productFor(p.name, image: p.image, price: p.price.toDouble(), category: 'Festival Specials'), allProducts: allProducts));
                   },
                 ),
                 const SectionTitle(TitleKind.sweetTooth),
@@ -571,10 +615,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 const SpiceGrinderSection(),
                 const SectionTitle(TitleKind.heart),
                 _buildSweetsQuoteBanner(),
-                AnimatedBuilder(
-                  animation: RecentlyViewedStore(),
-                  builder: (_, __) => RecentlyViewedStore().items.isEmpty ? const SizedBox.shrink() : const SectionTitle(TitleKind.recent),
-                ),
+                const SectionTitle(TitleKind.recent),
                 const RecentlyViewedSection(),
                 if (allProducts.any((p) => p.reviews.isNotEmpty)) const SectionTitle(TitleKind.families),
                 _buildTestimonials(),
@@ -780,7 +821,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: () => _determinePosition(),
+              onTap: () => _determinePosition(fromTap: true),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -3130,8 +3171,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       apiBase: 'https://admin.adhvaithafoods.in/api',
       onAddCouple: (couple, weight, qtyChange) async {
         try {
-          final pA = allProducts.firstWhere((p) => p.name.toLowerCase().contains(couple.a.name.toLowerCase()) || couple.a.name.toLowerCase().contains(p.name.toLowerCase()), orElse: () => allProducts.first);
-          final pB = allProducts.firstWhere((p) => p.name.toLowerCase().contains(couple.b.name.toLowerCase()) || couple.b.name.toLowerCase().contains(p.name.toLowerCase()), orElse: () => allProducts.last);
+          final pA = allProducts.firstWhere((p) => p.name.toLowerCase().contains(couple.a.name.toLowerCase()) || couple.a.name.toLowerCase().contains(p.name.toLowerCase()), orElse: () => productFor(couple.a.name));
+          final pB = allProducts.firstWhere((p) => p.name.toLowerCase().contains(couple.b.name.toLowerCase()) || couple.b.name.toLowerCase().contains(p.name.toLowerCase()), orElse: () => productFor(couple.b.name));
           if (qtyChange > 0) {
             CartManager().addToCart(pA, quantity: qtyChange);
             CartManager().addToCart(pB, quantity: qtyChange);

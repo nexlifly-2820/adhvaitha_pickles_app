@@ -17,50 +17,20 @@ class CategoriesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final double top = MediaQuery.of(context).padding.top;
+    const double bar = 46;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
       backgroundColor: const Color(0xFFFFF8E8),
-      body: SafeArea(
-        top: true,
-        bottom: false,
-        child: Column(
+      body: Stack(
           children: [
-            // Compact Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
-              child: Row(
-                children: [
-                  Image.asset('assets/images/AMBHUJAKSHI  logo.png', height: 34),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => AppNavigator.push(context, const SearchPage()),
-                    child: Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFD4AF37).withValues(alpha: 0.25),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          )
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.search_rounded,
-                        color: Color(0xFF18453B),
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const GlobalCartBadge(),
-                ],
-              ),
-            ),
-            // Pure Flutter 3D Category Lazy Susan (Compact & fully visible without bottom crop)
-            Expanded(
+            // colour now runs right up to the top of the screen
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.topCenter,
               child: CategoryLazySusan(
+                topInset: top + bar,
                 apiUrl: 'https://admin.adhvaithafoods.in/api/shop/categories',
                 onExplore: (categoryId, slug) {
                   AppNavigator.push(context, CategoryDeckScreen(
@@ -110,6 +80,55 @@ class CategoriesPage extends StatelessWidget {
                     ));
                   }
                 },
+              ),
+              ),
+            ),
+            // logo + search + cart, floating on the coloured background
+            Positioned(
+              top: top,
+              left: 0,
+              right: 0,
+              height: bar,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        } else {
+                          MainScreen.of(context)?.setIndex(0); // back to Home tab
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.95),
+                          shape: BoxShape.circle,
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6, offset: const Offset(0, 2))],
+                        ),
+                        child: const Icon(Icons.arrow_back_rounded, color: Color(0xFF18453B), size: 18),
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => AppNavigator.push(context, const SearchPage()),
+                      child: Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.95),
+                          shape: BoxShape.circle,
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6, offset: const Offset(0, 2))],
+                        ),
+                        child: const Icon(Icons.search_rounded, color: Color(0xFF18453B), size: 18),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const GlobalCartBadge(),
+                  ],
+                ),
               ),
             ),
           ],

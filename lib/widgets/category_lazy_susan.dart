@@ -99,7 +99,9 @@ class CategoryLazySusan extends StatefulWidget {
   final String? initialSlug;
   final Map<String, dynamic>? fallback;
   final double reservedHeight;
-  const CategoryLazySusan({super.key, required this.apiUrl, this.headers, this.onExplore, this.onProduct, this.onSelect, this.initialSlug, this.fallback, this.reservedHeight = 150});
+  /// extra coloured space at the very top (status bar + page header drawn over it)
+  final double topInset;
+  const CategoryLazySusan({super.key, required this.apiUrl, this.headers, this.onExplore, this.onProduct, this.onSelect, this.initialSlug, this.fallback, this.reservedHeight = 150, this.topInset = 0});
   @override
   State<CategoryLazySusan> createState() => _CategoryLazySusanState();
 }
@@ -214,6 +216,7 @@ class _CategoryLazySusanState extends State<CategoryLazySusan> with TickerProvid
   bool get _anyProducts => _s['products'] != false && _cats.any((_Cat c) => c.products.isNotEmpty);
   double _stageH = 300;
   bool _compact = false;
+  double _topD = 0;
   double get _designH => (_anyProducts ? 760.0 : 630.0) - (300.0 - _stageH) - (_compact ? 30.0 : 0.0) + 8.0;
 
   @override
@@ -223,7 +226,8 @@ class _CategoryLazySusanState extends State<CategoryLazySusan> with TickerProvid
       final w = box.maxWidth.isFinite ? box.maxWidth : MediaQuery.of(context).size.width;
       final double scale = w / designW;
       final MediaQueryData mq = MediaQuery.of(context);
-      final double avail = box.maxHeight.isFinite ? box.maxHeight : mq.size.height - mq.padding.top - mq.padding.bottom - widget.reservedHeight;
+      final double avail = (box.maxHeight.isFinite ? box.maxHeight : mq.size.height - mq.padding.top - mq.padding.bottom - widget.reservedHeight) - widget.topInset;
+      _topD = widget.topInset / scale;
       final double fullH = (_anyProducts ? 760.0 : 630.0) + 8.0;
       final double over = fullH - avail / scale;
       _compact = over > 90;
@@ -234,11 +238,11 @@ class _CategoryLazySusanState extends State<CategoryLazySusan> with TickerProvid
       }
       return SizedBox(
         width: w,
-        height: _designH * scale,
+        height: (_designH + _topD) * scale,
         child: FittedBox(
           fit: BoxFit.fitWidth,
           alignment: Alignment.topCenter,
-          child: SizedBox(width: designW, height: _designH, child: _section()),
+          child: SizedBox(width: designW, height: _designH + _topD, child: _section()),
         ),
       );
     });
@@ -259,6 +263,7 @@ class _CategoryLazySusanState extends State<CategoryLazySusan> with TickerProvid
               builder: (_, __) => Transform.rotate(angle: _rays.value * 2 * math.pi, child: CustomPaint(painter: _RaysPainter())),
             ))),
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              if (_topD > 0) SizedBox(height: _topD),
               _header(),
               _tabRow(pal.b),
               if (!_compact) ...<Widget>[

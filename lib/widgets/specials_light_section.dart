@@ -7,6 +7,7 @@ import '../product_detail_page.dart';
 import '../product_listing_page.dart';
 import '../navigation_util.dart';
 import '../product_manager.dart';
+import '../product_lookup.dart';
 import '../app_config_repository.dart';
 import '../image_util.dart';
 import 'specials_lotus_eye_screen.dart';
@@ -147,11 +148,7 @@ class _SpecialsLightSectionState extends State<SpecialsLightSection> {
           cartCount: CartManager().itemCount,
           onAdd: (specialItem, variant, qty) async {
             try {
-              final allProducts = ProductManager().products;
-              final match = allProducts.firstWhere(
-                (p) => p.name.toLowerCase().contains(specialItem.name.toLowerCase()) || specialItem.name.toLowerCase().contains(p.name.toLowerCase()),
-                orElse: () => allProducts.first,
-              );
+              final match = productFor(specialItem.name, weights: {variant.label: variant.price.toDouble()}, category: 'Specials');
               CartManager().addToCart(match, quantity: qty, weight: variant.label);
               return true;
             } catch (_) {
