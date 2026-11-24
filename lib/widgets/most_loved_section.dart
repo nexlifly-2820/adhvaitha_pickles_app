@@ -727,24 +727,7 @@ class _MostLovedSectionState extends State<MostLovedSection>
                     if (widget.onAdd != null) {
                       await widget.onAdd!(p, v);
                     } else {
-                      final allProducts = ProductManager().products;
-                      final match = allProducts.firstWhere(
-                        (prod) => prod.name.toLowerCase().contains(p.name.toLowerCase()),
-                        orElse: () => Product(
-                          name: p.name,
-                          description: p.tagline,
-                          weightPriceMap: {v.label: v.price.toDouble()},
-                          rating: p.rating.toDouble(),
-                          image: p.image,
-                          color: const Color(0xFF18453B),
-                          category: 'Pickles',
-                          secretIngredient: IngredientDetail(
-                            name: 'Traditional Spices',
-                            description: 'Aromatic hand-ground blend',
-                            image: p.image,
-                          ),
-                        ),
-                      );
+                      final match = productFor(p.name, description: p.tagline, image: p.image, weights: {v.label: v.price.toDouble()});
                       CartManager().addToCart(match, weight: v.label);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

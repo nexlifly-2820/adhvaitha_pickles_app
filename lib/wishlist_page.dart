@@ -29,6 +29,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'wishlist_manager.dart';
 import 'image_util.dart';
+import 'product_lookup.dart';
 import 'models.dart';
 
 class WishItem {
@@ -52,7 +53,7 @@ class WishItem {
       productId: p.name,
       variantId: 'v1',
       name: p.name,
-      image: p.image,
+      image: bestImageFor(p.name, p.image),
       note: p.isBestSeller ? '👑 BESTSELLER' : '',
       price: price,
       mrp: price * 1.2,

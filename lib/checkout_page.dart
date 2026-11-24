@@ -6,6 +6,7 @@ import 'order_placed_screen.dart';
 import 'cart_manager.dart';
 import 'navigation_util.dart';
 import 'order_history_page.dart';
+import 'main.dart';
 
 class CheckoutPage extends StatelessWidget {
   const CheckoutPage({super.key});
@@ -38,15 +39,27 @@ class CheckoutPage extends StatelessWidget {
                   "photo": ci.product.image,
                 }).toList();
                 CartManager().clearCart();
-                Navigator.pushAndRemoveUntil(
-                  context,
+                // grab these BEFORE the checkout screens are removed — their context stops working after that
+                final NavigatorState nav = Navigator.of(context);
+                final main = MainScreen.of(context);
+                nav.pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => OrderPlacedScreen(
                     apiBase: apiBase,
                     orderId: '${order['id'] ?? 'ORD${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}'}',
                     logoAsset: 'assets/images/AMBHUJAKSHI  logo.png',
                     initialItems: orderedItems,
-                    onTrack: (id) => AppNavigator.push(context, const OrderHistoryPage()),
-                    onContinue: () => Navigator.popUntil(context, (r) => r.isFirst),
+                    onTrack: (id) {
+                      nav.popUntil((r) => r.isFirst);
+                      if (main != null) {
+                        main.setIndex(3); // Orders tab
+                      } else {
+                        nav.push(MaterialPageRoute(builder: (_) => const OrderHistoryPage()));
+                      }
+                    },
+                    onContinue: () {
+                      nav.popUntil((r) => r.isFirst);
+                      main?.setIndex(0); // back to Home to keep shopping
+                    },
                   )),
                   (r) => r.isFirst,
                 );

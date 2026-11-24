@@ -8,6 +8,7 @@ import '../product_listing_page.dart';
 import '../navigation_util.dart';
 import '../app_config_repository.dart';
 import '../image_util.dart';
+import '../product_lookup.dart';
 
 class Ingredient {
   final String name, image;
@@ -366,6 +367,7 @@ class _FlipCardState extends State<_FlipCard> with SingleTickerProviderStateMixi
           if (widget.onAdd != null) {
             widget.onAdd!(widget.item);
           } else {
+            addToCartByName(widget.item.name, image: widget.item.image, price: widget.item.price.toDouble(), category: 'Snacks');
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('${widget.item.name} added to cart!'),

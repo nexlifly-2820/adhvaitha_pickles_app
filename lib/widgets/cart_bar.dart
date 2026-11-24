@@ -26,24 +26,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+String _assetGuess(String url) {
+  final String f = url.split('?').first.split('/').last;
+  return f.isEmpty ? 'assets/images/_none_' : 'assets/images/$f';
+}
+
 Widget _cartBarImage(String url, {double? width, double? height, BoxFit fit = BoxFit.contain}) {
   if (url.isEmpty) return SizedBox(width: width, height: height, child: const Icon(Icons.rice_bowl_rounded, color: Colors.white54));
   
   if (url.startsWith('assets/')) {
     return Image.asset(url, width: width, height: height, fit: fit,
-        errorBuilder: (_, __, ___) => Image.asset('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', width: width, height: height, fit: fit,
+        errorBuilder: (_, __, ___) => Image.asset(_assetGuess(url), width: width, height: height, fit: fit,
             errorBuilder: (_, __, ___) => SizedBox(width: width, height: height, child: const Icon(Icons.rice_bowl_rounded, color: Colors.white54))));
   }
   
   if (!url.startsWith('http')) {
     final fixedUrl = url.startsWith('/') ? 'https://admin.adhvaithafoods.in$url' : 'https://admin.adhvaithafoods.in/$url';
     return Image.network(fixedUrl, width: width, height: height, fit: fit, gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => Image.asset('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', width: width, height: height, fit: fit,
+        errorBuilder: (_, __, ___) => Image.asset(_assetGuess(url), width: width, height: height, fit: fit,
             errorBuilder: (_, __, ___) => SizedBox(width: width, height: height, child: const Icon(Icons.rice_bowl_rounded, color: Colors.white54))));
   }
 
   return Image.network(url, width: width, height: height, fit: fit, gaplessPlayback: true,
-      errorBuilder: (_, __, ___) => Image.asset('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', width: width, height: height, fit: fit,
+      errorBuilder: (_, __, ___) => Image.asset(_assetGuess(url), width: width, height: height, fit: fit,
           errorBuilder: (_, __, ___) => SizedBox(width: width, height: height, child: const Icon(Icons.rice_bowl_rounded, color: Colors.white54))));
 }
 

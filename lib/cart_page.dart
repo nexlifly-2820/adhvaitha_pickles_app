@@ -8,6 +8,7 @@ import 'product_detail_page.dart';
 import 'product_detail_screen.dart';
 import 'main.dart';
 import 'cart_integration.dart';
+import 'product_lookup.dart';
 
 class CartPage extends StatelessWidget {
   const CartPage({super.key});
@@ -48,7 +49,7 @@ class ManagerCartService extends CartService {
     bar.sync(
       count: CartManager().itemCount,
       total: CartManager().subtotal,
-      images: CartManager().items.map((e) => e.product.image).toList(),
+      images: CartManager().items.map((e) => bestImageFor(e.product.name, e.product.image)).toList(),
     );
     notifyListeners();
   }

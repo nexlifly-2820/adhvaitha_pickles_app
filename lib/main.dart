@@ -94,7 +94,10 @@ class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
   static _MainScreenState? of(BuildContext context) =>
-      context.findAncestorStateOfType<_MainScreenState>();
+      context.findAncestorStateOfType<_MainScreenState>() ?? instance;
+
+  /// the live main screen, so any page (even one opened above it) can switch tabs
+  static _MainScreenState? instance;
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -102,6 +105,12 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    MainScreen.instance = this;
+  }
   bool _isTransitioning = false;
 
   final List<GlobalKey<NavigatorState>> _navigatorKeys = [

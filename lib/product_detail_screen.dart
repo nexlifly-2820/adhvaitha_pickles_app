@@ -32,6 +32,8 @@ import 'recently_viewed_store.dart';
 import 'models.dart';
 import 'product_manager.dart';
 import 'product_repository.dart';
+import 'product_lookup.dart';
+import 'cart_manager.dart';
 
 const _red = Color(0xFF9E1424), _ink = Color(0xFF2A1A12), _muted = Color(0xFF8A7660), _bg = Color(0xFFFBF6EF);
 const _green = Color(0xFF1E7A46), _line = Color(0xFFEFE4D2), _faint = Color(0xFFA88B68);
@@ -240,7 +242,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final v = _var;
     if (v == null) return;
     HapticFeedback.lightImpact();
-    final ok = await (widget.onAddToCart?.call(widget.productId, v.id, _qty) ?? Future.value(true));
+    bool ok;
+    if (widget.onAddToCart != null) {
+      ok = await widget.onAddToCart!(widget.productId, v.id, _qty);
+    } else {
+      // add exactly this product with the weight the customer picked
+      final String name = (_local?.name ?? '${_p?['name'] ?? widget.productId}').trim();
+      final String img = _local?.image ?? (_photos.isNotEmpty ? '${(_p?['photos'] as List?)?.first?['url'] ?? ''}' : '');
+      Product prod = _local ?? productFor(name, image: img, weights: <String, double>{v.label: v.price}, price: v.price);
+      if (!prod.weightPriceMap.containsKey(v.label)) {
+        prod = prod.copyWith(weightPriceMap: <String, double>{...prod.weightPriceMap, v.label: v.price});
+      }
+      CartManager().addToCart(prod, quantity: _qty, weight: v.label);
+      ok = true;
+      if (mounted) {
+        ScaffoldMessenger.maybeOf(context)
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+            content: Text('$name (${v.label}) × $_qty added to cart'),
+            action: widget.onCart == null ? null : SnackBarAction(label: 'VIEW CART', onPressed: widget.onCart!),
+          ));
+      }
+    }
     if (ok && mounted) setState(() => _added = true);
   }
 

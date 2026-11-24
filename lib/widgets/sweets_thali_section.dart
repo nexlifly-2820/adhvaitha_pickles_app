@@ -905,31 +905,7 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
                                         if (widget.onAdd != null) {
                                           await widget.onAdd!(p, v);
                                         } else {
-                                          final allProducts =
-                                              ProductManager().products;
-                                          final match = allProducts.firstWhere(
-                                            (prod) => prod.name
-                                                .toLowerCase()
-                                                .contains(p.name.toLowerCase()),
-                                            orElse: () => Product(
-                                              name: p.name,
-                                              description: p.tagline,
-                                              weightPriceMap: {
-                                                v.label: v.price.toDouble()
-                                              },
-                                              rating: 4.9,
-                                              image: p.image,
-                                              color: const Color(0xFF8E0E45),
-                                              category: 'Sweets',
-                                              secretIngredient:
-                                                  IngredientDetail(
-                                                name: 'Pure Desi Ghee',
-                                                description:
-                                                    'Traditional preparation',
-                                                image: p.image,
-                                              ),
-                                            ),
-                                          );
+                                          final match = productFor(p.name, description: p.tagline, image: p.image, weights: {v.label: v.price.toDouble()});
                                           CartManager().addToCart(match,
                                               weight: v.label);
                                           ScaffoldMessenger.of(context)

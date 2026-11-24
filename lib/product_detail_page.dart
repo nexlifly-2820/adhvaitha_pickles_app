@@ -19,10 +19,6 @@ class ProductDetailPage extends StatelessWidget {
       apiBase: 'https://admin.adhvaithafoods.in/api',
       productId: product.name.toLowerCase().replaceAll(' ', '-'),
       product: product,
-      onAddToCart: (pid, vid, qty) async {
-        CartManager().addToCart(product, quantity: qty);
-        return true;
-      },
       onCart: () => AppNavigator.push(context, const CartPage()),
     );
   }

@@ -23,6 +23,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'cart_integration.dart';
 import 'cart_manager.dart';
+import 'product_lookup.dart';
+import 'image_util.dart';
 
 const _red = Color(0xFF9E1424), _maroon = Color(0xFF6A1220), _ink = Color(0xFF2A1A12), _bg = Color(0xFFFBF6EF);
 const _green = Color(0xFF1E7A46), _muted = Color(0xFF9A8670), _faint = Color(0xFF9A7B58);
@@ -30,24 +32,14 @@ String _rs(num v) => '₹${v % 1 == 0 ? v.toInt() : v.toStringAsFixed(2)}';
 double _d(dynamic v) => (v as num?)?.toDouble() ?? 0;
 
 Widget _royalImage(String url, {double? width, double? height, BoxFit fit = BoxFit.contain}) {
-  if (url.isEmpty) return SizedBox(width: width, height: height, child: const Icon(Icons.rice_bowl_rounded, color: Colors.brown));
-  
-  if (url.startsWith('assets/')) {
-    return Image.asset(url, width: width, height: height, fit: fit,
-        errorBuilder: (_, __, ___) => Image.asset('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', width: width, height: height, fit: fit,
-            errorBuilder: (_, __, ___) => SizedBox(width: width, height: height, child: const Icon(Icons.rice_bowl_rounded, color: Colors.brown))));
+  // url may hold several candidate photos separated by "|": try each in turn, exactly the way
+  // the home sections load photos (buildSmartImage: admin site first, then the app's own assets)
+  final List<String> c = url.split('|').map((String e) => e.trim()).where((String e) => e.isNotEmpty).toSet().toList();
+  Widget out = SizedBox(width: width, height: height, child: const Icon(Icons.rice_bowl_rounded, color: Colors.brown));
+  for (final String u in c.reversed) {
+    out = buildSmartImage(u, width: width, height: height, fit: fit, errorWidget: out);
   }
-  
-  if (!url.startsWith('http')) {
-    final fixedUrl = url.startsWith('/') ? 'https://admin.adhvaithafoods.in$url' : 'https://admin.adhvaithafoods.in/$url';
-    return Image.network(fixedUrl, width: width, height: height, fit: fit, gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => Image.asset('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', width: width, height: height, fit: fit,
-            errorBuilder: (_, __, ___) => SizedBox(width: width, height: height, child: const Icon(Icons.rice_bowl_rounded, color: Colors.brown))));
-  }
-
-  return Image.network(url, width: width, height: height, fit: fit, gaplessPlayback: true,
-      errorBuilder: (_, __, ___) => Image.asset('assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg', width: width, height: height, fit: fit,
-          errorBuilder: (_, __, ___) => SizedBox(width: width, height: height, child: const Icon(Icons.rice_bowl_rounded, color: Colors.brown))));
+  return out;
 }
 
 class RoyalCartScreen extends StatefulWidget {
@@ -100,7 +92,7 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
       "variantId": "v1",
       "name": ci.product.name,
       "label": "${ci.weight} · ${ci.product.category}",
-      "imageUrl": ci.product.image,
+      "imageUrl": <String>[bestImageFor(ci.product.name, ci.product.image), ci.product.image, findCatalogProduct(ci.product.name)?.image ?? ''].join('|'),
       "price": ci.product.getRawPriceForWeight(ci.weight),
       "mrp": ci.product.getRawPriceForWeight(ci.weight) * 1.2,
       "qty": ci.quantity,
@@ -200,11 +192,11 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
   @override
   Widget build(BuildContext context) {
     final p = _p;
-    if (p == null) return const ColoredBox(color: _bg, child: Center(child: CircularProgressIndicator(color: _red)));
+    if (p == null) return const Material(color: _bg, child: Center(child: CircularProgressIndicator(color: _red)));
     final items = (p['items'] as List);
     final bill = p['bill'] as Map<String, dynamic>;
     final top = MediaQuery.of(context).padding.top, bottom = MediaQuery.of(context).padding.bottom;
-    return ColoredBox(
+    return Material( // Material ancestor = no yellow underlines under text
       color: _bg,
       child: Stack(children: [
         RefreshIndicator(

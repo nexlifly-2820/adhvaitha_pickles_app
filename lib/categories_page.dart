@@ -8,6 +8,7 @@ import 'cart_page.dart';
 import 'product_detail_page.dart';
 import 'product_detail_screen.dart';
 import 'product_manager.dart';
+import 'product_lookup.dart';
 import 'navigation_util.dart';
 import 'main.dart';
 import 'search_page.dart';
@@ -39,13 +40,14 @@ class CategoriesPage extends StatelessWidget {
                     cartCount: ValueNotifier<int>(CartManager().itemCount),
                     onAdd: (productId, variantId, qty) async {
                       try {
-                        final product = ProductManager().products.firstWhere((p) => p.name.toLowerCase().replaceAll(' ', '-') == productId.toLowerCase());
+                        final product = findCatalogProduct(productId.replaceAll('-', ' '))!;
                         if (qty > 0) {
                           CartManager().addToCart(product, quantity: qty);
                         }
                         return Future.value(true);
                       } catch (_) {
-                        return Future.value(false);
+                        if (qty > 0) addToCartByName(productId.replaceAll('-', ' ').trim(), quantity: qty);
+                        return Future.value(true);
                       }
                     },
                     onWishlist: (productId) async {
@@ -53,14 +55,13 @@ class CategoriesPage extends StatelessWidget {
                     },
                     onOpen: (productId) {
                       try {
-                        final product = ProductManager().products.firstWhere((p) => p.name.toLowerCase().replaceAll(' ', '-') == productId.toLowerCase());
+                        final product = findCatalogProduct(productId.replaceAll('-', ' '))!;
                         AppNavigator.push(context, ProductDetailPage(product: product, allProducts: ProductManager().products));
                       } catch (_) {
                         AppNavigator.push(context, ProductDetailScreen(
                           apiBase: 'https://admin.adhvaithafoods.in/api',
                           productId: productId,
-                          onAddToCart: (pid, vid, qty) async => true,
-                          onCart: () => AppNavigator.push(context, const CartPage()),
+                                                    onCart: () => AppNavigator.push(context, const CartPage()),
                         ));
                       }
                     },
@@ -69,14 +70,13 @@ class CategoriesPage extends StatelessWidget {
                 },
                 onProduct: (productId) {
                   try {
-                    final product = ProductManager().products.firstWhere((p) => p.name.toLowerCase().replaceAll(' ', '-') == productId.toLowerCase());
+                    final product = findCatalogProduct(productId.replaceAll('-', ' '))!;
                     AppNavigator.push(context, ProductDetailPage(product: product, allProducts: ProductManager().products));
                   } catch (_) {
                     AppNavigator.push(context, ProductDetailScreen(
                       apiBase: 'https://admin.adhvaithafoods.in/api',
                       productId: productId,
-                      onAddToCart: (pid, vid, qty) async => true,
-                      onCart: () => AppNavigator.push(context, const CartPage()),
+                                            onCart: () => AppNavigator.push(context, const CartPage()),
                     ));
                   }
                 },

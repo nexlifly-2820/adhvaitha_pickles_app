@@ -187,19 +187,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
     _locBusy = true;
     try {
-      // 1. show the last known address straight away
+      // 1. always detect fresh — never show an old saved place as if it were the current one
       SharedPreferences? sp;
       try {
         sp = await SharedPreferences.getInstance();
-        final String? saved = sp.getString(_addrKey);
-        if (saved != null && saved.isNotEmpty && (_currentAddress.startsWith('Detecting') || fromTap)) _setAddress(saved);
       } catch (_) {}
-      if (fromTap && sp?.getString(_addrKey) == null) _setAddress('Detecting location...');
+      _setAddress('Detecting location...');
 
       // 2. location service on?
       if (!await Geolocator.isLocationServiceEnabled()) {
         _locFix = 'service';
-        if (sp?.getString(_addrKey) == null) _setAddress('Turn on location');
+        _setAddress('Turn on location');
         return;
       }
 
@@ -208,21 +206,29 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
       if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
         _locFix = 'settings';
-        if (sp?.getString(_addrKey) == null) _setAddress('Allow location');
+        _setAddress('Allow location');
         return;
       }
       _locFix = '';
 
-      // 4. position — quick last-known first, then a fresh fix (with a time limit so it never hangs)
+      // 4. a FRESH GPS fix of where the phone is right now (best accuracy, retried once).
+      //    The phone's cached "last known" position is only used if it is under 2 minutes old,
+      //    because an older one can be a completely different place.
       Position? pos;
-      try {
-        pos = await Geolocator.getLastKnownPosition();
-      } catch (_) {}
-      try {
-        pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.medium, timeLimit: const Duration(seconds: 15));
-      } catch (_) {}
+      for (final LocationAccuracy acc in <LocationAccuracy>[LocationAccuracy.best, LocationAccuracy.high]) {
+        try {
+          pos = await Geolocator.getCurrentPosition(desiredAccuracy: acc, timeLimit: const Duration(seconds: 20));
+          break;
+        } catch (_) {}
+      }
       if (pos == null) {
-        if (sp?.getString(_addrKey) == null) _setAddress('Select location');
+        try {
+          final Position? last = await Geolocator.getLastKnownPosition();
+          if (last != null && DateTime.now().difference(last.timestamp).inMinutes < 2) pos = last;
+        } catch (_) {}
+      }
+      if (pos == null) {
+        _setAddress('Tap to detect location');
         return;
       }
 
@@ -241,7 +247,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         if (addr.contains(',')) break;
       }
       if (addr.isEmpty) {
-        if (sp?.getString(_addrKey) == null) _setAddress('Select location');
+        _setAddress('Tap to detect location');
         return;
       }
       _setAddress(addr);
