@@ -45,6 +45,9 @@ import 'cart_page.dart';
 import 'widgets/combo_box_section.dart';
 import 'widgets/combo_home_section.dart';
 import 'widgets/section_titles.dart';
+import 'widgets/offers_section.dart';
+import 'widgets/recently_viewed_section.dart';
+import 'recently_viewed_store.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -487,6 +490,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 _buildHomeVideoSection(),
                 const SectionTitle(TitleKind.andhra),
                 _buildHeroBanner(),
+                const SectionTitle(TitleKind.offers),
+                const OffersSection(),
                 const SectionTitle(TitleKind.pairing),
                 _buildPerfectPairings(),
                 const SectionTitle(TitleKind.specials),
@@ -566,8 +571,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 const SpiceGrinderSection(),
                 const SectionTitle(TitleKind.heart),
                 _buildSweetsQuoteBanner(),
-                const SectionTitle(TitleKind.slowMade),
-                _buildMakingProcessSection(),
+                AnimatedBuilder(
+                  animation: RecentlyViewedStore(),
+                  builder: (_, __) => RecentlyViewedStore().items.isEmpty ? const SizedBox.shrink() : const SectionTitle(TitleKind.recent),
+                ),
+                const RecentlyViewedSection(),
                 if (allProducts.any((p) => p.reviews.isNotEmpty)) const SectionTitle(TitleKind.families),
                 _buildTestimonials(),
                 const SizedBox(height: 40),

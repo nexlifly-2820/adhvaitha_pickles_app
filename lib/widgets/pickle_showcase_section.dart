@@ -17,6 +17,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'love_button.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
@@ -634,6 +635,20 @@ class _PickleShowcaseSectionState extends State<PickleShowcaseSection> with Sing
                       const SizedBox(height: 2),
                       Text('per ${v.label}', style: GoogleFonts.poppins(fontSize: 9.5, fontWeight: FontWeight.w600, color: _dim)),
                     ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: LoveButton(
+                    name: it.name,
+                    image: it.shots.isNotEmpty ? it.shots.first.image : it.thumb,
+                    price: v.price,
+                    category: 'Pickles',
+                    size: 20,
+                    box: 40,
+                    circleColor: const Color(0x22FFFFFF),
+                    fillColor: const Color(0xFFFF4D7E),
+                    outlineColor: _cream,
                   ),
                 ),
                 GestureDetector(

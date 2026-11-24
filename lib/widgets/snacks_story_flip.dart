@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'love_button.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../product_listing_page.dart';
@@ -405,14 +406,7 @@ class _FlipCardState extends State<_FlipCard> with SingleTickerProviderStateMixi
         ),
       );
 
-  Widget _heart(double s, {required bool dark}) => GestureDetector(
-        onTap: () {
-          HapticFeedback.lightImpact();
-          if (widget.onWishlist != null) {
-            widget.onWishlist!(widget.item);
-          }
-        },
-        child: Container(
+  Widget _heart(double s, {required bool dark}) => Container(
           width: 30 * s,
           height: 30 * s,
           decoration: BoxDecoration(
@@ -423,12 +417,16 @@ class _FlipCardState extends State<_FlipCard> with SingleTickerProviderStateMixi
                 ? null
                 : const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
           ),
-          child: Icon(
-            widget.item.wished ? Icons.favorite : Icons.favorite_border,
+          child: LoveButton(
+            name: widget.item.name,
+            image: widget.item.image,
+            price: widget.item.price.toDouble(),
+            category: 'Snacks',
             size: 16 * s,
-            color: dark ? Colors.white : const Color(0xFF7A1020),
+            box: 30 * s,
+            fillColor: const Color(0xFFFF2D6F),
+            outlineColor: dark ? Colors.white : const Color(0xFF7A1020),
           ),
-        ),
       );
 
   Widget _lotusRule(double s, Color c) => Row(

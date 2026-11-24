@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'love_button.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models.dart';
@@ -301,10 +302,9 @@ class _MostLovedSectionState extends State<MostLovedSection>
       },
       onPointerUp: (_) => _start(const Duration(seconds: 4)),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+        margin: const EdgeInsets.symmetric(vertical: 14),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
           gradient: const RadialGradient(
             center: Alignment(0, -.4),
             radius: 1.2,
@@ -684,6 +684,19 @@ class _MostLovedSectionState extends State<MostLovedSection>
           BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
       child: Row(
         children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 2, right: 4),
+            child: LoveButton(
+              name: p.name,
+              image: p.image,
+              price: v.price.toDouble(),
+              category: 'Most Loved',
+              size: 18,
+              box: 34,
+              circleColor: const Color(0xFFFDEBD3),
+              outlineColor: const Color(0xFFC0392B),
+            ),
+          ),
           for (var k = 0; k < p.variants.length && k < 3; k++)
             Expanded(
               child: GestureDetector(

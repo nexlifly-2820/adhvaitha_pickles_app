@@ -26,6 +26,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'love_button.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // ============================ MODELS ============================
@@ -302,10 +303,10 @@ class _BestSellersSectionState extends State<BestSellersSection> with TickerProv
 
     final bool fs = widget.fullScreen;
     return Container(
-      margin: fs ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      margin: fs ? EdgeInsets.zero : const EdgeInsets.symmetric(vertical: 14),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(fs ? 0 : 30),
+        borderRadius: BorderRadius.zero,
         gradient: const RadialGradient(center: Alignment(0, -.1), radius: 1.1,
             colors: [Color(0xFF1C6A4A), _green, Color(0xFF071B13)], stops: [0, .45, 1]),
         boxShadow: const [BoxShadow(color: Color(0x660B2A1F), blurRadius: 30, offset: Offset(0, 16))],
@@ -315,8 +316,6 @@ class _BestSellersSectionState extends State<BestSellersSection> with TickerProv
           animation: Listenable.merge([_loop, _slow]),
           builder: (_, __) => CustomPaint(painter: _StagePainter(_slow.value, _loop.value)),
         ))),
-        if (!fs) Positioned.fill(child: IgnorePointer(child: Container(margin: const EdgeInsets.all(6),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(25), border: Border.all(color: _gold.withOpacity(.45), width: 1.5))))),
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 22, 14, 18),
           child: Column(children: [
@@ -473,6 +472,12 @@ class _BestSellersSectionState extends State<BestSellersSection> with TickerProv
                 )),
               ),
               if (big) Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _BurstPainter(_seg(t, .5, .95))))),
+              Positioned(
+                left: big ? -2 : -6, top: big ? -4 : -2,
+                child: LoveButton(name: it.name, image: it.image, price: it.price.toDouble(), category: 'Best Sellers',
+                    size: big ? 18 : 15, box: big ? 32 : 27, circleColor: const Color(0x55000000),
+                    fillColor: const Color(0xFFFF4D7E), outlineColor: Colors.white),
+              ),
             ])),
           ),
         ),
@@ -578,6 +583,9 @@ class _BestSellersSectionState extends State<BestSellersSection> with TickerProv
               Text('${it.sold} sold${it.rating > 0 ? ' · ★ ${it.rating}' : ''}',
                   style: GoogleFonts.poppins(fontSize: 9.5, color: const Color(0xFF9FC2AE))),
             ])),
+            LoveButton(name: it.name, image: it.image, price: it.price.toDouble(), category: 'Best Sellers',
+                size: 18, box: 30, fillColor: const Color(0xFFFF4D7E), outlineColor: _gold),
+            const SizedBox(width: 4),
             Text(_rs(it.price), style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
             const SizedBox(width: 8),
             GestureDetector(

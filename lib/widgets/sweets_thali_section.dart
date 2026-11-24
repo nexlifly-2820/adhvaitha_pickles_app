@@ -290,10 +290,10 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
 
     final bool fs = widget.fullScreen;
     return Container(
-      margin: fs ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      margin: fs ? EdgeInsets.zero : const EdgeInsets.symmetric(vertical: 14),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(fs ? 0 : 30),
+        borderRadius: BorderRadius.zero,
         gradient: const RadialGradient(
           center: Alignment(0, -.4),
           radius: 1.1,

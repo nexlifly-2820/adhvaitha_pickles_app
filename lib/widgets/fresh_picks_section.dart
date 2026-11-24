@@ -5,6 +5,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'love_button.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models.dart';
@@ -273,10 +274,10 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
 
     final bool fs = widget.fullScreen;
     return Container(
-      margin: fs ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      margin: fs ? EdgeInsets.zero : const EdgeInsets.symmetric(vertical: 14),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(fs ? 0 : 30),
+        borderRadius: BorderRadius.zero,
         gradient: const RadialGradient(
           center: Alignment(0, .05),
           radius: 1.05,
@@ -290,7 +291,6 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
             child: IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
                   gradient: RadialGradient(
                     radius: .9,
                     colors: [
@@ -786,6 +786,19 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                                 ),
                               ),
                             ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: LoveButton(
+                            name: p.name,
+                            image: p.image,
+                            price: v != null ? v.price.toDouble() : 0,
+                            category: 'Fresh Picks',
+                            size: 17,
+                            box: 32,
+                            circleColor: const Color(0xFFFCE9E4),
+                            outlineColor: const Color(0xFFC0392B),
                           ),
                         ),
                         if (p.badge.isNotEmpty)
