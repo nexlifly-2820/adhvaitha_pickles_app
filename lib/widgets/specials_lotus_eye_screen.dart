@@ -499,7 +499,7 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
             begin: Alignment(-3 + 5 * p, 0),
             end: Alignment(-1 + 5 * p, 0),
           ).createShader(r),
-          child: Text(t, style: st.copyWith(color: Colors.white)),
+          child: Text(t, textAlign: TextAlign.center, style: st.copyWith(color: Colors.white)),
         );
       },
     );
@@ -542,12 +542,29 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
               children: <Widget>[
                 rise(0.05, _emblem(150)),
                 const SizedBox(height: 6),
-                rise(0.2, _goldText(_title, GoogleFonts.cinzel(fontSize: 40, fontWeight: FontWeight.w700, letterSpacing: 1.5))),
-                rise(0.32, Text('— $_subtitle —', style: GoogleFonts.cinzel(fontSize: 17, letterSpacing: 7, color: _gold, fontWeight: FontWeight.w700))),
+                // title: centred, one word per line, never runs off the edge
+                rise(0.2, Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: _goldText(_title.trim().replaceAll(RegExp(r'\s+'), '\n'),
+                      GoogleFonts.cinzel(fontSize: 40, height: 1.12, fontWeight: FontWeight.w700, letterSpacing: 2)),
+                )),
+                const SizedBox(height: 10),
+                // subtitle: centred on one line, shrinks on small phones
+                rise(0.32, Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('— $_subtitle —', maxLines: 1, textAlign: TextAlign.center,
+                        style: GoogleFonts.cinzel(fontSize: 15, letterSpacing: 4, color: _gold, fontWeight: FontWeight.w700)),
+                  ),
+                )),
                 const SizedBox(height: 16),
                 rise(0.42, _ornament()),
                 const SizedBox(height: 12),
-                rise(0.5, Text(_tagline.replaceFirst(' the ', '\nthe '), textAlign: TextAlign.center, style: GoogleFonts.kalam(fontSize: 25, height: 1.3, fontWeight: FontWeight.w700, color: _gold))),
+                rise(0.5, Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 36),
+                  child: Text(_tagline.replaceFirst(' the ', '\nthe '), textAlign: TextAlign.center, style: GoogleFonts.kalam(fontSize: 22, height: 1.35, fontWeight: FontWeight.w700, color: _gold)),
+                )),
                 const SizedBox(height: 12),
                 rise(0.6, _ornament()),
               ],
@@ -575,24 +592,32 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
     return Stack(
       clipBehavior: Clip.none,
       children: <Widget>[
-        Positioned.fill(
-          child: IgnorePointer(
-            child: Container(margin: const EdgeInsets.all(6), decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), border: Border.all(color: const Color(0x73E9C47A), width: 1.5))),
-          ),
-        ),
         // top bar
         Positioned(
-          left: 14,
-          right: 14,
-          top: 12,
+          left: 16,
+          right: 16,
+          top: 10,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              IconButton(onPressed: () => Navigator.maybePop(context), icon: const Icon(Icons.chevron_left_rounded, color: _gold, size: 30)),
+              GestureDetector(
+                onTap: () => Navigator.maybePop(context),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x33000000), border: Border.all(color: const Color(0x66E9C47A))),
+                  child: const Icon(Icons.chevron_left_rounded, color: _gold, size: 26),
+                ),
+              ),
               GestureDetector(
                 onTap: widget.onGoToCart,
                 child: Stack(clipBehavior: Clip.none, children: <Widget>[
-                  const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.shopping_cart_outlined, color: _gold, size: 26)),
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x33000000), border: Border.all(color: const Color(0x66E9C47A))),
+                    child: const Icon(Icons.shopping_cart_outlined, color: _gold, size: 20),
+                  ),
                   if (_cart > 0)
                     Positioned(
                       right: 0,
@@ -615,28 +640,31 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
         Positioned(
           left: 16,
           right: 16,
-          top: 30,
+          top: 58,
           child: Column(children: <Widget>[
-            _emblem(80),
             FittedBox(
               fit: BoxFit.scaleDown,
               child: _goldText(_title, GoogleFonts.cinzel(fontSize: 27, fontWeight: FontWeight.w700, height: 1.0)),
             ),
             const SizedBox(height: 4),
-            Row(
-              children: <Widget>[
-                Expanded(child: Container(height: 1.5, color: _gold)),
-                Flexible(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(_subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: GoogleFonts.cinzel(fontSize: 13, letterSpacing: 4, color: _gold, fontWeight: FontWeight.w700)),
-                  ),
+            const SizedBox(height: 4),
+            // subtitle shown in full (shrinks to fit), with short gold lines
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                Container(width: 28, height: 1.2, decoration: const BoxDecoration(gradient: LinearGradient(colors: <Color>[Colors.transparent, _gold]))),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(_subtitle, maxLines: 1, style: GoogleFonts.cinzel(fontSize: 12, letterSpacing: 3, color: _gold, fontWeight: FontWeight.w700)),
                 ),
-                Expanded(child: Container(height: 1.5, color: _gold)),
-              ],
+                Container(width: 28, height: 1.2, decoration: const BoxDecoration(gradient: LinearGradient(colors: <Color>[_gold, Colors.transparent]))),
+              ]),
             ),
-            const SizedBox(height: 2),
-            Text(_tagline, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.kalam(fontSize: 14, fontWeight: FontWeight.w700, color: _creamSoft)),
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(_tagline, maxLines: 2, textAlign: TextAlign.center, overflow: TextOverflow.ellipsis, style: GoogleFonts.kalam(fontSize: 13.5, height: 1.25, fontWeight: FontWeight.w700, color: _creamSoft)),
+            ),
           ]),
         ),
         // the eye

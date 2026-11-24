@@ -184,12 +184,9 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
     _schedule();
   }
 
+  // No auto-advance: products change only when the user taps one.
   void _schedule([Duration? d]) {
     _timer?.cancel();
-    if (_p.length < 2) return;
-    _timer = Timer(
-        d ?? Duration(milliseconds: _effectiveData.intervalMs),
-        () => _go((_cur + 1) % _p.length));
   }
 
   Future<void> _go(int i, {bool user = false}) async {

@@ -14,6 +14,7 @@ import '../navigation_util.dart';
 import '../product_manager.dart';
 import '../app_config_repository.dart';
 import '../image_util.dart';
+import 'most_loved_all_page.dart';
 
 // ============================ MODELS ============================
 
@@ -197,14 +198,10 @@ class _MostLovedSectionState extends State<MostLovedSection>
     _start();
   }
 
+  // No auto-advance: products change only when the user taps a thumbnail or swipes.
   void _start([Duration? delay]) {
     _timer?.cancel();
-    if (_p.length < 2) return;
-    final d = Duration(milliseconds: _effectiveData.intervalMs);
-    _progress
-      ..duration = delay ?? d
-      ..forward(from: 0);
-    _timer = Timer(delay ?? d, () => _go((_cur + 1) % _p.length));
+    _progress.value = 1.0; // selected thumbnail keeps a full gold underline
   }
 
   void _go(int i, {bool user = false}) {
@@ -225,6 +222,25 @@ class _MostLovedSectionState extends State<MostLovedSection>
         .clamp(0.0, _rail.position.maxScrollExtent);
     _rail.animateTo(target,
         duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
+  }
+
+  Widget _arrowBtn(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black.withOpacity(.28),
+          border: Border.all(color: _gold.withOpacity(.75), width: 1.5),
+        ),
+        child: Icon(icon, color: _gold, size: 26),
+      ),
+    );
   }
 
   @override
@@ -357,9 +373,34 @@ class _MostLovedSectionState extends State<MostLovedSection>
                 ),
                 const SizedBox(height: 16),
                 // Spotlight
-                GestureDetector(
-                  onTap: () => _openProductDetail(p),
-                  child: _spotlight(),
+                Stack(
+                  alignment: Alignment.center,
+                  children: <Widget>[
+                    GestureDetector(
+                      onTap: () => _openProductDetail(p),
+                      // swipe left / right to change product
+                      onHorizontalDragEnd: (DragEndDetails d) {
+                        final double v = d.primaryVelocity ?? 0.0;
+                        if (v.abs() < 200 || _p.length < 2) return;
+                        HapticFeedback.selectionClick();
+                        _go(v < 0 ? (_cur + 1) % _p.length : (_cur - 1 + _p.length) % _p.length, user: true);
+                      },
+                      child: _spotlight(),
+                    ),
+                    // ‹ › arrows to change product
+                    if (_p.length > 1)
+                      Positioned(
+                        left: 6,
+                        child: _arrowBtn(Icons.chevron_left_rounded,
+                            () => _go((_cur - 1 + _p.length) % _p.length, user: true)),
+                      ),
+                    if (_p.length > 1)
+                      Positioned(
+                        right: 6,
+                        child: _arrowBtn(Icons.chevron_right_rounded,
+                            () => _go((_cur + 1) % _p.length, user: true)),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 26),
                 // Info
@@ -823,9 +864,17 @@ class _MostLovedSectionState extends State<MostLovedSection>
                 if (widget.onSeeAll != null) {
                   widget.onSeeAll!();
                 } else {
+                  // open the separate ranked "Most loved" page (home section unchanged)
                   AppNavigator.push(
                     context,
-                    const ProductListingPage(category: 'Pickles'),
+                    MostLovedAllPage(
+                      products: _p,
+                      kicker: _effectiveData.kicker,
+                      title: _effectiveData.title,
+                      titleAccent: _effectiveData.titleAccent,
+                      onAdd: widget.onAdd,
+                      onOpen: (MLProduct p) => _openProductDetail(p),
+                    ),
                   );
                 }
               },
@@ -1219,4 +1268,111 @@ class _AddButtonState extends State<_AddButton>
       ),
     );
   }
+}
+
+/// Static copy of the home spotlight (arch colours, big #rank, bowl, labels)
+/// used by the "See all" page so it looks exactly the same.
+class MLSpotlight extends StatelessWidget {
+  final MLProduct product;
+  final int rank; // 0-based
+  final double bowlOpacity;
+  final double bowlDrop; // 0..1 old product drops out
+  final Key? bowlKey;
+  final double bob; // floating offset, same as home (-4..4)
+  const MLSpotlight({super.key, required this.product, required this.rank, this.bowlOpacity = 1, this.bowlDrop = 0, this.bowlKey, this.bob = 0});
+
+  Widget _chip(String text, Color bg, Color fg) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 12, offset: Offset(0, 6))],
+        ),
+        child: Text(text, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w800, color: fg)),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final p = product;
+    return SizedBox(
+      width: 290,
+      height: 268,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
+        children: [
+          Positioned(left: 20, right: 20, top: 0, bottom: 6, child: _Arch(colors: p.colors, newColors: p.colors, wipe: 1)),
+          Positioned(
+            top: 4,
+            child: Opacity(
+              opacity: .2,
+              child: Text('#${rank + 1}',
+                  style: GoogleFonts.fraunces(fontSize: 130, fontWeight: FontWeight.w800, color: Colors.white, height: 1)),
+            ),
+          ),
+          Positioned(
+            bottom: -16,
+            child: Opacity(
+              opacity: (bowlOpacity * (1 - bowlDrop)).clamp(0.0, 1.0),
+              child: Transform.translate(
+                offset: Offset(0, 40 * bowlDrop + bob),
+                child: Transform.scale(
+                  scale: 1 - .4 * bowlDrop,
+                  child: Container(
+                    key: bowlKey,
+                    width: 235,
+                    decoration: const BoxDecoration(
+                      boxShadow: [BoxShadow(color: Color(0x66000000), blurRadius: 30, offset: Offset(0, 22), spreadRadius: -16)],
+                    ),
+                    child: buildSmartImage(p.image, width: 235, fit: BoxFit.contain),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 22 + bob * .8,
+            left: 0,
+            child: Transform.rotate(
+              angle: -.14,
+              child: _chip(
+                rank == 0 ? '👑 No.1 this week' : (p.badge.isNotEmpty ? p.badge : '${rank < 3 ? '🏅 ' : ''}No.${rank + 1} loved'),
+                Colors.white,
+                _maroon,
+              ),
+            ),
+          ),
+          if (p.loves.isNotEmpty)
+            Positioned(
+              top: 44 - bob * .8,
+              right: 0,
+              child: Transform.rotate(angle: .12, child: _chip('♥ ${p.loves} love it', const Color(0xFFC2273A), Colors.white)),
+            ),
+          if (p.spice > 0)
+            Positioned(
+              bottom: 60 - bob * .5,
+              left: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: _dark,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _gold, width: 1.5),
+                ),
+                child: Text('${'🌶' * p.spice.clamp(1, 3)}  ${['Mild', 'Medium', 'Hot'][p.spice.clamp(1, 3) - 1]}',
+                    style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFFFFE39A))),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Same rotating rays background as the home Most Loved section (t = 0..1).
+class MLRays extends StatelessWidget {
+  final double t;
+  const MLRays({super.key, required this.t});
+  @override
+  Widget build(BuildContext context) => CustomPaint(painter: _RaysPainter(t));
 }

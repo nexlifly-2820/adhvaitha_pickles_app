@@ -704,7 +704,19 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
         decoration: _bg,
         child: Padding(
           padding: EdgeInsets.only(top: mq.padding.top, bottom: mq.padding.bottom),
-          child: Center(child: FittedBox(fit: BoxFit.contain, child: SizedBox(width: 390, height: 844, child: _page()))),
+          // fill the full screen width (no empty side gaps); scroll if the screen is short
+          child: LayoutBuilder(builder: (BuildContext ctx, BoxConstraints box) {
+            final double scale = box.maxWidth / 390;
+            final double pageH = math.max(960.0, box.maxHeight / scale);
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: SizedBox(
+                width: box.maxWidth,
+                height: pageH * scale,
+                child: FittedBox(fit: BoxFit.fill, alignment: Alignment.topCenter, child: SizedBox(width: 390, height: pageH, child: _page())),
+              ),
+            );
+          }),
         ),
       ),
     );
@@ -732,11 +744,13 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
           top: 72,
           child: Column(children: <Widget>[
             Text(s.eyebrow, style: GoogleFonts.poppins(fontSize: 9.5, fontWeight: FontWeight.w700, letterSpacing: 4, color: _gold)),
+            const SizedBox(height: 4),
             _title(s, 30),
+            const SizedBox(height: 2),
             Text(s.subtitle, style: GoogleFonts.kalam(fontSize: 14, fontWeight: FontWeight.w700, color: _roseText)),
             if (s.explainText.isNotEmpty)
               Container(
-                margin: const EdgeInsets.only(top: 4),
+                margin: const EdgeInsets.only(top: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                 decoration: BoxDecoration(color: const Color(0xBFFFFFFF), borderRadius: BorderRadius.circular(10), border: Border.all(color: _goldLine)),
                 child: Text(s.explainText, style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600, color: _maroon)),
@@ -747,8 +761,8 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
         Positioned(
           left: 0,
           right: 0,
-          top: 180,
-          height: 350,
+          top: 196,
+          height: 380,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onHorizontalDragEnd: (DragEndDetails d) {
@@ -762,16 +776,16 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
         Positioned(
           left: 0,
           right: 0,
-          top: 530,
+          top: 584,
           child: Text('‹ swipe for more couples ›', textAlign: TextAlign.center, style: GoogleFonts.poppins(fontSize: 9.5, fontWeight: FontWeight.w600, letterSpacing: 1, color: const Color(0xFFC9A0A8))),
         ),
         // couple card
-        Positioned(left: 16, right: 16, top: 548, child: AnimatedBuilder(animation: _in, builder: (BuildContext c, Widget? ch) {
+        Positioned(left: 16, right: 16, top: 610, child: AnimatedBuilder(animation: _in, builder: (BuildContext c, Widget? ch) {
           final double v = _seg(_in.value, 0.78, 1.0);
           return Opacity(opacity: v, child: Transform.translate(offset: Offset(0, 20 * (1 - v)), child: ch));
         }, child: _card())),
         // more couples
-        if (_cs.length > 1) Positioned(left: 0, right: 0, top: 744, child: _more(s)),
+        if (_cs.length > 1) Positioned(left: 0, right: 0, top: 818, child: _more(s)),
       ],
     );
   }
@@ -807,7 +821,7 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
         ),
         // left card
         Positioned(
-          left: 14,
+          left: 10,
           top: 30,
           child: Opacity(
             opacity: (1 - outE).clamp(0.0, 1.0),
@@ -819,7 +833,7 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
         ),
         // right card
         Positioned(
-          right: 14,
+          right: 10,
           top: 30,
           child: Opacity(
             opacity: (1 - outE).clamp(0.0, 1.0),
@@ -879,14 +893,14 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
         // serving tip
         if (_c.tip.isNotEmpty)
           Positioned(
-            left: 24,
-            right: 24,
-            top: 324,
+            left: 28,
+            right: 28,
+            top: 330,
             child: Opacity(
               opacity: (_seg(t, 0.88, 1.0) * (1 - outE)).clamp(0.0, 1.0),
               child: Transform.translate(
                 offset: Offset(0, 8 * (1 - _seg(t, 0.88, 1.0))),
-                child: Text(_c.tip, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.kalam(fontSize: 13.5, fontWeight: FontWeight.w700, color: const Color(0xFF8A5A44))),
+                child: Text(_c.tip, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.kalam(fontSize: 13, height: 1.25, fontWeight: FontWeight.w700, color: const Color(0xFF8A5A44))),
               ),
             ),
           ),
@@ -899,7 +913,7 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
 
   Widget _bigCard(PairSide p) {
     return Container(
-      width: 160,
+      width: 150,
       height: 240,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -913,22 +927,23 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
           height: 126,
           alignment: Alignment.center,
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), gradient: const RadialGradient(center: Alignment(0, 0.2), colors: <Color>[Color(0xFFFFF4E4), Color(0xFFF6DDBE)])),
-          child: _bowl(p.image, 130),
+          child: _bowl(p.image, 120),
         ),
         const SizedBox(height: 8),
         FittedBox(fit: BoxFit.scaleDown, child: Text(p.name, maxLines: 1, style: GoogleFonts.playfairDisplay(fontSize: 18, fontWeight: FontWeight.w700, color: _maroon))),
         const SizedBox(height: 2),
         Text(p.bio, maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: GoogleFonts.kalam(fontSize: 13.5, height: 1.2, fontWeight: FontWeight.w700, color: const Color(0xFF9A6A52))),
         const Spacer(),
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-          for (final String t in p.tags)
+        // tags shrink to fit the card instead of overflowing
+        FittedBox(fit: BoxFit.scaleDown, child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          for (final String t in p.tags.take(2))
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 2),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: _goldLine)),
-              child: Text(t, style: GoogleFonts.poppins(fontSize: 8.5, fontWeight: FontWeight.w700, color: _roseText)),
+              child: Text(t, maxLines: 1, style: GoogleFonts.poppins(fontSize: 8.5, fontWeight: FontWeight.w700, color: _roseText)),
             ),
-        ]),
+        ])),
       ]),
     );
   }
@@ -937,7 +952,7 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
     final PairCouple c = _c;
     final PairWeight w = _wt;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 13, 16, 14),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
@@ -952,12 +967,17 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), gradient: const LinearGradient(colors: <Color>[Color(0xFF9E1B32), Color(0xFF6A1022)])),
               child: Text(c.tag, style: GoogleFonts.poppins(fontSize: 9.5, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: Colors.white)),
             ),
-          const Spacer(),
-          if (c.lovedText.isNotEmpty) Text('💗 ${c.lovedText}', style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w700, color: _gold)),
+          const SizedBox(width: 10),
+          if (c.lovedText.isNotEmpty)
+            Expanded(
+              child: Text('💗 ${c.lovedText}', maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w700, color: _gold)),
+            )
+          else
+            const Spacer(),
         ]),
-        const SizedBox(height: 6),
+        const SizedBox(height: 10),
         Text(c.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.playfairDisplay(fontSize: 20, fontWeight: FontWeight.w700, color: _ink)),
-        const SizedBox(height: 9),
+        const SizedBox(height: 12),
         Row(children: <Widget>[
           if (c.weights.length > 1) Expanded(child: _weightToggle(c)),
           const SizedBox(width: 8),
@@ -970,7 +990,7 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
             ),
           ),
         ]),
-        const SizedBox(height: 11),
+        const SizedBox(height: 14),
         Row(children: <Widget>[
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
@@ -1071,7 +1091,7 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
   Widget _more(PairSettings s) {
     return Column(children: <Widget>[
       Text(s.moreText, style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 2.5, color: _roseText)),
-      const SizedBox(height: 8),
+      const SizedBox(height: 10),
       SizedBox(
         height: 52,
         child: ListView.separated(

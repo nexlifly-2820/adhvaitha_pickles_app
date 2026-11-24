@@ -162,7 +162,7 @@ class _BestSellersLoaderState extends State<BestSellersLoader> {
             }
           }
           final BestSellersData d = BestSellersData.fromJson(j);
-          if (d.categories.length >= 2) {
+          if (d.categories.isNotEmpty) { // accept real admin data even with only one tab
             if (mounted) setState(() => _data = d);
             return;
           }
@@ -175,7 +175,18 @@ class _BestSellersLoaderState extends State<BestSellersLoader> {
   Widget build(BuildContext context) {
     final BestSellersData? d = _data;
     if (d == null) return const SizedBox.shrink();
-    return BestSellersSection(data: d, onOpen: widget.onOpen, onAdd: widget.onAdd, onSeeAll: widget.onSeeAll);
+    return BestSellersSection(
+      data: d,
+      onOpen: widget.onOpen,
+      onAdd: widget.onAdd,
+      // "See all" opens the full Best Sellers page in the same design
+      onSeeAll: (BSCategory cat) {
+        final int idx = d.categories.indexOf(cat);
+        Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => BestSellersAllPage(data: d, initialCategory: idx < 0 ? 0 : idx, onOpen: widget.onOpen, onAdd: widget.onAdd),
+        ));
+      },
+    );
   }
 }
 
@@ -201,7 +212,10 @@ class BestSellersSection extends StatefulWidget {
   final ValueChanged<BSItem>? onOpen;
   final Future<void> Function(BSItem)? onAdd;
   final ValueChanged<BSCategory>? onSeeAll;
-  const BestSellersSection({super.key, required this.data, this.onOpen, this.onAdd, this.onSeeAll});
+  final int initialCategory;
+  final bool showSeeAll;
+  final bool fullScreen; // See all page: no outer card margin / rounded border
+  const BestSellersSection({super.key, required this.data, this.onOpen, this.onAdd, this.onSeeAll, this.initialCategory = 0, this.showSeeAll = true, this.fullScreen = false});
   @override
   State<BestSellersSection> createState() => _BestSellersSectionState();
 }
@@ -227,6 +241,7 @@ class _BestSellersSectionState extends State<BestSellersSection> with TickerProv
     _loop = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
     _slow = AnimationController(vsync: this, duration: const Duration(seconds: 26))..repeat();
     _progress = AnimationController(vsync: this);
+    if (widget.initialCategory > 0 && widget.initialCategory < _cats.length) _cat = widget.initialCategory;
     _in.forward();
     _schedule();
   }
@@ -242,12 +257,10 @@ class _BestSellersSectionState extends State<BestSellersSection> with TickerProv
     _schedule();
   }
 
+  // No auto-rotate: categories change only when the user taps a tab.
   void _schedule([Duration? d]) {
     _timer?.cancel();
-    if (_cats.length < 2) return;
-    final Duration dur = d ?? Duration(milliseconds: widget.data.intervalMs);
-    _progress..duration = dur..forward(from: 0);
-    _timer = Timer(dur, () => _switch((_cat + 1) % _cats.length));
+    _progress.value = 0; // no countdown bar on the selected tab
   }
 
   bool _switching = false;
@@ -287,11 +300,12 @@ class _BestSellersSectionState extends State<BestSellersSection> with TickerProv
     final items = cat.items;
     final rows = items.skip(3).take(widget.data.rows).toList();
 
+    final bool fs = widget.fullScreen;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      margin: fs ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(fs ? 0 : 30),
         gradient: const RadialGradient(center: Alignment(0, -.1), radius: 1.1,
             colors: [Color(0xFF1C6A4A), _green, Color(0xFF071B13)], stops: [0, .45, 1]),
         boxShadow: const [BoxShadow(color: Color(0x660B2A1F), blurRadius: 30, offset: Offset(0, 16))],
@@ -301,7 +315,7 @@ class _BestSellersSectionState extends State<BestSellersSection> with TickerProv
           animation: Listenable.merge([_loop, _slow]),
           builder: (_, __) => CustomPaint(painter: _StagePainter(_slow.value, _loop.value)),
         ))),
-        Positioned.fill(child: IgnorePointer(child: Container(margin: const EdgeInsets.all(6),
+        if (!fs) Positioned.fill(child: IgnorePointer(child: Container(margin: const EdgeInsets.all(6),
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(25), border: Border.all(color: _gold.withOpacity(.45), width: 1.5))))),
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 22, 14, 18),
@@ -316,7 +330,7 @@ class _BestSellersSectionState extends State<BestSellersSection> with TickerProv
             const SizedBox(height: 16),
             for (var k = 0; k < rows.length; k++) _row(rows[k], k + 4, k),
             const SizedBox(height: 6),
-            GestureDetector(
+            if (widget.showSeeAll) GestureDetector(
               onTap: () => widget.onSeeAll?.call(cat),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
@@ -524,7 +538,8 @@ class _BestSellersSectionState extends State<BestSellersSection> with TickerProv
     Future.delayed(const Duration(seconds: 2), () { if (mounted) setState(() => _added.remove(it.id)); });
   }
 
-  Widget _row(BSItem it, int rank, int k) {
+  Widget _row(BSItem it, int rank, int kRaw) {
+    final int k = math.min(kRaw, 6); // long lists (See all) still animate in
     return AnimatedBuilder(
       animation: Listenable.merge([_in, _out]),
       builder: (_, child) {
@@ -709,4 +724,96 @@ class _StagePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _StagePainter o) => true;
+}
+
+
+// ============================ SEE ALL PAGE ============================
+/// Opened from "See all": the exact same Best Sellers design (tabs, podium, medals,
+/// animations) but showing every ranked product, starting on the tab the user was on.
+class BestSellersAllPage extends StatelessWidget {
+  final BestSellersData data;
+  final int initialCategory;
+  final ValueChanged<BSItem>? onOpen;
+  final Future<void> Function(BSItem)? onAdd;
+  const BestSellersAllPage({super.key, required this.data, this.initialCategory = 0, this.onOpen, this.onAdd});
+
+  /// "All" tab on this page = every best seller from every tab (no duplicates).
+  static List<BSCategory> _withFullAll(List<BSCategory> cats) {
+    if (cats.isEmpty) return cats;
+    final List<BSItem> merged = <BSItem>[];
+    final Set<String> seen = <String>{};
+    final int allIdx = cats.indexWhere((BSCategory c) => c.id == 'all' || c.name.toLowerCase() == 'all');
+    final List<BSCategory> order = <BSCategory>[if (allIdx >= 0) cats[allIdx], for (int i = 0; i < cats.length; i++) if (i != allIdx) cats[i]];
+    for (final BSCategory c in order) {
+      for (final BSItem it in c.items) {
+        final String key = it.name.trim().toLowerCase();
+        if (seen.add(key)) merged.add(it);
+      }
+    }
+    if (allIdx >= 0) {
+      return <BSCategory>[for (int i = 0; i < cats.length; i++) i == allIdx ? BSCategory(cats[i].id, cats[i].name, cats[i].emoji, merged) : cats[i]];
+    }
+    return <BSCategory>[BSCategory('all', 'All', '🔥', merged), ...cats];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final BestSellersData all = BestSellersData(
+      enabled: true,
+      kicker: data.kicker,
+      title: data.title,
+      titleAccent: data.titleAccent,
+      subtitle: data.subtitle,
+      intervalMs: data.intervalMs,
+      rows: 999, // show every product, not just 3 rows
+      categories: _withFullAll(data.categories),
+    );
+    final double top = MediaQuery.of(context).padding.top;
+    final double screenH = MediaQuery.of(context).size.height;
+    return Scaffold(
+      backgroundColor: const Color(0xFF071B13),
+      body: Stack(children: <Widget>[
+        SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: screenH),
+            child: Container(
+              // same green as the section so it fills the whole screen edge to edge
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(center: Alignment(0, -.6), radius: 1.3, colors: <Color>[Color(0xFF1C6A4A), _green, Color(0xFF071B13)], stops: <double>[0, .45, 1]),
+              ),
+              padding: EdgeInsets.only(top: top + 44, bottom: 110),
+              child: BestSellersSection(
+                data: all,
+                // always open on "All" so every product is visible
+                initialCategory: math.max(0, all.categories.indexWhere((BSCategory c) => c.id == 'all' || c.name.toLowerCase() == 'all')),
+                showSeeAll: false,
+                fullScreen: true,
+                onOpen: onOpen,
+                onAdd: onAdd,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: top + 8,
+          left: 16,
+          child: GestureDetector(
+            onTap: () => Navigator.maybePop(context),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _green,
+                border: Border.all(color: _gold.withOpacity(.75), width: 1.5),
+                boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x44000000), blurRadius: 10, offset: Offset(0, 4))],
+              ),
+              child: const Icon(Icons.chevron_left_rounded, color: _gold, size: 26),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
 }
