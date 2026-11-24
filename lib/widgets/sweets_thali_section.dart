@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'love_button.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models.dart';
@@ -122,6 +123,11 @@ class SweetsThaliSection extends StatefulWidget {
   final ValueChanged<SwProduct>? onWishlist;
   final Set<String> wishlisted;
   final VoidCallback? onViewAll;
+  // used by the "View all sweets" page
+  final bool fullScreen;
+  final bool showViewAll;
+  final ValueNotifier<int>? selector; // set a value to turn the thali to that sweet
+  final ValueChanged<int>? onIndexChanged;
 
   const SweetsThaliSection({
     super.key,
@@ -131,6 +137,10 @@ class SweetsThaliSection extends StatefulWidget {
     this.onWishlist,
     this.wishlisted = const {},
     this.onViewAll,
+    this.fullScreen = false,
+    this.showViewAll = true,
+    this.selector,
+    this.onIndexChanged,
   });
 
   @override
@@ -163,7 +173,13 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
   void initState() {
     super.initState();
     _listenToSweetsConfig();
+    widget.selector?.addListener(_onSelector);
     _schedule();
+  }
+
+  void _onSelector() {
+    final int i = widget.selector!.value;
+    if (i >= 0 && i < _n) _go(i, user: true);
   }
 
   void _listenToSweetsConfig() {
@@ -197,12 +213,9 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
     _schedule();
   }
 
+  // No auto-turn: the thali changes only when the user taps, swipes or uses the arrows.
   void _schedule([Duration? d]) {
     _timer?.cancel();
-    if (_n < 2) return;
-    _timer = Timer(
-        d ?? Duration(milliseconds: _effectiveData.intervalMs),
-        () => _go(_cur + 1));
   }
 
   Future<void> _go(int i, {bool user = false}) async {
@@ -213,6 +226,7 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
     _toRot = -next * 2 * math.pi / _n;
     _card.reverse();
     setState(() => _cur = next);
+    widget.onIndexChanged?.call(next);
     _turn.forward(from: 0);
     _pop.forward(from: 0);
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -233,6 +247,7 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
   void dispose() {
     _sub?.cancel();
     _timer?.cancel();
+    widget.selector?.removeListener(_onSelector);
     for (final c in [_turn, _pop, _card, _loop, _fast]) {
       c.dispose();
     }
@@ -273,11 +288,12 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
     if (!d.enabled || _p.isEmpty) return const SizedBox.shrink();
     final p = _p[_cur];
 
+    final bool fs = widget.fullScreen;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      margin: fs ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(fs ? 0 : 30),
         gradient: const RadialGradient(
           center: Alignment(0, -.4),
           radius: 1.1,
@@ -341,15 +357,16 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
                         ],
                       ),
                     const SizedBox(height: 10),
-                    GestureDetector(
+                    if (widget.showViewAll) GestureDetector(
                       onTap: () {
                         HapticFeedback.lightImpact();
                         if (widget.onViewAll != null) {
                           widget.onViewAll!();
                         } else {
+                          // open the full sweets page with the same thali
                           AppNavigator.push(
                             context,
-                            const ProductListingPage(category: 'Sweets'),
+                            SweetsAllPage(data: _effectiveData, initialIndex: _cur, onOpen: widget.onOpen, onAdd: widget.onAdd, onWishlist: widget.onWishlist, wishlisted: widget.wishlisted),
                           );
                         }
                       },
@@ -430,6 +447,24 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
                 ),
               ),
           ],
+        ),
+      );
+
+  Widget _arrowBtn(IconData icon, VoidCallback onTap) => GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF4A0624).withOpacity(.55),
+            border: Border.all(color: _gold.withOpacity(.85), width: 1.5),
+            boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 10, offset: Offset(0, 4))],
+          ),
+          child: Icon(icon, color: _gold, size: 26),
         ),
       );
 
@@ -536,6 +571,19 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
                         top: 120 - bob * .6,
                         child: _tag(p.tags[1], const Color(0xFF2E7D32),
                             Colors.white, .1, pop),
+                      ),
+                    // ‹ › arrows to change the sweet
+                    if (_n > 1)
+                      Positioned(
+                        left: 8,
+                        top: 186,
+                        child: _arrowBtn(Icons.chevron_left_rounded, () => _go(_cur - 1, user: true)),
+                      ),
+                    if (_n > 1)
+                      Positioned(
+                        right: 8,
+                        top: 186,
+                        child: _arrowBtn(Icons.chevron_right_rounded, () => _go(_cur + 1, user: true)),
                       ),
                   ],
                 );
@@ -671,7 +719,6 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
         ? ((1 - v.price / v.mrp) * 100).round()
         : 0;
     final added = v != null && _added == '${p.id}-${v.id}';
-    final wished = widget.wishlisted.contains(p.id);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -734,29 +781,16 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
                               ],
                             ),
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              if (widget.onWishlist != null) {
-                                widget.onWishlist!(p);
-                              }
-                            },
-                            child: Container(
-                              width: 34,
-                              height: 34,
-                              alignment: Alignment.center,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Color(0xFFFCE4EC),
-                              ),
-                              child: Icon(
-                                wished
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
-                                size: 18,
-                                color: _rani,
-                              ),
-                            ),
+                          LoveButton(
+                            name: p.name,
+                            image: p.image,
+                            price: p.variants.isNotEmpty ? p.variants.first.price.toDouble() : 0,
+                            category: 'Sweets',
+                            size: 18,
+                            box: 34,
+                            circleColor: const Color(0xFFFCE4EC),
+                            fillColor: const Color(0xFFE0245E),
+                            outlineColor: _rani,
                           ),
                         ],
                       ),
@@ -1487,4 +1521,173 @@ class _ScallopPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter o) => false;
+}
+
+
+// ============================ VIEW ALL PAGE ============================
+/// "View all sweets": the exact same thali scene at the top; every sweet listed below —
+/// tap one and the thali turns to it like on the home page.
+class SweetsAllPage extends StatefulWidget {
+  final SweetsData data;
+  final int initialIndex;
+  final ValueChanged<SwProduct>? onOpen;
+  final Future<void> Function(SwProduct, SwVariant)? onAdd;
+  final ValueChanged<SwProduct>? onWishlist;
+  final Set<String> wishlisted;
+  const SweetsAllPage({super.key, required this.data, this.initialIndex = 0, this.onOpen, this.onAdd, this.onWishlist, this.wishlisted = const {}});
+
+  @override
+  State<SweetsAllPage> createState() => _SweetsAllPageState();
+}
+
+class _SweetsAllPageState extends State<SweetsAllPage> {
+  final ValueNotifier<int> _sel = ValueNotifier<int>(-1);
+  final ScrollController _scroll = ScrollController();
+  late int _cur = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialIndex > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _sel.value = widget.initialIndex);
+    }
+  }
+
+  @override
+  void dispose() {
+    _sel.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _pick(int i) {
+    if (i == _cur) return;
+    HapticFeedback.selectionClick();
+    if (_scroll.hasClients) {
+      _scroll.animateTo(0, duration: const Duration(milliseconds: 450), curve: Curves.easeOutCubic);
+    }
+    _sel.value = -1;
+    _sel.value = i;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<SwProduct> ps = widget.data.products;
+    final double top = MediaQuery.of(context).padding.top;
+    return Scaffold(
+      backgroundColor: const Color(0xFF4A0624),
+      body: Stack(children: <Widget>[
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: <Color>[_plum, Color(0xFF4A0624)]),
+          ),
+        ),
+        ListView(
+          controller: _scroll,
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.only(top: top, bottom: 110),
+          children: <Widget>[
+            SweetsThaliSection(
+              data: widget.data,
+              onOpen: widget.onOpen,
+              onAdd: widget.onAdd,
+              onWishlist: widget.onWishlist,
+              wishlisted: widget.wishlisted,
+              fullScreen: true,
+              showViewAll: false,
+              selector: _sel,
+              onIndexChanged: (int i) => setState(() => _cur = i),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 10),
+              child: Row(children: <Widget>[
+                Text('ALL SWEETS', style: GoogleFonts.poppins(fontSize: 10, letterSpacing: 2.5, fontWeight: FontWeight.w700, color: _gold)),
+                const Spacer(),
+                Text('${ps.length} on the thali', style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFFF3C6D8))),
+              ]),
+            ),
+            for (int i = 0; i < ps.length; i++) _row(ps[i], i),
+          ],
+        ),
+        Positioned(
+          top: top + 8,
+          left: 14,
+          child: GestureDetector(
+            onTap: () => Navigator.maybePop(context),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF4A0624).withOpacity(.85),
+                border: Border.all(color: _gold.withOpacity(.8), width: 1.5),
+              ),
+              child: const Icon(Icons.chevron_left_rounded, color: _gold, size: 26),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _row(SwProduct p, int i) {
+    final bool on = i == _cur;
+    final SwVariant? v = p.variants.isEmpty ? null : p.variants.first;
+    return GestureDetector(
+      onTap: () => _pick(i),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+        padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: on ? _gold.withOpacity(.16) : Colors.white.withOpacity(.06),
+          border: Border.all(color: on ? _gold : _gold.withOpacity(.22)),
+        ),
+        child: Row(children: <Widget>[
+          // small golden-thali thumbnail
+          Container(
+            width: 66,
+            height: 66,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(colors: <Color>[Color(0xFFF7E2A8), Color(0xFFE6B95A), Color(0xFFB98224)], stops: <double>[.35, .8, 1]),
+              boxShadow: <BoxShadow>[BoxShadow(color: Color(0x66000000), blurRadius: 8, offset: Offset(0, 4))],
+            ),
+            alignment: Alignment.center,
+            child: buildSmartImage(p.image, width: 52, height: 52, fit: BoxFit.contain),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+              Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.fraunces(fontSize: 15.5, fontWeight: FontWeight.w600, color: Colors.white)),
+              if (p.tagline.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 2),
+                Text(p.tagline, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.fraunces(fontSize: 11, fontStyle: FontStyle.italic, color: const Color(0xFFFFD9E6))),
+              ],
+              if (v != null) ...<Widget>[
+                const SizedBox(height: 3),
+                Row(children: <Widget>[
+                  Text('₹${v.price}', style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white)),
+                  if (v.mrp > v.price)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 5),
+                      child: Text('₹${v.mrp}', style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFFD9A3B8), decoration: TextDecoration.lineThrough)),
+                    ),
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: Text('· ${v.label}', maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFFF3C6D8))),
+                    ),
+                  ),
+                ]),
+              ],
+            ]),
+          ),
+          Icon(on ? Icons.auto_awesome_rounded : Icons.chevron_right_rounded, color: _gold, size: on ? 20 : 24),
+        ]),
+      ),
+    );
+  }
 }

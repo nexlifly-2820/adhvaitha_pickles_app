@@ -106,6 +106,12 @@ class FreshPicksSection extends StatefulWidget {
   final ValueChanged<FPProduct>? onOpen;
   final Future<void> Function(FPProduct, FPVariant)? onAdd;
   final VoidCallback? onViewAll;
+  // used by the "View all" page
+  final bool fullScreen;
+  final bool showViewAll;
+  final bool showShelf;
+  final ValueNotifier<int>? selector; // set a value to show that product in the kadai
+  final ValueChanged<int>? onIndexChanged;
 
   const FreshPicksSection({
     super.key,
@@ -113,6 +119,11 @@ class FreshPicksSection extends StatefulWidget {
     this.onOpen,
     this.onAdd,
     this.onViewAll,
+    this.fullScreen = false,
+    this.showViewAll = true,
+    this.showShelf = true,
+    this.selector,
+    this.onIndexChanged,
   });
 
   @override
@@ -151,7 +162,13 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
     _rise.value = 1;
     _tags.forward();
     _listenToFreshPicksConfig();
+    widget.selector?.addListener(_onSelector);
     _schedule();
+  }
+
+  void _onSelector() {
+    final int i = widget.selector!.value;
+    if (i >= 0 && i < _p.length) _go(i, user: true);
   }
 
   void _listenToFreshPicksConfig() {
@@ -200,6 +217,7 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
       _cur = i;
       _sinking = false;
     });
+    widget.onIndexChanged?.call(i);
     _sink.value = 0;
     _rise.forward(from: 0);
     _info.forward();
@@ -212,6 +230,7 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
   void dispose() {
     _sub?.cancel();
     _timer?.cancel();
+    widget.selector?.removeListener(_onSelector);
     for (final c in [_fire, _sway, _rise, _sink, _info, _tags]) {
       c.dispose();
     }
@@ -252,11 +271,12 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
     if (!activeData.enabled || _p.isEmpty) return const SizedBox.shrink();
     final p = _p[_cur];
 
+    final bool fs = widget.fullScreen;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      margin: fs ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(fs ? 0 : 30),
         gradient: const RadialGradient(
           center: Alignment(0, .05),
           radius: 1.05,
@@ -321,17 +341,18 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
               _board(activeData),
               _stage(p),
               _card(p),
-              if (_p.length > 1) _shelf(),
+              if (_p.length > 1 && widget.showShelf) _shelf(),
               const SizedBox(height: 14),
-              GestureDetector(
+              if (widget.showViewAll) GestureDetector(
                 onTap: () {
                   HapticFeedback.lightImpact();
                   if (widget.onViewAll != null) {
                     widget.onViewAll!();
                   } else {
+                    // open the full Fresh Picks page with the same kadai scene
                     AppNavigator.push(
                       context,
-                      const ProductListingPage(category: 'Pickles'),
+                      FreshPicksAllPage(data: _effectiveData, initialIndex: _cur, onOpen: widget.onOpen, onAdd: widget.onAdd),
                     );
                   }
                 },
@@ -452,10 +473,29 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
         ),
       );
 
+  Widget _arrowBtn(IconData icon, VoidCallback onTap) => GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF3A1508).withOpacity(.55),
+            border: Border.all(color: const Color(0xFFF6C453).withOpacity(.85), width: 1.5),
+            boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 10, offset: Offset(0, 4))],
+          ),
+          child: Icon(icon, color: const Color(0xFFF6C453), size: 26),
+        ),
+      );
+
   Widget _stage(FPProduct p) {
     return SizedBox(
       height: _stageH,
-      child: LayoutBuilder(
+      child: Stack(children: [
+       Positioned.fill(child: LayoutBuilder(
         builder: (_, box) {
           final cx = box.maxWidth / 2;
           return GestureDetector(
@@ -619,7 +659,21 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
             ),
           );
         },
-      ),
+      )),
+       // ‹ › arrows to change the product
+       if (_p.length > 1)
+         Positioned(
+           left: 10,
+           top: _stageH / 2 - 20,
+           child: _arrowBtn(Icons.chevron_left_rounded, () => _go((_cur - 1 + _p.length) % _p.length, user: true)),
+         ),
+       if (_p.length > 1)
+         Positioned(
+           right: 10,
+           top: _stageH / 2 - 20,
+           child: _arrowBtn(Icons.chevron_right_rounded, () => _go((_cur + 1) % _p.length, user: true)),
+         ),
+      ]),
     );
   }
 
@@ -1508,4 +1562,184 @@ class _KolamPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter o) => false;
+}
+
+
+// ============================ VIEW ALL PAGE ============================
+/// "View all fresh picks": the exact same kadai + fire scene at the top; every fresh pick
+/// is listed below — tap one and it rises out of the kadai like on the home page.
+class FreshPicksAllPage extends StatefulWidget {
+  final FreshPicksData data;
+  final int initialIndex;
+  final ValueChanged<FPProduct>? onOpen;
+  final Future<void> Function(FPProduct, FPVariant)? onAdd;
+  const FreshPicksAllPage({super.key, required this.data, this.initialIndex = 0, this.onOpen, this.onAdd});
+
+  @override
+  State<FreshPicksAllPage> createState() => _FreshPicksAllPageState();
+}
+
+class _FreshPicksAllPageState extends State<FreshPicksAllPage> {
+  late final ValueNotifier<int> _sel = ValueNotifier<int>(-1);
+  final ScrollController _scroll = ScrollController();
+  late int _cur = widget.initialIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialIndex > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _sel.value = widget.initialIndex);
+    }
+  }
+
+  @override
+  void dispose() {
+    _sel.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _pick(int i) {
+    if (i == _cur) return;
+    HapticFeedback.selectionClick();
+    if (_scroll.hasClients) {
+      _scroll.animateTo(0, duration: const Duration(milliseconds: 450), curve: Curves.easeOutCubic);
+    }
+    _sel.value = i;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<FPProduct> ps = widget.data.products;
+    final double top = MediaQuery.of(context).padding.top;
+    return Scaffold(
+      backgroundColor: const Color(0xFF3A1508),
+      body: Stack(children: <Widget>[
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: <Color>[Color(0xFF7A3418), Color(0xFF3A1508)]),
+          ),
+        ),
+        ListView(
+          controller: _scroll,
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.only(top: top, bottom: 110),
+          children: <Widget>[
+            FreshPicksSection(
+              data: widget.data,
+              onOpen: widget.onOpen,
+              onAdd: widget.onAdd,
+              fullScreen: true,
+              showViewAll: false,
+              showShelf: false,
+              selector: _sel,
+              onIndexChanged: (int i) => setState(() => _cur = i),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 10),
+              child: Row(children: <Widget>[
+                Text('ALL FRESH PICKS', style: GoogleFonts.poppins(fontSize: 10, letterSpacing: 2.5, fontWeight: FontWeight.w700, color: const Color(0xFFF6C453))),
+                const Spacer(),
+                Text('${ps.length} from the kadai', style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFFE9C7A8))),
+              ]),
+            ),
+            for (int i = 0; i < ps.length; i++) _row(ps[i], i),
+          ],
+        ),
+        Positioned(
+          top: top + 8,
+          left: 14,
+          child: GestureDetector(
+            onTap: () => Navigator.maybePop(context),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF3A1508).withOpacity(.85),
+                border: Border.all(color: const Color(0xFFF6C453).withOpacity(.75), width: 1.5),
+              ),
+              child: const Icon(Icons.chevron_left_rounded, color: Color(0xFFF6C453), size: 26),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _row(FPProduct p, int i) {
+    final bool on = i == _cur;
+    final FPVariant? v = p.variants.isEmpty ? null : p.variants.first;
+    return GestureDetector(
+      onTap: () => _pick(i),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+        padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: on ? const Color(0xFFF6C453).withOpacity(.16) : Colors.white.withOpacity(.06),
+          border: Border.all(color: on ? const Color(0xFFF6C453) : const Color(0xFFF6C453).withOpacity(.2)),
+        ),
+        child: Row(children: <Widget>[
+          // small kadai-on-fire thumbnail
+          Container(
+            width: 66,
+            height: 66,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: <Color>[Color(0xFF34463C), Color(0xFF1F2B25)]),
+              border: Border.all(color: const Color(0xFFE3B13E), width: 1.5),
+            ),
+            child: Stack(alignment: Alignment.bottomCenter, children: <Widget>[
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 24,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                    gradient: RadialGradient(center: const Alignment(0, 1), radius: 1.2, colors: <Color>[const Color(0xFFFF9A3C).withOpacity(.85), Colors.transparent]),
+                  ),
+                ),
+              ),
+              Padding(padding: const EdgeInsets.only(bottom: 6), child: buildSmartImage(p.image, width: 58, height: 50, fit: BoxFit.contain)),
+            ]),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+              Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.fraunces(fontSize: 15.5, fontWeight: FontWeight.w600, color: const Color(0xFFF4EFE2))),
+              const SizedBox(height: 2),
+              Text(
+                <String>[if (p.madeLabel.isNotEmpty) p.madeLabel, if (p.batch.isNotEmpty) p.batch].join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFFFFB37A)),
+              ),
+              if (v != null) ...<Widget>[
+                const SizedBox(height: 3),
+                Row(children: <Widget>[
+                  Text('₹${v.price}', style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white)),
+                  if (v.mrp > v.price)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 5),
+                      child: Text('₹${v.mrp}', style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFFC9A890), decoration: TextDecoration.lineThrough)),
+                    ),
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: Text('· ${v.label}', maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFFE9C7A8))),
+                    ),
+                  ),
+                ]),
+              ],
+            ]),
+          ),
+          Icon(on ? Icons.local_fire_department_rounded : Icons.chevron_right_rounded, color: on ? const Color(0xFFFF8A3C) : const Color(0xFFF6C453), size: 24),
+        ]),
+      ),
+    );
+  }
 }

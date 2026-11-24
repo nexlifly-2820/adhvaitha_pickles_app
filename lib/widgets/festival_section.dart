@@ -5,6 +5,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'love_button.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
@@ -519,10 +520,15 @@ class _FestivalSectionState extends State<FestivalSection> {
                   ),
                 Positioned(
                   right: 4 * s, top: 2 * s,
-                  child: GestureDetector(
-                    onTap: () => widget.onWishlist?.call(p),
-                    child: Icon(Icons.favorite_border, color: Colors.white, size: 18 * s,
-                        shadows: const [Shadow(color: Colors.black45, blurRadius: 3)]),
+                  child: LoveButton(
+                    name: p.name,
+                    image: p.image,
+                    price: p.price.toDouble(),
+                    category: 'Festival Specials',
+                    size: 18 * s,
+                    fillColor: const Color(0xFFFF2D6F),
+                    outlineColor: Colors.white,
+                    shadows: const [Shadow(color: Colors.black45, blurRadius: 3)],
                   ),
                 ),
               ]),

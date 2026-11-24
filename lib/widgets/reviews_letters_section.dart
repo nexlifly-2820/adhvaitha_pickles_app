@@ -332,7 +332,11 @@ class _ReviewsLettersSectionState extends State<ReviewsLettersSection> with Tick
               ),
           ]),
           const Spacer(),
-          GestureDetector(onTap: widget.onSeeAll,
+          GestureDetector(onTap: widget.onSeeAll ?? () {
+                HapticFeedback.lightImpact();
+                Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ReviewsAllPage(
+                    settings: s, items: _items, avg: _avg, count: _count, onWrite: widget.onWrite)));
+              },
               child: Text('${s.seeAllLabel} ${_fmt(_count)} →', style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w600, color: s.gold))),
           const SizedBox(width: 14),
           _ShineButton(label: s.writeLabel, shine: _shine, onTap: widget.onWrite),
@@ -752,4 +756,385 @@ class _RingTextPainter extends CustomPainter {
   }
   @override
   bool shouldRepaint(covariant _RingTextPainter o) => o.text != text || o.color != color;
+}
+
+
+// ───────────────────────────── "See all" page ─────────────────────────────
+/// "Every letter we got" — same emerald wall + thoranam; rating summary, filters and
+/// every review as a swinging letter on a clothespin (2 staggered columns).
+class ReviewsAllPage extends StatefulWidget {
+  final ReviewsSettings settings;
+  final List<ReviewLetter> items;
+  final double avg;
+  final int count;
+  final VoidCallback? onWrite;
+  const ReviewsAllPage({super.key, required this.settings, required this.items, required this.avg, required this.count, this.onWrite});
+  @override
+  State<ReviewsAllPage> createState() => _ReviewsAllPageState();
+}
+
+class _ReviewsAllPageState extends State<ReviewsAllPage> with TickerProviderStateMixin {
+  late final AnimationController _swing = AnimationController(vsync: this, duration: const Duration(milliseconds: 3400))..repeat();
+  late final AnimationController _in = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..forward();
+  String _filter = 'all'; // all | five | photos | product:<name>
+
+  @override
+  void dispose() {
+    _swing.dispose();
+    _in.dispose();
+    super.dispose();
+  }
+
+  List<ReviewLetter> get _shown {
+    final List<ReviewLetter> all = widget.items;
+    if (_filter == 'five') return all.where((ReviewLetter r) => r.stars >= 5).toList();
+    if (_filter == 'photos') return all.where((ReviewLetter r) => r.photoUrl.isNotEmpty).toList();
+    if (_filter.startsWith('product:')) {
+      final String p = _filter.substring(8);
+      return all.where((ReviewLetter r) => r.productName == p).toList();
+    }
+    return all;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ReviewsSettings s = widget.settings;
+    final double top = MediaQuery.of(context).padding.top;
+    final List<ReviewLetter> shown = _shown;
+    final List<ReviewLetter> left = <ReviewLetter>[for (int i = 0; i < shown.length; i += 2) shown[i]];
+    final List<ReviewLetter> right = <ReviewLetter>[for (int i = 1; i < shown.length; i += 2) shown[i]];
+    return Scaffold(
+      backgroundColor: s.wallBottom,
+      body: Stack(children: <Widget>[
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: <Color>[s.wallTop, s.wallMid, s.wallBottom], stops: const <double>[0, .4, 1]),
+            ),
+          ),
+        ),
+        CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: <Widget>[
+            SliverToBoxAdapter(child: SizedBox(height: top + 6)),
+            SliverToBoxAdapter(child: AnimatedBuilder(animation: _swing, builder: (_, __) => SizedBox(height: 40, child: CustomPaint(painter: _ToranPainter(_swing.value))))),
+            SliverToBoxAdapter(child: _header(s)),
+            SliverToBoxAdapter(child: _summary(s)),
+            SliverToBoxAdapter(child: _chips(s)),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 30, 12, 0),
+                child: shown.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40),
+                        child: Text('No letters here yet', textAlign: TextAlign.center, style: GoogleFonts.kalam(fontSize: 16, color: const Color(0xFFC9DCD3))),
+                      )
+                    : Row(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+                        Expanded(child: Column(children: <Widget>[for (int i = 0; i < left.length; i++) _letter(left[i], i * 2)])),
+                        const SizedBox(width: 12),
+                        Expanded(child: Padding(padding: const EdgeInsets.only(top: 36), child: Column(children: <Widget>[for (int i = 0; i < right.length; i++) _letter(right[i], i * 2 + 1)]))),
+                      ]),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
+                child: Column(children: <Widget>[
+                  Text('That\'s every letter so far — thank you for writing to us 💛', textAlign: TextAlign.center, style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFFC9DCD3))),
+                  const SizedBox(height: 12),
+                  _writeBtn(s, big: true),
+                ]),
+              ),
+            ),
+          ],
+        ),
+        Positioned(
+          top: top + 8,
+          left: 14,
+          child: GestureDetector(
+            onTap: () => Navigator.maybePop(context),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black.withOpacity(.3), border: Border.all(color: s.gold, width: 1.5)),
+              child: Icon(Icons.chevron_left_rounded, color: s.gold, size: 26),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _writeBtn(ReviewsSettings s, {bool big = false}) => GestureDetector(
+        onTap: widget.onWrite,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: big ? 22 : 14, vertical: big ? 12 : 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(big ? 16 : 14),
+            gradient: const LinearGradient(colors: <Color>[Color(0xFFFFE6A6), Color(0xFFE2AE4E)]),
+            boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x66000000), blurRadius: 14, offset: Offset(0, 6), spreadRadius: -6)],
+          ),
+          child: Text(big ? s.writeLabel : '✍️ Write a letter', style: GoogleFonts.poppins(fontSize: big ? 13 : 11, fontWeight: FontWeight.w700, color: const Color(0xFF4A2A10))),
+        ),
+      );
+
+  Widget _header(ReviewsSettings s) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+        child: Column(children: <Widget>[
+          Text(s.eyebrow, style: GoogleFonts.poppins(fontSize: 9.5, letterSpacing: 3, fontWeight: FontWeight.w700, color: s.accent)),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text.rich(TextSpan(children: <InlineSpan>[
+              TextSpan(text: 'Every ', style: GoogleFonts.playfairDisplay(fontSize: 28, fontWeight: FontWeight.w700, color: const Color(0xFFFBEFDC))),
+              TextSpan(text: 'letter', style: GoogleFonts.playfairDisplay(fontSize: 28, fontStyle: FontStyle.italic, fontWeight: FontWeight.w700, color: s.accent)),
+              TextSpan(text: ' we got', style: GoogleFonts.playfairDisplay(fontSize: 28, fontWeight: FontWeight.w700, color: const Color(0xFFFBEFDC))),
+            ])),
+          ),
+          const SizedBox(height: 8),
+          _writeBtn(s),
+        ]),
+      );
+
+  Widget _summary(ReviewsSettings s) {
+    final int n = widget.items.length;
+    int c(int k) => widget.items.where((ReviewLetter r) => r.stars == k).length;
+    final double avg = widget.avg > 0 ? widget.avg : (n == 0 ? 0 : widget.items.fold<int>(0, (int a, ReviewLetter r) => a + r.stars) / n);
+    final int total = widget.count > 0 ? widget.count : n;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.black.withOpacity(.25), borderRadius: BorderRadius.circular(18), border: Border.all(color: s.gold.withOpacity(.3))),
+      child: Row(children: <Widget>[
+        Container(
+          width: 74,
+          height: 74,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const SweepGradient(colors: <Color>[Color(0xFFB8862E), Color(0xFFFFE7A8), Color(0xFFD9A441), Color(0xFFFFF1C4), Color(0xFFB8862E)]),
+            boxShadow: <BoxShadow>[BoxShadow(color: const Color(0xFFFFBE5A).withOpacity(.3), blurRadius: 24)],
+          ),
+          child: Container(
+            decoration: const BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: <Color>[Color(0xFFFFF4D2), Color(0xFFE8BE62), Color(0xFFC9963A)], stops: <double>[0, .7, 1])),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
+              Text(avg.toStringAsFixed(1), style: GoogleFonts.playfairDisplay(fontSize: 22, height: 1, fontWeight: FontWeight.w700, color: const Color(0xFF4A2A10))),
+              Text('★★★★★', style: TextStyle(fontSize: 7.5, color: const Color(0xFF8A5A10).withOpacity(.9))),
+            ]),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+            for (final int k in <int>[5, 4, 3, 2])
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(children: <Widget>[
+                  SizedBox(width: 18, child: Text('$k★', style: GoogleFonts.poppins(fontSize: 9.5, color: const Color(0xFFFBEFDC)))),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: SizedBox(
+                        height: 5,
+                        child: Stack(children: <Widget>[
+                          Container(color: Colors.white.withOpacity(.15)),
+                          FractionallySizedBox(alignment: Alignment.centerLeft, widthFactor: n == 0 ? 0 : (c(k) / n * _in.value).clamp(0.0, 1.0), child: Container(color: s.gold)),
+                        ]),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 34, child: Text('${n == 0 ? 0 : (c(k) * 100 / n).round()}%', textAlign: TextAlign.right, style: GoogleFonts.poppins(fontSize: 9.5, color: const Color(0xFFC9DCD3)))),
+                ]),
+              ),
+            const SizedBox(height: 3),
+            Text('from ${total.toString()} verified buyers', style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFFC9DCD3))),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  Widget _chips(ReviewsSettings s) {
+    final List<String> products = <String>[];
+    for (final ReviewLetter r in widget.items) {
+      if (r.productName.isNotEmpty && !products.contains(r.productName)) products.add(r.productName);
+    }
+    final List<MapEntry<String, String>> chips = <MapEntry<String, String>>[
+      const MapEntry<String, String>('all', 'All'),
+      const MapEntry<String, String>('five', '5★ only'),
+      if (widget.items.any((ReviewLetter r) => r.photoUrl.isNotEmpty)) const MapEntry<String, String>('photos', '📷 With photos'),
+      for (final String p in products.take(6)) MapEntry<String, String>('product:$p', p),
+    ];
+    return SizedBox(
+      height: 46,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        children: <Widget>[
+          for (final MapEntry<String, String> c in chips)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() => _filter = c.key);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _filter == c.key ? s.accent : Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _filter == c.key ? Colors.transparent : s.gold.withOpacity(.35)),
+                  ),
+                  child: Text(c.value, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: _filter == c.key ? s.wallMid : const Color(0xFFFBEFDC))),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _letter(ReviewLetter r, int i) {
+    return AnimatedBuilder(
+      animation: Listenable.merge(<Listenable>[_swing, _in]),
+      builder: (_, Widget? child) {
+        final double appear = Curves.easeOut.transform(((_in.value - math.min(i, 8) * .06) / .5).clamp(0.0, 1.0));
+        final double ang = math.sin((_swing.value + i * .23) * 2 * math.pi) * 2.2 * math.pi / 180;
+        return Opacity(
+          opacity: appear,
+          child: Transform.rotate(angle: ang, alignment: const Alignment(0, -1.1), child: child),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 30),
+        child: Stack(clipBehavior: Clip.none, children: <Widget>[
+          ClipPath(
+            clipper: _TornEdge(),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(12, 18, 12, 16),
+              decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: <Color>[Color(0xFFFFFBF1), Color(0xFFFBF0DA)])),
+              child: CustomPaint(
+                painter: _RulePainter(),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+                  if (r.productName.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(color: r.tagBg, borderRadius: BorderRadius.circular(6)),
+                      child: Text(r.productName.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(fontSize: 8, fontWeight: FontWeight.w700, color: r.tagFg)),
+                    ),
+                  const SizedBox(height: 4),
+                  Text('★' * r.stars.clamp(1, 5), style: const TextStyle(fontSize: 11, letterSpacing: 1, color: Color(0xFFE39B1C))),
+                  const SizedBox(height: 3),
+                  Text(r.text, style: GoogleFonts.kalam(fontSize: 12.5, height: 1.45, color: const Color(0xFF24325E))),
+                  if (r.photoUrl.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 8),
+                    Center(child: Transform.rotate(angle: -3 * math.pi / 180, child: _Polaroid(url: r.photoUrl, caption: r.photoCaption))),
+                  ],
+                  const SizedBox(height: 6),
+                  Text('— ${r.name}', style: GoogleFonts.dancingScript(fontSize: 17, height: 1, fontWeight: FontWeight.w700, color: const Color(0xFF1F3A8A))),
+                  if (r.meta.isNotEmpty) Text(r.meta, style: GoogleFonts.poppins(fontSize: 8.5, color: const Color(0xFF8A7660))),
+                ]),
+              ),
+            ),
+          ),
+          // wooden clothespin
+          Positioned(
+            top: -16,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                width: 13,
+                height: 30,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(2), bottom: Radius.circular(4)),
+                  gradient: const LinearGradient(colors: <Color>[Color(0xFF8C5A2B), Color(0xFFD9A866), Color(0xFFA8743C)], stops: <double>[0, .45, 1]),
+                  boxShadow: <BoxShadow>[BoxShadow(color: Colors.black.withOpacity(.4), blurRadius: 3, offset: const Offset(0, 2))],
+                ),
+              ),
+            ),
+          ),
+          if (r.verified)
+            Positioned(
+              right: 6,
+              top: 6,
+              child: Transform.rotate(
+                angle: -14 * math.pi / 180,
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF2E7D32).withOpacity(.8), width: 1.3)),
+                  alignment: Alignment.center,
+                  child: Text('VERIFIED\nBUYER', textAlign: TextAlign.center, style: GoogleFonts.poppins(fontSize: 5.5, height: 1.1, fontWeight: FontWeight.w700, color: const Color(0xFF2E7D32))),
+                ),
+              ),
+            ),
+        ]),
+      ),
+    );
+  }
+}
+
+class _TornEdge extends CustomClipper<Path> {
+  @override
+  Path getClip(Size s) {
+    final Path p = Path()..lineTo(s.width, 0)..lineTo(s.width, s.height - 6);
+    const int n = 8;
+    for (int i = n; i >= 0; i--) {
+      p.lineTo(s.width * i / n, i.isEven ? s.height : s.height - 6);
+    }
+    return p..close();
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+class _RulePainter extends CustomPainter {
+  @override
+  void paint(Canvas c, Size s) {
+    final Paint p = Paint()..color = const Color(0x1424325E)..strokeWidth = 1;
+    for (double y = 22; y < s.height; y += 22) {
+      c.drawLine(Offset(0, y), Offset(s.width, y), p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _ToranPainter extends CustomPainter {
+  final double t;
+  _ToranPainter(this.t);
+  @override
+  void paint(Canvas c, Size s) {
+    final Rect bar = Rect.fromLTWH(0, 0, s.width, 6);
+    c.drawRect(bar, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: <Color>[Color(0xFFD8B47A), Color(0xFF9C7440)]).createShader(bar));
+    const int n = 13;
+    for (int i = 0; i < n; i++) {
+      final double x = 10 + (s.width - 20) * i / (n - 1);
+      final double sway = math.sin((t + i * .15) * 2 * math.pi) * .14;
+      c.save();
+      c.translate(x, 5);
+      c.rotate(sway);
+      if (i % 3 == 2) {
+        c.drawCircle(const Offset(0, 10), 8, Paint()..shader = const RadialGradient(colors: <Color>[Color(0xFFFFD54F), Color(0xFFFB8C00), Color(0xFFE65100)], stops: <double>[0, .7, 1]).createShader(Rect.fromCircle(center: const Offset(0, 10), radius: 8)));
+      } else {
+        final Path leaf = Path()
+          ..moveTo(0, 0)
+          ..quadraticBezierTo(9, 12, 0, 28)
+          ..quadraticBezierTo(-9, 12, 0, 0);
+        c.drawPath(leaf, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: <Color>[Color(0xFF5DBB63), Color(0xFF1F7A35)]).createShader(const Rect.fromLTWH(-9, 0, 18, 28)));
+        c.drawLine(const Offset(0, 2), const Offset(0, 26), Paint()..color = const Color(0x553A6B2A)..strokeWidth = .8);
+      }
+      c.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ToranPainter o) => o.t != t;
 }

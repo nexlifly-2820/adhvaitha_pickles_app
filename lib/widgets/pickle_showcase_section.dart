@@ -70,6 +70,7 @@ class _PickleShowcaseSectionState extends State<PickleShowcaseSection> with Sing
   Duration _last = Duration.zero;
   double _ms = 0; // playback clock
   double _holdMs = 0; // pause after the user taps a weight
+  int _cur = 0; // product shown — changes only when the user taps a thumbnail / swipes
   bool _firstPass = true;
   final Map<int, int> _sel = <int, int>{}; // item index → chosen weight
   List<ShowcaseItem> _items = <ShowcaseItem>[];
@@ -191,10 +192,23 @@ class _PickleShowcaseSectionState extends State<PickleShowcaseSection> with Sing
     } else {
       _ms += dt;
     }
-    final int cycle = _cycle;
-    if (cycle > 0 && _ms >= cycle) {
-      _ms -= cycle;
-      _firstPass = false;
+    // stay on the current product: its own photos keep their slow camera move,
+    // but it never moves on to the next product by itself
+    if (_items.isNotEmpty) {
+      if (_cur >= _items.length) _cur = 0;
+      final ShowcaseItem it = _items[_cur];
+      final double start = _startOf(_cur).toDouble();
+      final double end = start + it.totalMs;
+      if (_ms >= end) {
+        if (it.shots.length > 1) {
+          // loop this product's photos (skip the intro so the name doesn't re-animate)
+          final double loopStart = start + it.shots.first.ms;
+          final double loopLen = end - loopStart;
+          _ms = loopStart + ((_ms - end) % loopLen);
+        } else {
+          _ms = end - 1;
+        }
+      }
     }
     if (mounted) setState(() {});
   }
@@ -210,7 +224,10 @@ class _PickleShowcaseSectionState extends State<PickleShowcaseSection> with Sing
   }
 
   void _jump(int idx) {
+    if (_items.isEmpty) return;
+    idx = (idx % _items.length + _items.length) % _items.length;
     setState(() {
+      _cur = idx;
       _ms = _startOf(idx).toDouble();
       _holdMs = 0;
       _firstPass = false;
@@ -293,6 +310,11 @@ class _PickleShowcaseSectionState extends State<PickleShowcaseSection> with Sing
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => widget.onOpenProduct?.call(it),
+            // swipe left / right to change product
+            onHorizontalDragEnd: (DragEndDetails d) {
+              final double v = d.primaryVelocity ?? 0;
+              if (v.abs() > 200 && _items.length > 1) _jump(v < 0 ? p + 1 : p - 1);
+            },
             child: ShaderMask(
               blendMode: BlendMode.dstIn,
               shaderCallback: (Rect r) => const LinearGradient(

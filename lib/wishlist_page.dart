@@ -134,9 +134,7 @@ class _WishlistPageState extends State<WishlistPage> with TickerProviderStateMix
     if (!mounted) return;
     final localItems = WishlistManager().items.map((p) => WishItem.fromProduct(p)).toList();
     setState(() {
-      if (localItems.isNotEmpty) {
-        _items = localItems;
-      }
+      _items = localItems;
       _loading = false;
     });
   }

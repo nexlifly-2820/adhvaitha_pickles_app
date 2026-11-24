@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'love_button.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models.dart';
@@ -13,6 +14,7 @@ import '../product_listing_page.dart';
 import '../navigation_util.dart';
 import '../product_manager.dart';
 import '../app_config_repository.dart';
+import '../image_util.dart';
 
 // ============================ MODELS ============================
 
@@ -156,6 +158,11 @@ class SpiceGrinderSection extends StatefulWidget {
   final ValueChanged<SpProduct>? onWishlist;
   final Set<String> wishlisted;
   final VoidCallback? onViewAll;
+  // used by the "View all" page
+  final bool fullScreen;
+  final bool showViewAll;
+  final ValueNotifier<int>? selector; // set a value to grind that product
+  final ValueChanged<int>? onIndexChanged;
 
   const SpiceGrinderSection({
     super.key,
@@ -165,6 +172,10 @@ class SpiceGrinderSection extends StatefulWidget {
     this.onWishlist,
     this.wishlisted = const {},
     this.onViewAll,
+    this.fullScreen = false,
+    this.showViewAll = true,
+    this.selector,
+    this.onIndexChanged,
   });
 
   @override
@@ -191,13 +202,8 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
     super.initState();
     _prepare();
     _listenToSpicesConfig();
-    _t.addStatusListener((s) {
-      if (s == AnimationStatus.completed && _p.length > 1) {
-        _goTo((_cur + 1) % _p.length);
-      } else if (s == AnimationStatus.completed) {
-        _t.forward(from: _kRise);
-      }
-    });
+    // No auto-advance: after the grind the podi + card stay; the user changes product.
+    widget.selector?.addListener(_onSelector);
     WidgetsBinding.instance.addPostFrameCallback((_) => _t.forward(from: _kSink));
   }
 
@@ -240,9 +246,15 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
     }
   }
 
+  void _onSelector() {
+    final int i = widget.selector!.value;
+    if (i >= 0 && i < _p.length) _goTo(i, user: true);
+  }
+
   void _goTo(int i, {bool user = false}) {
     if (!mounted || _p.isEmpty) return;
     setState(() => _cur = i % _p.length);
+    widget.onIndexChanged?.call(_cur);
     _prepare();
     _t.forward(from: 0);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -283,6 +295,7 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
 
   @override
   void dispose() {
+    widget.selector?.removeListener(_onSelector);
     _sub?.cancel();
     _t.dispose();
     _loop.dispose();
@@ -327,12 +340,13 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
     if (!d.enabled || _p.isEmpty) return const SizedBox.shrink();
     final p = _p[_cur];
 
+    final bool fs = widget.fullScreen;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 900),
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      margin: fs ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(fs ? 0 : 30),
         gradient: RadialGradient(
           center: const Alignment(0, -.15),
           radius: 1.0,
@@ -349,8 +363,7 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
             AnimatedBuilder(animation: _t, builder: (_, __) {
               // card slides up after the podi rises, fades out just before the next cycle
               final double rise = Curves.easeOutBack.transform(_seg(_t.value, _kRise + .05, _kRise + .15));
-              final double fadeOut = 1 - _seg(_t.value, .96, 1.0);
-              final double show = (rise * fadeOut).clamp(0.0, 1.0);
+              final double show = rise.clamp(0.0, 1.0); // card stays until the user changes product
               return Opacity(opacity: show,
                   child: Transform.translate(offset: Offset(0, 16 * (1 - show)), child: _card(p)));
             }),
@@ -407,15 +420,16 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
                 ],
               ),
             ),
-            GestureDetector(
+            if (widget.showViewAll) GestureDetector(
               onTap: () {
                 HapticFeedback.lightImpact();
                 if (widget.onViewAll != null) {
                   widget.onViewAll!();
                 } else {
+                  // open the full spices page with the same grinder scene
                   AppNavigator.push(
                     context,
-                    const ProductListingPage(category: 'Spices'),
+                    SpiceAllPage(data: _effectiveData, initialIndex: _cur, onOpen: widget.onOpen, onAdd: widget.onAdd, onWishlist: widget.onWishlist, wishlisted: widget.wishlisted),
                   );
                 }
               },
@@ -440,10 +454,29 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
         ),
       );
 
+  Widget _arrowBtn(IconData icon, VoidCallback onTap) => GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black.withOpacity(.3),
+            border: Border.all(color: const Color(0xFFFFF3D6).withOpacity(.85), width: 1.5),
+            boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 10, offset: Offset(0, 4))],
+          ),
+          child: Icon(icon, color: const Color(0xFFFFF3D6), size: 26),
+        ),
+      );
+
   Widget _stage(SpProduct p) {
     return SizedBox(
       height: _stageH,
-      child: LayoutBuilder(
+      child: Stack(children: [
+       Positioned.fill(child: LayoutBuilder(
         builder: (_, box) {
           final cx = box.maxWidth / 2;
           const mW = 184.0, mH = 120.0;
@@ -891,7 +924,21 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
             ),
           );
         },
-      ),
+      )),
+       // ‹ › arrows to change the spice
+       if (_p.length > 1)
+         Positioned(
+           left: 8,
+           top: _stageH / 2 - 20,
+           child: _arrowBtn(Icons.chevron_left_rounded, () => _goTo(_cur - 1 + _p.length, user: true)),
+         ),
+       if (_p.length > 1)
+         Positioned(
+           right: 8,
+           top: _stageH / 2 - 20,
+           child: _arrowBtn(Icons.chevron_right_rounded, () => _goTo(_cur + 1, user: true)),
+         ),
+      ]),
     );
   }
 
@@ -1010,26 +1057,16 @@ class _SpiceGrinderSectionState extends State<SpiceGrinderSection>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    GestureDetector(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        if (widget.onWishlist != null) {
-                          widget.onWishlist!(p);
-                        }
-                      },
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle, color: Color(0xFFFBE9E2)),
-                        child: Icon(
-                          widget.wishlisted.contains(p.id)
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          size: 17,
-                          color: const Color(0xFFC0392B),
-                        ),
-                      ),
+                    LoveButton(
+                      name: p.name,
+                      image: p.image,
+                      price: p.variants.isNotEmpty ? p.variants.first.price.toDouble() : 0,
+                      category: 'Masalas',
+                      size: 17,
+                      box: 32,
+                      circleColor: const Color(0xFFFBE9E2),
+                      fillColor: const Color(0xFFE0245E),
+                      outlineColor: const Color(0xFFC0392B),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -1711,4 +1748,180 @@ class _DustOffPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DustOffPainter o) => o.t != t;
+}
+
+
+// ============================ VIEW ALL PAGE ============================
+/// "View all": the exact same grinder scene at the top; every spice listed below —
+/// tap one and it is ground fresh in the mortar like on the home page.
+class SpiceAllPage extends StatefulWidget {
+  final SpiceData data;
+  final int initialIndex;
+  final ValueChanged<SpProduct>? onOpen;
+  final Future<void> Function(SpProduct, SpVariant)? onAdd;
+  final ValueChanged<SpProduct>? onWishlist;
+  final Set<String> wishlisted;
+  const SpiceAllPage({super.key, required this.data, this.initialIndex = 0, this.onOpen, this.onAdd, this.onWishlist, this.wishlisted = const {}});
+
+  @override
+  State<SpiceAllPage> createState() => _SpiceAllPageState();
+}
+
+class _SpiceAllPageState extends State<SpiceAllPage> {
+  final ValueNotifier<int> _sel = ValueNotifier<int>(-1);
+  final ScrollController _scroll = ScrollController();
+  int _cur = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialIndex > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _sel.value = widget.initialIndex;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _sel.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _pick(int i) {
+    if (i == _cur) return;
+    HapticFeedback.selectionClick();
+    if (_scroll.hasClients) {
+      _scroll.animateTo(0, duration: const Duration(milliseconds: 450), curve: Curves.easeOutCubic);
+    }
+    _sel.value = -1;
+    _sel.value = i;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<SpProduct> ps = widget.data.products;
+    final double top = MediaQuery.of(context).padding.top;
+    if (ps.isEmpty) return const Scaffold(backgroundColor: Color(0xFF140A06));
+    final SpProduct cp = ps[_cur.clamp(0, ps.length - 1)];
+    return Scaffold(
+      backgroundColor: const Color(0xFF140A06),
+      body: Stack(children: <Widget>[
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 900),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: <Color>[cp.glow, const Color(0xFF140A06)]),
+          ),
+        ),
+        ListView(
+          controller: _scroll,
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.only(top: top + 44, bottom: 110),
+          children: <Widget>[
+            SpiceGrinderSection(
+              data: widget.data,
+              onOpen: widget.onOpen,
+              onAdd: widget.onAdd,
+              onWishlist: widget.onWishlist,
+              wishlisted: widget.wishlisted,
+              fullScreen: true,
+              showViewAll: false,
+              selector: _sel,
+              onIndexChanged: (int i) => setState(() => _cur = i),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
+              child: Row(children: <Widget>[
+                Text('ALL SPICES', style: GoogleFonts.poppins(fontSize: 10, letterSpacing: 2.5, fontWeight: FontWeight.w700, color: const Color(0xFFFFF3D6))),
+                const Spacer(),
+                Text('${ps.length} ground fresh', style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xE6FFE9D6))),
+              ]),
+            ),
+            for (int i = 0; i < ps.length; i++) _row(ps[i], i),
+          ],
+        ),
+        Positioned(
+          top: top + 8,
+          left: 14,
+          child: GestureDetector(
+            onTap: () => Navigator.maybePop(context),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black.withOpacity(.35),
+                border: Border.all(color: const Color(0xFFFFF3D6).withOpacity(.85), width: 1.5),
+              ),
+              child: const Icon(Icons.chevron_left_rounded, color: Color(0xFFFFF3D6), size: 26),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _row(SpProduct p, int i) {
+    final bool on = i == _cur;
+    final SpVariant? v = p.variants.isEmpty ? null : p.variants.first;
+    return GestureDetector(
+      onTap: () => _pick(i),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+        padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: on ? p.accent.withOpacity(.28) : Colors.white.withOpacity(.07),
+          border: Border.all(color: on ? const Color(0xFFFFF3D6) : const Color(0xFFFFF3D6).withOpacity(.2)),
+        ),
+        child: Row(children: <Widget>[
+          // small stone-mortar thumbnail tinted with the spice colour
+          Container(
+            width: 66,
+            height: 66,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: RadialGradient(center: const Alignment(0, .3), colors: <Color>[p.accent, p.glow, const Color(0xFF140A06)], stops: const <double>[0, .6, 1]),
+              border: Border.all(color: const Color(0xFFFFF3D6).withOpacity(.4)),
+            ),
+            alignment: Alignment.center,
+            child: buildSmartImage(p.image, width: 56, height: 56, fit: BoxFit.contain),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+              Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.fraunces(fontSize: 15.5, fontWeight: FontWeight.w600, color: Colors.white)),
+              const SizedBox(height: 2),
+              Text(
+                '${p.heat > 0 ? '🌶' * p.heat.clamp(1, 3) + '  ' : ''}${p.tagline}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xE6FFE9D6)),
+              ),
+              if (v != null) ...<Widget>[
+                const SizedBox(height: 3),
+                Row(children: <Widget>[
+                  Text('₹${v.price}', style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white)),
+                  if (v.mrp > v.price)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 5),
+                      child: Text('₹${v.mrp}', style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFFCCB8A8), decoration: TextDecoration.lineThrough)),
+                    ),
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: Text('· ${v.label}', maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xE6FFE9D6))),
+                    ),
+                  ),
+                ]),
+              ],
+            ]),
+          ),
+          Icon(on ? Icons.local_fire_department_rounded : Icons.chevron_right_rounded, color: const Color(0xFFFFF3D6), size: 24),
+        ]),
+      ),
+    );
+  }
 }

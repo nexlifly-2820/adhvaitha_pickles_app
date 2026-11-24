@@ -566,7 +566,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 const SpiceGrinderSection(),
                 const SectionTitle(TitleKind.heart),
                 _buildSweetsQuoteBanner(),
-                ComboHomeSection(apiBase: 'https://admin.adhvaithafoods.in/api', onAdded: () => AppNavigator.push(context, const CartPage())),
                 const SectionTitle(TitleKind.slowMade),
                 _buildMakingProcessSection(),
                 if (allProducts.any((p) => p.reviews.isNotEmpty)) const SectionTitle(TitleKind.families),
