@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'user_manager.dart';
 import 'dart:convert';
+import 'package:timezone/data/latest_all.dart' as tzdata;
+import 'smart_notifications.dart';
 
 class NotificationManager {
   static final NotificationManager _instance = NotificationManager._internal();
@@ -25,38 +27,64 @@ class NotificationManager {
   );
   bool _started = false;
 
+  // brand icon if it is in the build, otherwise the app icon (never let a missing icon block notifications)
+  String _icon = 'ic_stat_ambhujakshi';
+  bool _logoOk = true;
+
   Future<void> init() async {
     if (_started) return;
     _started = true;
-    try {
-      // channel used by notifications sent from the admin (also when the app is closed)
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(_channel);
-      await _localNotifications.initialize(
-        const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher'), iOS: DarwinInitializationSettings()),
-        onDidReceiveNotificationResponse: (NotificationResponse details) => debugPrint('Notification tapped: ${details.payload}'),
-      );
 
-      // Android 13+ needs this runtime permission, iOS asks too
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
+    // 1. receiving pushes comes first and must never depend on anything else
+    try {
+      FirebaseMessaging.onMessage.listen((RemoteMessage m) => _showLocalNotification(m));
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage m) => debugPrint('Opened from notification: ${m.data}'));
       await _fcm.requestPermission(alert: true, badge: true, sound: true);
       await _fcm.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
-
-      FirebaseMessaging.onMessage.listen(_showLocalNotification);
-      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage m) => debugPrint('Opened from notification: ${m.data}'));
-
-      // "All users" notifications
       await _fcm.subscribeToTopic('marketing');
+    } catch (e) {
+      debugPrint('FCM setup failed: $e');
+    }
 
-      // personal notifications: keep this phone's token linked to the signed-in customer
+    // 2. local notifications (used to show pushes while the app is open + reminders)
+    try {
+      final AndroidFlutterLocalNotificationsPlugin? android =
+          _localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      await android?.createNotificationChannel(_channel);
+      try {
+        await _localNotifications.initialize(
+          const InitializationSettings(android: AndroidInitializationSettings('ic_stat_ambhujakshi'), iOS: DarwinInitializationSettings()),
+          onDidReceiveNotificationResponse: (NotificationResponse d) => debugPrint('Notification tapped: ${d.payload}'),
+        );
+      } catch (e) {
+        debugPrint('Brand notification icon not in this build yet ($e) — using the app icon');
+        _icon = '@mipmap/ic_launcher';
+        _logoOk = false;
+        await _localNotifications.initialize(
+          const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher'), iOS: DarwinInitializationSettings()),
+          onDidReceiveNotificationResponse: (NotificationResponse d) => debugPrint('Notification tapped: ${d.payload}'),
+        );
+      }
+      await android?.requestNotificationsPermission();
+    } catch (e) {
+      debugPrint('Local notification setup failed: $e');
+    }
+
+    // 3. link this phone to the customer (personal + order notifications)
+    try {
       await updateToken();
       _fcm.onTokenRefresh.listen((_) => updateToken());
       FirebaseAuth.instance.authStateChanges().listen((_) => updateToken());
     } catch (e) {
-      debugPrint('Notification setup failed: $e');
+      debugPrint('Token setup failed: $e');
+    }
+
+    // 4. automatic reminders (cart, viewed, wishlist, after-order, we-miss-you)
+    try {
+      tzdata.initializeTimeZones();
+      await SmartNotifications.start(_localNotifications, _channel, icon: _icon, withLogo: _logoOk);
+    } catch (e) {
+      debugPrint('Smart reminders not started: $e');
     }
   }
 
@@ -93,37 +121,45 @@ class NotificationManager {
     BigPictureStyleInformation? bigPictureStyleInformation;
     if (imageUrl != null && imageUrl.isNotEmpty) {
       try {
-      final String largeIconPath = await _downloadAndSaveFile(imageUrl, 'largeIcon');
       final String bigPicturePath = await _downloadAndSaveFile(imageUrl, 'bigPicture');
 
       bigPictureStyleInformation = BigPictureStyleInformation(
         FilePathAndroidBitmap(bigPicturePath),
-        largeIcon: FilePathAndroidBitmap(largeIconPath),
+        hideExpandedLargeIcon: true,
         contentTitle: notification?.title,
         summaryText: notification?.body,
       );
       } catch (_) {}
     }
 
-    if (notification != null) {
-      await _localNotifications.show(
-        notification.hashCode,
-        notification.title,
-        notification.body,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            'high_importance_channel', 
-            'High Importance Notifications',
-            channelDescription: 'Used for important royal updates.',
-            importance: Importance.max,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
-            styleInformation: bigPictureStyleInformation,
-            playSound: true,
+    if (notification == null) return;
+    Future<void> show({required bool styled}) => _localNotifications.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              _channel.id,
+              _channel.name,
+              channelDescription: _channel.description,
+              importance: Importance.max,
+              priority: Priority.high,
+              icon: styled ? _icon : '@mipmap/ic_launcher',
+              largeIcon: styled && _logoOk ? const DrawableResourceAndroidBitmap('notification_logo') : null,
+              color: const Color(0xFF7A1426),
+              styleInformation: styled ? (bigPictureStyleInformation ?? BigTextStyleInformation(notification.body ?? '')) : null,
+              playSound: true,
+            ),
           ),
-        ),
-        payload: message.data.toString(),
-      );
+          payload: message.data.toString(),
+        );
+    try {
+      await show(styled: true);
+    } catch (e) {
+      debugPrint('Styled notification failed ($e) — showing a plain one');
+      try {
+        await show(styled: false);
+      } catch (_) {}
     }
   }
 }
