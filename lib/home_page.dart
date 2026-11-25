@@ -163,18 +163,40 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   String _formatPlace(Placemark p) {
     String clean(String? s) => (s ?? '').trim();
-    final List<String> area = <String>[clean(p.subLocality), clean(p.thoroughfare), clean(p.name)]
-        .where((String s) => s.isNotEmpty && !RegExp(r'^[0-9+ ]+$').hasMatch(s))
-        .toList();
-    final List<String> city = <String>[clean(p.locality), clean(p.subAdministrativeArea), clean(p.administrativeArea)]
-        .where((String s) => s.isNotEmpty)
-        .toList();
-    final String a = area.isNotEmpty ? area.first : '';
-    final String c = city.isNotEmpty ? city.first : '';
-    if (a.isNotEmpty && c.isNotEmpty && a.toLowerCase() != c.toLowerCase()) return '$a, $c';
-    if (c.isNotEmpty) return clean(p.postalCode).isNotEmpty ? '$c ${clean(p.postalCode)}' : c;
-    if (a.isNotEmpty) return a;
-    return clean(p.postalCode);
+    bool junk(String s) => s.isEmpty || RegExp(r'^[0-9+ ,-]+$').hasMatch(s) || RegExp(r'^[0-9A-Z]{4}\+[0-9A-Z]{2,}').hasMatch(s);
+    final String area = <String>[clean(p.subLocality), clean(p.subAdministrativeArea)].firstWhere((String s) => !junk(s), orElse: () => '');
+    final String city = <String>[clean(p.locality), clean(p.subAdministrativeArea), clean(p.administrativeArea)].firstWhere((String s) => !junk(s), orElse: () => '');
+    if (area.isNotEmpty && city.isNotEmpty && area.toLowerCase() != city.toLowerCase()) return '$area, $city';
+    if (city.isNotEmpty) return clean(p.postalCode).isNotEmpty ? '$city - ${clean(p.postalCode)}' : city;
+    return area;
+  }
+
+  /// Listens to the GPS for up to [max] and returns the first reading accurate to ~50 m
+  /// (or the most accurate one seen). Much better than a single quick reading.
+  Future<Position?> _accurateFix({Duration max = const Duration(seconds: 20)}) async {
+    Position? best;
+    final Completer<Position?> done = Completer<Position?>();
+    StreamSubscription<Position>? sub;
+    final Timer timer = Timer(max, () {
+      if (!done.isCompleted) done.complete(best);
+    });
+    try {
+      sub = Geolocator.getPositionStream(locationSettings: const LocationSettings(accuracy: LocationAccuracy.best, distanceFilter: 0)).listen(
+        (Position p) {
+          if (best == null || p.accuracy < best!.accuracy) best = p;
+          if (p.accuracy <= 50 && !done.isCompleted) done.complete(p);
+        },
+        onError: (Object _) {
+          if (!done.isCompleted) done.complete(best);
+        },
+      );
+    } catch (_) {
+      if (!done.isCompleted) done.complete(best);
+    }
+    final Position? res = await done.future;
+    timer.cancel();
+    await sub?.cancel();
+    return res;
   }
 
   Future<void> _determinePosition({bool fromTap = false}) async {
@@ -211,14 +233,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       }
       _locFix = '';
 
+      // Android 12+: if the user chose "Approximate", the position can be kilometres off
+      try {
+        if (await Geolocator.getLocationAccuracy() == LocationAccuracyStatus.reduced) {
+          _locFix = 'settings';
+          _setAddress('Turn on precise location');
+          return;
+        }
+      } catch (_) {}
+
       // 4. a FRESH GPS fix of where the phone is right now (best accuracy, retried once).
       //    The phone's cached "last known" position is only used if it is under 2 minutes old,
       //    because an older one can be a completely different place.
-      Position? pos;
-      for (final LocationAccuracy acc in <LocationAccuracy>[LocationAccuracy.best, LocationAccuracy.high]) {
+      Position? pos = await _accurateFix();
+      if (pos == null) {
         try {
-          pos = await Geolocator.getCurrentPosition(desiredAccuracy: acc, timeLimit: const Duration(seconds: 20));
-          break;
+          pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best, timeLimit: const Duration(seconds: 15));
         } catch (_) {}
       }
       if (pos == null) {
@@ -242,9 +272,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         }
       }
       String addr = '';
+      // the first result is the closest one; only use later ones if it has no area name
       for (final Placemark m in marks) {
-        addr = _formatPlace(m);
-        if (addr.contains(',')) break;
+        final String a = _formatPlace(m);
+        if (addr.isEmpty) addr = a;
+        if (a.contains(',')) {
+          addr = a;
+          break;
+        }
+        if ((m.subLocality ?? '').trim().isEmpty) continue;
       }
       if (addr.isEmpty) {
         _setAddress('Tap to detect location');
