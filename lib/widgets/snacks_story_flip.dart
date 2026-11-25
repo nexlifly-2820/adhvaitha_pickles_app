@@ -127,6 +127,8 @@ class _SnacksStoryFlipState extends State<SnacksStoryFlip> {
               padding: EdgeInsets.symmetric(horizontal: 20 * s),
               itemCount: displayItems.length,
               separatorBuilder: (_, __) => SizedBox(width: 16 * s),
+              cacheExtent: 800,
+              addRepaintBoundaries: true,
               itemBuilder: (_, int i) => _PotlamCard(item: displayItems[i], s: s, index: i, onAdd: widget.onAdd),
             ),
           ),
@@ -297,7 +299,7 @@ class _PotlamCardState extends State<_PotlamCard> with TickerProviderStateMixin 
       child: Column(children: <Widget>[
         SizedBox(
           height: 338 * s,
-          child: GestureDetector(
+          child: RepaintBoundary(child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: _toggle,
             child: AnimatedBuilder(
@@ -317,7 +319,7 @@ class _PotlamCardState extends State<_PotlamCard> with TickerProviderStateMixin 
                 );
               },
             ),
-          ),
+          )),
         ),
         SizedBox(height: 8 * s),
         _foot(s),
@@ -336,7 +338,8 @@ class _PotlamCardState extends State<_PotlamCard> with TickerProviderStateMixin 
           alignment: Alignment.bottomCenter,
           child: child,
         ),
-        child: SizedBox(
+        child: RepaintBoundary(
+          child: SizedBox(
           width: 166 * s,
           height: 312 * s,
           child: Stack(clipBehavior: Clip.none, alignment: Alignment.topCenter, children: <Widget>[
@@ -377,9 +380,12 @@ class _PotlamCardState extends State<_PotlamCard> with TickerProviderStateMixin 
             // newspaper cone
             Positioned(
               top: 80 * s,
-              child: CustomPaint(
-                size: Size(162 * s, 228 * s),
-                painter: _NewspaperConePainter(seed: it.name.hashCode, s: s),
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  size: Size(162 * s, 228 * s),
+                  isComplex: true,
+                  painter: _NewspaperConePainter(seed: it.name.hashCode, s: s),
+                ),
               ),
             ),
             // name tag
@@ -405,6 +411,7 @@ class _PotlamCardState extends State<_PotlamCard> with TickerProviderStateMixin 
               ),
             ),
           ]),
+        ),
         ),
       ),
       // heart
@@ -549,8 +556,15 @@ class _PotlamCardState extends State<_PotlamCard> with TickerProviderStateMixin 
   }
 
   Widget _img(String u) {
-    final String p = u.trim();
-    return buildSmartImage(bestImageFor(widget.item.name, p), fit: BoxFit.cover);
+    final String p = bestImageFor(widget.item.name, u.trim());
+    if (p.startsWith('assets/')) {
+      return Image.asset(p,
+          fit: BoxFit.cover,
+          cacheWidth: 520,
+          gaplessPlayback: true,
+          errorBuilder: (_, __, ___) => buildSmartImage(p, fit: BoxFit.cover));
+    }
+    return buildSmartImage(p, fit: BoxFit.cover);
   }
 }
 
@@ -559,6 +573,7 @@ class _NewspaperConePainter extends CustomPainter {
   final int seed;
   final double s;
   _NewspaperConePainter({required this.seed, required this.s});
+  TextPainter? _mast;
 
   @override
   void paint(Canvas c, Size z) {
@@ -583,10 +598,10 @@ class _NewspaperConePainter extends CustomPainter {
     c.drawRect(Offset.zero & z, Paint()..color = _kPaper);
 
     // masthead
-    final TextPainter mast = TextPainter(
+    final TextPainter mast = _mast ??= (TextPainter(
       text: TextSpan(text: 'The Amma Times', style: GoogleFonts.playfairDisplay(fontSize: 13.5 * s, fontWeight: FontWeight.w700, color: _kInk.withOpacity(.85))),
       textDirection: TextDirection.ltr,
-    )..layout();
+    )..layout());
     mast.paint(c, Offset((w - mast.width) / 2, 19 * s));
     final Paint rule = Paint()
       ..color = _kInk.withOpacity(.5)

@@ -47,6 +47,7 @@ import 'widgets/combo_box_section.dart';
 import 'widgets/combo_home_section.dart';
 import 'widgets/section_titles.dart';
 import 'widgets/offers_section.dart';
+import 'widgets/category_strip.dart';
 import 'widgets/recently_viewed_section.dart';
 import 'recently_viewed_store.dart';
 import 'product_lookup.dart';
@@ -74,6 +75,66 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _currentPage = 0;
   int _currentAdPage = 0;
   int _selectedCategoryIndex = 0;
+
+  // ---------- category strip → sections ----------
+  // 1 Pickles Paradise · 2 Snacks with Story · 3 Sweet Tooth Club · 4 Spice It Up · 5 Combos
+  // section anchors, by the "target" names used in Admin → Home Categories
+  final Map<String, GlobalKey> _secKeys = <String, GlobalKey>{
+    for (final String t in const <String>['pickles', 'snacks', 'sweets', 'podis', 'combos']) t: GlobalKey(),
+  };
+  bool _stripScrolling = false;
+  bool _stripPinned = false;
+
+  double get _stripBottom => MediaQuery.of(context).padding.top + kStripHeight;
+
+  double? _sectionTop(String t) {
+    final BuildContext? c = _secKeys[t]?.currentContext;
+    final RenderObject? r = c?.findRenderObject();
+    if (r is! RenderBox || !r.attached) return null;
+    return r.localToGlobal(Offset.zero).dy;
+  }
+
+  Future<void> _onStripTap(int i) async {
+    final List<StripCategory> cats = HomeCategoriesStore.items.value;
+    if (i < 0 || i >= cats.length) return;
+    final String t = cats[i].target;
+    if (t == 'shop' || t.isEmpty) {
+      MainScreen.of(context)?.setIndex(1); // → Shop tab
+      return;
+    }
+    if (t.startsWith('category:')) {
+      final String name = t.substring('category:'.length).trim();
+      AppNavigator.push(context, ProductListingPage(category: name.isEmpty ? cats[i].name : name));
+      return;
+    }
+    setState(() => _selectedCategoryIndex = i);
+    final double? top = _sectionTop(t);
+    if (top == null || !_scrollController.hasClients) return;
+    final double target = (_scrollController.offset + top - _stripBottom - 4)
+        .clamp(0.0, _scrollController.position.maxScrollExtent);
+    _stripScrolling = true;
+    await _scrollController.animateTo(target, duration: const Duration(milliseconds: 650), curve: Curves.easeInOutCubic);
+    _stripScrolling = false;
+  }
+
+  /// moves the red underline to the section currently under the strip
+  void _syncStripToScroll() {
+    if (_stripScrolling || !mounted) return;
+    final List<StripCategory> cats = HomeCategoriesStore.items.value;
+    final double line = _stripBottom + 80;
+    String? current;
+    double best = -1e9;
+    for (final String t in _secKeys.keys) {
+      final double? top = _sectionTop(t);
+      if (top != null && top <= line && top > best) {
+        best = top;
+        current = t;
+      }
+    }
+    int sel = current == null ? 0 : cats.indexWhere((StripCategory c) => c.target == current);
+    if (sel < 0) sel = 0;
+    if (sel != _selectedCategoryIndex) setState(() => _selectedCategoryIndex = sel);
+  }
   bool _showBackToTop = false;
   String _currentAddress = "Detecting location...";
   
@@ -120,9 +181,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.initState();
     _startConfigListeners();
     _determinePosition();
+    HomeCategoriesStore.load(); // admin-managed category strip
     ProductManager().addListener(_onProductUpdate);
     
     _scrollController.addListener(() {
+      _syncStripToScroll();
+      final double sb = MediaQuery.of(context).padding.top;
+      final double pinAt = sb + 420 * (MediaQuery.of(context).size.width / 390) - 22 - sb;
+      final bool pin = _scrollController.offset > pinAt;
+      if (pin != _stripPinned) setState(() => _stripPinned = pin);
       if (_scrollController.offset > 400 && !_showBackToTop) {
         setState(() => _showBackToTop = true);
       } else if (_scrollController.offset <= 400 && _showBackToTop) {
@@ -527,7 +594,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5EC),
-      body: CustomScrollView(
+      body: Stack(children: [
+        CustomScrollView(
         controller: _scrollController,
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -538,7 +606,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 final String headerVideoUrl = (homeVideoConfig['header_video_enabled'] == false)
                     ? ''
                     : (homeVideoConfig['header_video_url'] ?? homeVideoConfig['video_url'] ?? homeVideoConfig['header_video'] ?? homeVideoConfig['url'] ?? homeVideoConfig['video'] ?? 'https://media.nexlifly.in/videos/home-video.mp4').toString().trim();
-                return HomeHeader(
+                final double sb = MediaQuery.of(context).padding.top;
+                final double headerH = sb + 420 * (MediaQuery.of(context).size.width / 390);
+                const double overlap = 22; // strip tucks over the bottom of the header video
+                return SizedBox(
+                  height: headerH + kStripHeight - overlap,
+                  child: Stack(children: [
+                    Positioned(top: 0, left: 0, right: 0, height: headerH, child: HomeHeader(
                   key: ValueKey<String>('header-$headerVideoUrl'), // reload header when the link changes
                   videoUrl: headerVideoUrl,
                   location: _currentAddress,
@@ -560,6 +634,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     HeaderCategory('Combos', '🎁'),
                   ],
                   selectedCategory: _selectedCategoryIndex,
+                  showCategories: false, // categories now live in the white strip below
                   onLocationTap: () => _determinePosition(fromTap: true),
                   onWishlistTap: () => AppNavigator.push(context, const WishlistPage()),
                   onProfileTap: () => MainScreen.of(context)?.setIndex(4),
@@ -569,6 +644,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   onCategoryTap: (index) {
                     setState(() => _selectedCategoryIndex = index);
                   },
+                )),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      height: kStripHeight,
+                      child: CategoryStrip(selected: _selectedCategoryIndex, onTap: _onStripTap),
+                    ),
+                  ]),
                 );
               },
             ),
@@ -587,7 +671,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 _buildPerfectPairings(),
                 const SectionTitle(TitleKind.specials),
                 const SpecialsLightSection(items: []),
-                const SectionTitle(TitleKind.pickle),
+                KeyedSubtree(key: _secKeys['pickles'], child: const SectionTitle(TitleKind.pickle)),
                 PickleShowcaseSection(
                   apiBase: 'https://admin.adhvaithafoods.in/api',
                   onAddToCart: (item, variant) {
@@ -627,7 +711,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   },
                   onSeeAll: (cat) => AppNavigator.push(context, ProductListingPage(category: cat.name)),
                 ),
-                const SectionTitle(TitleKind.snackStory),
+                KeyedSubtree(key: _secKeys['snacks'], child: const SectionTitle(TitleKind.snackStory)),
                 const SnacksStoryFlip(items: []),
                 const SectionTitle(TitleKind.kadai),
                 const FreshPicksSection(),
@@ -642,9 +726,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     AppNavigator.push(context, ProductDetailPage(product: productFor(p.name, image: p.image, price: p.price.toDouble(), category: 'Festival Specials'), allProducts: allProducts));
                   },
                 ),
-                const SectionTitle(TitleKind.sweetTooth),
+                KeyedSubtree(key: _secKeys['sweets'], child: const SectionTitle(TitleKind.sweetTooth)),
                 const SweetsThaliSection(),
-                const SectionTitle(TitleKind.combo),
+                KeyedSubtree(key: _secKeys['combos'], child: const SectionTitle(TitleKind.combo)),
                 ComboHomeSection(apiBase: 'https://admin.adhvaithafoods.in/api', onAdded: () => AppNavigator.push(context, const CartPage())),
                 const SectionTitle(TitleKind.promise),
                 TrustPromiseSection(
@@ -653,7 +737,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
                 const SectionTitle(TitleKind.letters),
                 const ReviewsLettersSection(apiUrl: 'https://admin.adhvaithafoods.in/api/home/reviews'),
-                const SectionTitle(TitleKind.spice),
+                KeyedSubtree(key: _secKeys['podis'], child: const SectionTitle(TitleKind.spice)),
                 const SpiceGrinderSection(),
                 const SectionTitle(TitleKind.heart),
                 _buildSweetsQuoteBanner(),
@@ -669,6 +753,25 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         ],
       ),
+        // sticky copy of the strip once the real one scrolls off the top
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: IgnorePointer(
+            ignoring: !_stripPinned,
+            child: AnimatedSlide(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              offset: _stripPinned ? Offset.zero : const Offset(0, -1),
+              child: SizedBox(
+                height: kStripHeight + MediaQuery.of(context).padding.top,
+                child: CategoryStrip(selected: _selectedCategoryIndex, onTap: _onStripTap, topPad: MediaQuery.of(context).padding.top, shadow: true),
+              ),
+            ),
+          ),
+        ),
+      ]),
       floatingActionButton: _showBackToTop ? FloatingActionButton(
         onPressed: () => _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
         backgroundColor: const Color(0xFF18453B),

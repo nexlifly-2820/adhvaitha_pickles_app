@@ -345,6 +345,7 @@ class PairingHomeCard extends StatefulWidget {
 class _PairingHomeCardState extends State<PairingHomeCard> with SingleTickerProviderStateMixin {
   PairingData? _data;
   int _i = 0;
+  int _dir = 1; // 1 = next (slides in from the right), -1 = previous
   Timer? _timer;
   late AnimationController _beat;
 
@@ -367,14 +368,35 @@ class _PairingHomeCardState extends State<PairingHomeCard> with SingleTickerProv
       final PairingData? d = await _fetch(widget.apiBase, widget.headers);
       if (!mounted || d == null) return;
       setState(() => _data = d);
-      _timer?.cancel();
-      if (d.couples.length > 1) {
-        _timer = Timer.periodic(const Duration(milliseconds: 3200), (Timer t) {
-          if (mounted) setState(() => _i = (_i + 1) % d.couples.length);
-        });
-      }
+      // no auto-change: the couple only changes when the customer taps an arrow or swipes
     } catch (_) {}
   }
+
+  void _step(int dir) {
+    final PairingData? d = _data;
+    if (d == null || d.couples.length < 2) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      _dir = dir;
+      _i = (_i + dir + d.couples.length) % d.couples.length;
+    });
+  }
+
+  Widget _arrow(IconData icon, VoidCallback onTap) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            border: Border.all(color: const Color(0x8CC9963F), width: 1.2),
+            boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x33000000), blurRadius: 8, offset: Offset(0, 3))],
+          ),
+          child: Icon(icon, size: 20, color: _rose),
+        ),
+      );
 
   void _open() {
     final PairingData? d = _data;
@@ -404,6 +426,10 @@ class _PairingHomeCardState extends State<PairingHomeCard> with SingleTickerProv
           ),
           GestureDetector(
             onTap: _open,
+            onHorizontalDragEnd: (DragEndDetails e) {
+              final double v = e.primaryVelocity ?? 0;
+              if (v.abs() > 150) _step(v < 0 ? 1 : -1);
+            },
             child: LayoutBuilder(builder: (BuildContext ctx, BoxConstraints bc) {
               final double w = bc.maxWidth;
               return SizedBox(
@@ -428,7 +454,7 @@ class _PairingHomeCardState extends State<PairingHomeCard> with SingleTickerProv
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(color: const Color(0xFFFDE8EC), borderRadius: BorderRadius.circular(10)),
-                              child: Text('${d.couples.length} couples', style: GoogleFonts.poppins(fontSize: 9.5, fontWeight: FontWeight.w700, color: _rose)),
+                              child: Text(d.couples.length > 1 ? '${_i % d.couples.length + 1} of ${d.couples.length} couples' : '1 couple', style: GoogleFonts.poppins(fontSize: 9.5, fontWeight: FontWeight.w700, color: _rose)),
                             ),
                           ),
                           Positioned(
@@ -447,15 +473,31 @@ class _PairingHomeCardState extends State<PairingHomeCard> with SingleTickerProv
                             top: 108,
                             height: 160,
                             child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 500),
-                              transitionBuilder: (Widget ch, Animation<double> a) =>
-                                  FadeTransition(opacity: a, child: SlideTransition(position: Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero).animate(a), child: ch)),
+                              duration: const Duration(milliseconds: 520),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              // smooth side slide: new couple glides in from the arrow's side, old one glides out the other way
+                              transitionBuilder: (Widget ch, Animation<double> a) {
+                                final bool incoming = ch.key == ValueKey<String>(c.id);
+                                final double from = (incoming ? _dir : -_dir) * 0.55;
+                                return FadeTransition(
+                                  opacity: a,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(begin: Offset(from, 0), end: Offset.zero).animate(a),
+                                    child: ScaleTransition(scale: Tween<double>(begin: 0.9, end: 1).animate(a), child: ch),
+                                  ),
+                                );
+                              },
                               child: Stack(key: ValueKey<String>(c.id), children: <Widget>[
                                 Positioned(left: 68, top: 10, child: Transform.rotate(angle: -0.14, child: _mini(c.a))),
                                 Positioned(right: 68, top: 10, child: Transform.rotate(angle: 0.14, child: _mini(c.b))),
                               ]),
                             ),
                           ),
+                          if (d.couples.length > 1) ...<Widget>[
+                            Positioned(left: 12, top: 172, child: _arrow(Icons.chevron_left_rounded, () => _step(-1))),
+                            Positioned(right: 12, top: 172, child: _arrow(Icons.chevron_right_rounded, () => _step(1))),
+                          ],
                           Positioned(
                             left: 161,
                             top: 166,
@@ -474,7 +516,19 @@ class _PairingHomeCardState extends State<PairingHomeCard> with SingleTickerProv
                             right: 0,
                             top: 262,
                             child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 400),
+                              duration: const Duration(milliseconds: 420),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              transitionBuilder: (Widget ch, Animation<double> a) {
+                                final bool incoming = ch.key == ValueKey<String>('n${c.id}');
+                                return FadeTransition(
+                                  opacity: a,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(begin: Offset((incoming ? _dir : -_dir) * 0.25, 0), end: Offset.zero).animate(a),
+                                    child: ch,
+                                  ),
+                                );
+                              },
                               child: Text(c.name, key: ValueKey<String>('n${c.id}'), textAlign: TextAlign.center, style: GoogleFonts.greatVibes(fontSize: 28, color: _rose)),
                             ),
                           ),
@@ -707,7 +761,7 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
           // fill the full screen width (no empty side gaps); scroll if the screen is short
           child: LayoutBuilder(builder: (BuildContext ctx, BoxConstraints box) {
             final double scale = box.maxWidth / 390;
-            final double pageH = math.max(960.0, box.maxHeight / scale);
+            final double pageH = math.max(_cs.length > 1 ? 1110.0 : 960.0, box.maxHeight / scale); // room for the couples cards
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: SizedBox(
@@ -1088,40 +1142,160 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
     );
   }
 
+  final ScrollController _moreCtrl = ScrollController();
+
+  Widget _circlePhoto(String url, double d) {
+    final Widget ph = Container(width: d, height: d, color: const Color(0xFFFBEFDF), child: const Icon(Icons.restaurant, color: _rose, size: 22));
+    final Widget img = url.isEmpty
+        ? ph
+        : url.startsWith('assets/')
+            ? Image.asset(url, width: d, height: d, fit: BoxFit.cover, cacheWidth: 200, errorBuilder: (_, __, ___) => ph)
+            : Image.network(url, width: d, height: d, fit: BoxFit.cover, cacheWidth: 200, gaplessPlayback: true, errorBuilder: (_, __, ___) => ph);
+    return Container(
+      width: d,
+      height: d,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x59000000), blurRadius: 10, offset: Offset(0, 6), spreadRadius: -4)],
+      ),
+      child: ClipOval(child: img),
+    );
+  }
+
+  /// "More perfect couples" — one clear card per couple: both photos, tag, name, price, View
   Widget _more(PairSettings s) {
-    return Column(children: <Widget>[
-      Text(s.moreText, style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 2.5, color: _roseText)),
-      const SizedBox(height: 10),
+    const double cardW = 150, gap = 12;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: <Widget>[
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: <Widget>[
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+              Text('SWIPE TO EXPLORE', style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 2.6, color: const Color(0xFFB0263A))),
+              Text.rich(TextSpan(children: <InlineSpan>[
+                TextSpan(text: 'More perfect ', style: GoogleFonts.playfairDisplay(fontSize: 20, fontWeight: FontWeight.w700, color: const Color(0xFF3A0E16))),
+                TextSpan(text: 'couples', style: GoogleFonts.dancingScript(fontSize: 25, fontWeight: FontWeight.w700, color: _gold)),
+              ])),
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text('${_cs.length} couples ›', style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w600, color: const Color(0xFF7A5A50))),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 12),
       SizedBox(
-        height: 52,
+        height: 238,
         child: ListView.separated(
+          controller: _moreCtrl,
           scrollDirection: Axis.horizontal,
-          padding: EdgeInsets.symmetric(horizontal: _cs.length <= 4 ? (390 - _cs.length * 72 - (_cs.length - 1) * 10) / 2 : 16, vertical: 4),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(18, 2, 18, 10),
+          clipBehavior: Clip.none,
           itemCount: _cs.length,
-          separatorBuilder: (BuildContext c, int i) => const SizedBox(width: 10),
+          separatorBuilder: (BuildContext c, int i) => const SizedBox(width: gap),
           itemBuilder: (BuildContext c, int k) {
+            final PairCouple cp = _cs[k];
             final bool on = k == _cur;
+            final PairWeight? w = cp.weights.isNotEmpty ? cp.weights.first : null;
             return GestureDetector(
-              onTap: () => _goTo(k),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                _goTo(k);
+                // keep the chosen card in view
+                if (_moreCtrl.hasClients) {
+                  final double target = (k * (cardW + gap) - (390 - cardW) / 2 + 18).clamp(0.0, _moreCtrl.position.maxScrollExtent);
+                  _moreCtrl.animateTo(target, duration: const Duration(milliseconds: 450), curve: Curves.easeOutCubic);
+                }
+              },
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: 72,
-                transform: Matrix4.translationValues(0, on ? -3 : 0, 0),
+                duration: const Duration(milliseconds: 280),
+                width: cardW,
+                padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: on ? const Color(0xFFD6336C) : const Color(0xFFF0D9B0), width: on ? 2 : 1),
-                  boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x737A1426), blurRadius: 12, offset: Offset(0, 6), spreadRadius: -8)],
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: on ? const Color(0xFFC2273A) : Colors.transparent, width: 1.5),
+                  boxShadow: <BoxShadow>[
+                    if (on) const BoxShadow(color: Color(0x1FC2273A), spreadRadius: 3),
+                    BoxShadow(color: on ? const Color(0x997A1426) : const Color(0x737A1426), blurRadius: 18, offset: const Offset(0, 10), spreadRadius: -12),
+                  ],
                 ),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-                  SizedBox(width: 30, height: 30, child: _bowl(_cs[k].a.image, 30)),
-                  SizedBox(width: 30, height: 30, child: _bowl(_cs[k].b.image, 30)),
+                child: Column(children: <Widget>[
+                  SizedBox(
+                    width: 120,
+                    height: 72,
+                    child: Stack(clipBehavior: Clip.none, children: <Widget>[
+                      Positioned(left: 0, top: 2, child: Transform.rotate(angle: -0.1, child: _circlePhoto(cp.a.image, 68))),
+                      Positioned(right: 0, top: 2, child: Transform.rotate(angle: 0.1, child: _circlePhoto(cp.b.image, 68))),
+                      Positioned(
+                        left: 48,
+                        top: 24,
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: <BoxShadow>[BoxShadow(color: Color(0x33000000), blurRadius: 6, offset: Offset(0, 3))]),
+                          child: const Icon(Icons.favorite_rounded, color: Color(0xFFE0245E), size: 14),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 8),
+                  if (cp.tag.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(color: const Color(0xFFFDE8EC), borderRadius: BorderRadius.circular(7)),
+                      child: Text(cp.tag.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(fontSize: 7.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: const Color(0xFFB0263A))),
+                    ),
+                  const SizedBox(height: 4),
+                  Text('${cp.a.name} + ${cp.b.name}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.playfairDisplay(fontSize: 13.5, height: 1.15, fontWeight: FontWeight.w700, color: const Color(0xFF3A0E16))),
+                  const Spacer(),
+                  if (w != null) ...<Widget>[
+                    Row(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: <Widget>[
+                      Text(_rs(w.price), style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: _maroon)),
+                      if (w.mrp > w.price) ...<Widget>[
+                        const SizedBox(width: 5),
+                        Text(_rs(w.mrp), style: GoogleFonts.poppins(fontSize: 9.5, color: const Color(0xFFA89380), decoration: TextDecoration.lineThrough)),
+                      ],
+                    ]),
+                    if (w.mrp > w.price)
+                      Text('Save ${_rs(w.mrp - w.price)}', style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.w700, color: const Color(0xFF1F8A4C))),
+                  ],
+                  const SizedBox(height: 8),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 280),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: on ? const Color(0xFFC2273A) : const Color(0xFFFDE8EC), borderRadius: BorderRadius.circular(10)),
+                    child: Text(on ? '✓ Now viewing' : 'View',
+                        style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: on ? Colors.white : const Color(0xFFB0263A))),
+                  ),
                 ]),
               ),
             );
           },
         ),
       ),
+      const SizedBox(height: 4),
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
+        for (int k = 0; k < _cs.length; k++)
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            margin: const EdgeInsets.symmetric(horizontal: 2.5),
+            width: k == _cur ? 18 : 6,
+            height: 6,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(3), color: k == _cur ? const Color(0xFFC2273A) : const Color(0x40B0263A)),
+          ),
+      ]),
     ]);
   }
 }

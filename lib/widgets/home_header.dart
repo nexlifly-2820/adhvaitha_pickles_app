@@ -18,6 +18,7 @@ class HomeHeader extends StatefulWidget {
   final int cartCount;
   final List<String> searchHints;
   final List<HeaderCategory> categories;
+  final bool showCategories;
   final int selectedCategory;
   final VoidCallback? onLocationTap;
   final VoidCallback? onWishlistTap;
@@ -35,6 +36,7 @@ class HomeHeader extends StatefulWidget {
     this.cartCount = 0,
     this.searchHints = const ['Search royal flavors...'],
     this.categories = const [],
+    this.showCategories = true,
     this.selectedCategory = 0,
     this.onLocationTap,
     this.onWishlistTap,
@@ -221,7 +223,7 @@ class _HomeHeaderState extends State<HomeHeader> with WidgetsBindingObserver {
                 ),
               Positioned(top: 22 * s, left: 16 * s, right: 16 * s, child: _topRow(s)),
               Positioned(top: 110 * s, left: 16 * s, right: 16 * s, height: 50 * s, child: _searchBar(s)),
-              Positioned(top: 176 * s, left: 10 * s, right: 10 * s, child: _categoryRow(s)),
+              if (widget.showCategories) Positioned(top: 176 * s, left: 10 * s, right: 10 * s, child: _categoryRow(s)),
             ],
           ),
         ),

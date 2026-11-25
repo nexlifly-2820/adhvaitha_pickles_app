@@ -119,7 +119,7 @@ class _PickleShowcaseSectionState extends State<PickleShowcaseSection> with Sing
       ShowcaseItem(
         '2', 'idli_karam', 'Special Idli Karam', 'GUNPOWDER · SPICY',
         'Gunpowder spice for idlis, dosas and hot rice with pure sesame oil.',
-        'Stone-ground aromatic spices', 'assets/images/special_idli_karam_podi.png',
+        'Stone-ground aromatic spices', 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
         [ShowcaseShot('assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg', 'Freshly ground spices', 4000)],
         [ShowcaseVariant('v1', '250g', 110, 140)]
       )
