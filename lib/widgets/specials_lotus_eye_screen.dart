@@ -32,7 +32,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
+import '../api_service.dart';
 
 const Color _goldLight = Color(0xFFFFF0C2);
 const Color _gold = Color(0xFFF6DA9A);
@@ -40,7 +40,7 @@ const Color _goldDeep = Color(0xFFE9B44C);
 const Color _cream = Color(0xFFFFF3DF);
 const Color _creamSoft = Color(0xFFFBE3C2);
 const Color _ink = Color(0xFF3A1A08);
-const double _dw = 390.0, _dh = 844.0;
+const double _dw = 390.0, _dh = 754.0;
 
 // Eye frame image is 1536 × 1024. Inner opening measured on that image:
 const double _imgW = 1536.0, _imgH = 1024.0;
@@ -130,6 +130,7 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
 
   // state
   int _cur = 0, _w = 0, _qty = 1, _cart = 0;
+  final ScrollController _moreCtrl = ScrollController();
   bool _added = false, _adding = false, _blinking = false;
 
   // animation
@@ -157,6 +158,7 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
   void dispose() {
     _intro.dispose();
     _introOut.dispose();
+    _moreCtrl.dispose();
     _lid.dispose();
     _loop.dispose();
     _pill.dispose();
@@ -177,101 +179,265 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
     });
 
     final fallbackJson = <String, dynamic>{
-      "settings": {
-        "enabled": true,
-        "title": "Ambhujakshi Specials",
-        "subtitle": "Seen Through The Lotus Eye",
-        "tagline": "Traditional Andhra recipes crafted with ancestral devotion.",
-        "tagText": "✨ AMBHUJAKSHI HERITAGE",
-        "moreText": "Explore more specials",
-        "showIntro": true
-      },
+      "settings": {"enabled": true, "title": "AMBHUJAKSHI", "subtitle": "SPECIALS", "tagline": "Seen through the Lotus Eye", "tagText": "AMMA'S SPECIAL", "moreText": "MORE SPECIALS", "showIntro": true},
       "items": [
         {
-          "id": "avakaya", "productId": "avakaya", "name": "Avakaya",
-          "story": "Sweet jaggery meets fiery Guntur chillies, sun-cured in traditional ceramic jars.",
-          "image": "assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg",
+          "id": "gongura_pickle",
+          "productId": "",
+          "name": "Gongura Pickle",
+          "image": "assets/images/special_gongura_pickle.png",
+          "story": "Tangy sorrel leaves slow-cooked with garlic and Guntur chillies in sesame oil — the pride of Andhra.",
           "features": [
-            {"icon": "sun", "text": "21 days sun-cured"},
-            {"icon": "leaf", "text": "Pure cold-pressed oil"},
-            {"icon": "recipe", "text": "Grandma's recipe"}
+            {
+              "icon": "leaf",
+              "text": "Fresh gongura leaves"
+            },
+            {
+              "icon": "jar",
+              "text": "Cold-pressed sesame oil"
+            },
+            {
+              "icon": "recipe",
+              "text": "Amma's recipe"
+            }
           ],
           "variants": [
-            {"id": "v1", "label": "250g", "price": 120, "mrp": 150},
-            {"id": "v2", "label": "500g", "price": 228, "mrp": 280},
-            {"id": "v3", "label": "1kg", "price": 440, "mrp": 540}
+            {
+              "id": "250g",
+              "label": "250g",
+              "price": 189,
+              "mrp": 220
+            },
+            {
+              "id": "500g",
+              "label": "500g",
+              "price": 359,
+              "mrp": 418
+            },
+            {
+              "id": "1kg",
+              "label": "1kg",
+              "price": 680,
+              "mrp": 792
+            }
           ],
-          "defaultVariant": 1
+          "defaultVariant": 0,
+          "enabled": true
         },
         {
-          "id": "karam_podi", "productId": "karam_podi", "name": "Karam Podi",
-          "story": "Stone-ground roasted lentils and spices for idlis, dosas and hot rice.",
-          "image": "assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg",
+          "id": "tomato_pickle",
+          "productId": "",
+          "name": "Tomato Pickle",
+          "image": "assets/images/special_tomato_pickle.png",
+          "story": "Ripe country tomatoes cooked down with mustard and red chilli until rich, glossy and tangy.",
           "features": [
-            {"icon": "fire", "text": "Authentic Guntur spice"},
-            {"icon": "hand", "text": "Stone ground daily"}
+            {
+              "icon": "sun",
+              "text": "Sun-ripened tomatoes"
+            },
+            {
+              "icon": "fire",
+              "text": "Slow cooked"
+            },
+            {
+              "icon": "heart",
+              "text": "No preservatives"
+            }
           ],
           "variants": [
-            {"id": "v4", "label": "200g", "price": 139, "mrp": 170},
-            {"id": "v5", "label": "500g", "price": 320, "mrp": 380}
+            {
+              "id": "250g",
+              "label": "250g",
+              "price": 169,
+              "mrp": 199
+            },
+            {
+              "id": "500g",
+              "label": "500g",
+              "price": 321,
+              "mrp": 378
+            },
+            {
+              "id": "1kg",
+              "label": "1kg",
+              "price": 608,
+              "mrp": 716
+            }
           ],
-          "defaultVariant": 0
+          "defaultVariant": 0,
+          "enabled": true
         },
         {
-          "id": "murukku", "productId": "murukku", "name": "Murukku",
-          "story": "Crispy spiral festive savory made with rice flour and ajwain.",
-          "image": "assets/images/karam_janthukalu_murukku_strings_snack.jpg",
+          "id": "kandi_podi",
+          "productId": "",
+          "name": "Kandi Podi",
+          "image": "assets/images/special_kandi_podi.png",
+          "story": "Roasted toor dal, chillies and cumin stone-ground into the classic hot-rice-and-ghee podi.",
           "features": [
-            {"icon": "leaf", "text": "Crispy & crunchy"},
-            {"icon": "sun", "text": "Fried in pure oil"}
+            {
+              "icon": "fire",
+              "text": "Slow roasted"
+            },
+            {
+              "icon": "ghee",
+              "text": "Best with ghee"
+            },
+            {
+              "icon": "hand",
+              "text": "Stone ground"
+            }
           ],
           "variants": [
-            {"id": "v6", "label": "250g", "price": 129, "mrp": 155},
-            {"id": "v7", "label": "500g", "price": 249, "mrp": 299}
+            {
+              "id": "250g",
+              "label": "250g",
+              "price": 149,
+              "mrp": 175
+            },
+            {
+              "id": "500g",
+              "label": "500g",
+              "price": 283,
+              "mrp": 332
+            },
+            {
+              "id": "1kg",
+              "label": "1kg",
+              "price": 536,
+              "mrp": 630
+            }
           ],
-          "defaultVariant": 0
+          "defaultVariant": 0,
+          "enabled": true
         },
         {
-          "id": "sunnunda", "productId": "sunnunda", "name": "Sunnunda",
-          "story": "Roasted urad dal blended with pure cow ghee and unrefined jaggery.",
-          "image": "assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg",
+          "id": "chekkalu",
+          "productId": "",
+          "name": "Chekkalu",
+          "image": "assets/images/special_chekkalu.png",
+          "story": "Crisp rice-flour crackers with chana dal, sesame and curry leaves — a Sankranti favourite.",
           "features": [
-            {"icon": "ghee", "text": "Pure cow ghee"},
-            {"icon": "heart", "text": "Wholesome treat"}
+            {
+              "icon": "hand",
+              "text": "Hand-pressed"
+            },
+            {
+              "icon": "leaf",
+              "text": "Curry leaf & sesame"
+            },
+            {
+              "icon": "heart",
+              "text": "Tea-time crunch"
+            }
           ],
           "variants": [
-            {"id": "v8", "label": "250g", "price": 199, "mrp": 240},
-            {"id": "v9", "label": "500g", "price": 380, "mrp": 450}
+            {
+              "id": "250g",
+              "label": "250g",
+              "price": 139,
+              "mrp": 165
+            },
+            {
+              "id": "500g",
+              "label": "500g",
+              "price": 264,
+              "mrp": 314
+            },
+            {
+              "id": "1kg",
+              "label": "1kg",
+              "price": 500,
+              "mrp": 594
+            }
           ],
-          "defaultVariant": 0
+          "defaultVariant": 0,
+          "enabled": true
         },
         {
-          "id": "mixture", "productId": "mixture", "name": "Mixture",
-          "story": "Crunchy assorted savory snack mix with fried peanuts, sev and curry leaves.",
-          "image": "assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg",
+          "id": "ariselu",
+          "productId": "",
+          "name": "Ariselu",
+          "image": "assets/images/special_ariselu.png",
+          "story": "Soft jaggery-rice sweets fried golden and topped with sesame, made the traditional way.",
           "features": [
-            {"icon": "sun", "text": "Fresh batch daily"},
-            {"icon": "leaf", "text": "Zero preservatives"}
+            {
+              "icon": "ghee",
+              "text": "Pure ghee"
+            },
+            {
+              "icon": "recipe",
+              "text": "Festival classic"
+            },
+            {
+              "icon": "hand",
+              "text": "Handmade"
+            }
           ],
           "variants": [
-            {"id": "v10", "label": "250g", "price": 149, "mrp": 180},
-            {"id": "v11", "label": "500g", "price": 289, "mrp": 340}
+            {
+              "id": "250g",
+              "label": "250g",
+              "price": 229,
+              "mrp": 260
+            },
+            {
+              "id": "500g",
+              "label": "500g",
+              "price": 435,
+              "mrp": 494
+            },
+            {
+              "id": "1kg",
+              "label": "1kg",
+              "price": 824,
+              "mrp": 936
+            }
           ],
-          "defaultVariant": 0
+          "defaultVariant": 0,
+          "enabled": true
         },
         {
-          "id": "potato_chips", "productId": "potato_chips", "name": "Potato Chips",
-          "story": "Thinly sliced crispy golden potato chips fried to perfection.",
-          "image": "assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg",
+          "id": "kaju_mixture",
+          "productId": "",
+          "name": "Kaju Mixture",
+          "image": "assets/images/special_kaju_mixture.png",
+          "story": "Crunchy sev, peanuts and whole cashews tossed with curry leaves and a gentle spice.",
           "features": [
-            {"icon": "sun", "text": "Crispy golden slices"},
-            {"icon": "leaf", "text": "Salted to perfection"}
+            {
+              "icon": "heart",
+              "text": "Loaded with cashews"
+            },
+            {
+              "icon": "leaf",
+              "text": "Curry leaf tempered"
+            },
+            {
+              "icon": "jar",
+              "text": "Fresh every batch"
+            }
           ],
           "variants": [
-            {"id": "v12", "label": "200g", "price": 110, "mrp": 135},
-            {"id": "v13", "label": "400g", "price": 210, "mrp": 260}
+            {
+              "id": "250g",
+              "label": "250g",
+              "price": 179,
+              "mrp": 210
+            },
+            {
+              "id": "500g",
+              "label": "500g",
+              "price": 340,
+              "mrp": 399
+            },
+            {
+              "id": "1kg",
+              "label": "1kg",
+              "price": 644,
+              "mrp": 756
+            }
           ],
-          "defaultVariant": 0
+          "defaultVariant": 0,
+          "enabled": true
         }
       ]
     };
@@ -296,7 +462,7 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
         items.add(SpecialItem('${m['id']}', '${m['productId'] ?? ''}', '${m['name'] ?? ''}', '${m['story'] ?? ''}', _abs('${m['image'] ?? ''}'), fs, vs,
             _n(m['defaultVariant']).round()));
       }
-      if (!first && items.length < 2) return;
+      if (!first && items.isEmpty) return;
       if (items.isNotEmpty && mounted) {
         int start = 0;
         final String keep = (!first && _items.isNotEmpty) ? _it.name.toLowerCase() : '';
@@ -335,16 +501,20 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
 
     parseAndApply(fallbackJson);
 
+    // what the admin saved for Ambhujakshi Specials (tiles + details in one place)
     try {
-      final http.Response r = await http.get(Uri.parse('${widget.apiBase}/specials'), headers: widget.headers).timeout(const Duration(seconds: 8));
+      final Map<String, dynamic> cfg = await ApiService.getAppConfig('specials_light');
       if (!mounted) return;
-      if (r.statusCode == 200 && !r.body.trim().startsWith('<!DOCTYPE') && !r.body.trim().startsWith('<html')) {
-        final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
-        if ((j['items'] as List? ?? []).isNotEmpty) {
-          parseAndApply(j);
-        }
+      final List<dynamic> list = (cfg['list'] as List?) ?? <dynamic>[];
+      final List<dynamic> ready = list.where((dynamic e) => e is Map && e['enabled'] != false && (e['variants'] as List? ?? <dynamic>[]).isNotEmpty).toList();
+      if (ready.isNotEmpty) {
+        final Map<String, dynamic> st = (cfg['settings'] is Map) ? Map<String, dynamic>.from(cfg['settings'] as Map) : <String, dynamic>{};
+        parseAndApply(<String, dynamic>{'settings': st, 'items': ready.map((dynamic e) => Map<String, dynamic>.from(e as Map)).toList()});
+        return;
       }
     } catch (_) {}
+
+    // Old /specials server data is no longer used — the admin "Ambhujakshi Specials" tab is the only source.
   }
 
   Future<void> _runIntro() async {
@@ -378,6 +548,12 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
       _added = false;
     });
     _pill.value = 0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_moreCtrl.hasClients) return;
+      const double card = 96.0, gap = 10.0;
+      final double target = (16 + i * (card + gap) + card / 2 - _moreCtrl.position.viewportDimension / 2).clamp(0.0, _moreCtrl.position.maxScrollExtent);
+      _moreCtrl.animateTo(target, duration: const Duration(milliseconds: 350), curve: Curves.easeOutCubic);
+    });
   }
 
   Future<void> _blinkTo(int i) async {
@@ -450,12 +626,18 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
           if (!_loading && _error == null)
             Padding(
               padding: EdgeInsets.only(top: mq.padding.top, bottom: mq.padding.bottom),
-              child: Center(
-                child: FittedBox(
-                  fit: BoxFit.contain,
-                  child: SizedBox(width: _dw, height: _dh, child: _page()),
+              child: Column(children: <Widget>[
+                Expanded(
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: SizedBox(width: _dw, height: _dh, child: _page()),
+                    ),
+                  ),
                 ),
-              ),
+                // full-width strip, edge to edge (outside the scaled page)
+                if (_items.length > 1) SizedBox(height: 166, child: _more()),
+              ]),
             ),
           if (!_loading && _error == null)
             Positioned.fill(
@@ -603,20 +785,28 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
               GestureDetector(
                 onTap: () => Navigator.maybePop(context),
                 child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x33000000), border: Border.all(color: const Color(0x66E9C47A))),
-                  child: const Icon(Icons.chevron_left_rounded, color: _gold, size: 26),
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: <Color>[Color(0xFFFFEDB5), _goldDeep]),
+                    boxShadow: <BoxShadow>[BoxShadow(color: Color(0x88000000), blurRadius: 10, offset: Offset(0, 4)), BoxShadow(color: Color(0x55E9B44C), blurRadius: 14, spreadRadius: 1)],
+                  ),
+                  child: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF5A0E1C), size: 19),
                 ),
               ),
               GestureDetector(
                 onTap: widget.onGoToCart,
                 child: Stack(clipBehavior: Clip.none, children: <Widget>[
                   Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x33000000), border: Border.all(color: const Color(0x66E9C47A))),
-                    child: const Icon(Icons.shopping_cart_outlined, color: _gold, size: 20),
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: <Color>[Color(0xFFFFEDB5), _goldDeep]),
+                    boxShadow: <BoxShadow>[BoxShadow(color: Color(0x88000000), blurRadius: 10, offset: Offset(0, 4)), BoxShadow(color: Color(0x55E9B44C), blurRadius: 14, spreadRadius: 1)],
+                  ),
+                    child: const Icon(Icons.shopping_cart_rounded, color: Color(0xFF5A0E1C), size: 21),
                   ),
                   if (_cart > 0)
                     Positioned(
@@ -683,6 +873,11 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
             child: _eye(it),
           ),
         ),
+        // ‹ › arrows to move between specials
+        if (_items.length > 1) ...<Widget>[
+          Positioned(left: 10, top: 372, child: _arrow(Icons.chevron_left_rounded, () => _blinkTo((_cur - 1 + _items.length) % _items.length))),
+          Positioned(right: 10, top: 372, child: _arrow(Icons.chevron_right_rounded, () => _blinkTo((_cur + 1) % _items.length))),
+        ],
         // info
         Positioned(
           left: 20,
@@ -692,7 +887,20 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: <Color>[Color(0xFFFFE9AE), _goldDeep])),
-              child: Text('$_tagText · ${_cur + 1}/${_items.length}', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 2, color: _ink)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                Text(_tagText, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 2, color: _ink)),
+                if (_items.length > 1) ...<Widget>[
+                  const SizedBox(width: 8),
+                  for (int d = 0; d < _items.length; d++)
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                      width: d == _cur ? 14 : 5,
+                      height: 5,
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(3), color: d == _cur ? _ink : const Color(0x663A1A08)),
+                    ),
+                ],
+              ]),
             ),
             const SizedBox(height: 4),
             AnimatedSwitcher(
@@ -802,7 +1010,6 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
         // CTA
         Positioned(left: 24, right: 24, top: 690, height: 52, child: _cta()),
         // more specials
-        if (_items.length > 1) Positioned(left: 0, right: 0, bottom: 8, height: 86, child: _more()),
       ],
     );
   }
@@ -871,57 +1078,94 @@ class _SpecialsLotusEyeScreenState extends State<SpecialsLotusEyeScreen> with Ti
     );
   }
 
+  Widget _arrow(IconData icon, VoidCallback onTap) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0x40000000),
+            border: Border.all(color: const Color(0xAAF6DA9A), width: 1.5),
+            boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x55000000), blurRadius: 10, offset: Offset(0, 4))],
+          ),
+          child: Icon(icon, color: _gold, size: 24),
+        ),
+      );
+
+  // "Explore other specials" — cream strip with clear cards; current one is highlighted.
   Widget _more() {
-    final List<int> others = <int>[for (int i = 0; i < _items.length; i++) if (i != _cur) i];
-    return Column(children: <Widget>[
-      Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-        Container(width: 40, height: 1, decoration: const BoxDecoration(gradient: LinearGradient(colors: <Color>[Colors.transparent, _gold]))),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text(_moreText, style: GoogleFonts.cinzel(fontSize: 10, letterSpacing: 2.5, color: _gold, fontWeight: FontWeight.w700))),
-        Container(width: 40, height: 1, decoration: const BoxDecoration(gradient: LinearGradient(colors: <Color>[_gold, Colors.transparent]))),
-      ]),
-      const SizedBox(height: 4),
-      SizedBox(
-        height: 60,
-        child: Center(
-          child: SingleChildScrollView(
+    const Color maroon = Color(0xFF7A0F12);
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFF8EC),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        boxShadow: <BoxShadow>[BoxShadow(color: Color(0x66000000), blurRadius: 18, offset: Offset(0, -4))],
+      ),
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(children: <Widget>[
+            Expanded(child: Text(_moreText.toUpperCase() == 'MORE SPECIALS' ? 'Explore other specials' : _moreText, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF4A0B1D)))),
+            Text('Tap to view ›', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF9A6A3A))),
+          ]),
+        ),
+        const SizedBox(height: 10),
+        Expanded(
+          child: ListView.separated(
+            controller: _moreCtrl,
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                for (int k = 0; k < others.length; k++) ...<Widget>[
-                  if (k > 0) const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: () => _blinkTo(others[k]),
-                    child: SizedBox(
-                      width: 60,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(center: Alignment(-0.2, -0.3), colors: <Color>[Color(0xFF6E1A32), Color(0xFF3A0A18)]),
-                              boxShadow: <BoxShadow>[BoxShadow(color: Color(0x99F6DA9A), spreadRadius: 1.5), BoxShadow(color: Color(0x99000000), blurRadius: 12, offset: Offset(0, 6), spreadRadius: -6)],
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: _img(_items[others[k]].image, BoxFit.cover),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(_items[others[k]].name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 8.5, height: 1.1, fontWeight: FontWeight.w600, color: _creamSoft)),
-                        ],
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+            itemCount: _items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (BuildContext c, int k) {
+              final SpecialItem s = _items[k];
+              final bool on = k == _cur;
+              final SpecialVariant v0 = s.variants[math.max(0, math.min(s.defaultVariant, s.variants.length - 1))];
+              return GestureDetector(
+                onTap: () => _blinkTo(k),
+                child: Stack(clipBehavior: Clip.none, children: <Widget>[
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    width: 96,
+                    padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
+                    decoration: BoxDecoration(
+                      color: on ? const Color(0xFFFFF1D6) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: on ? const Color(0xFFC9963A) : const Color(0x14000000), width: on ? 2 : 1),
+                      boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x14000000), blurRadius: 8, offset: Offset(0, 3))],
+                    ),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                      SizedBox(height: 44, width: 64, child: _img(s.image, BoxFit.contain)),
+                      const SizedBox(height: 3),
+                      SizedBox(
+                        height: 26,
+                        child: Center(child: Text(s.name, maxLines: 2, textAlign: TextAlign.center, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 10.5, height: 1.15, fontWeight: FontWeight.w600, color: const Color(0xFF4A0B1D)))),
+                      ),
+                      Text(_rs(v0.price), style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: maroon)),
+                    ]),
+                  ),
+                  if (on)
+                    Positioned(
+                      top: -7,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1.5),
+                          decoration: BoxDecoration(color: maroon, borderRadius: BorderRadius.circular(10)),
+                          child: Text('Viewing', style: GoogleFonts.poppins(fontSize: 8.5, fontWeight: FontWeight.w600, color: Colors.white)),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ],
-            ),
+                ]),
+              );
+            },
           ),
         ),
-      ),
-    ]);
+      ]),
+    );
   }
 
   Widget _img(String u, BoxFit fit) {

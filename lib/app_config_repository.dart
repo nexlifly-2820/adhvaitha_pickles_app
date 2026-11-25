@@ -1343,37 +1343,13 @@ class AppConfigRepository {
     },
   ];
 
-  static final List<Map<String, dynamic>> _defaultSpecialsLightData = [
-    {
-      'id': 'avakaya',
-      'name': 'Avakaya',
-      'image': 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-    },
-    {
-      'id': 'karam_podi',
-      'name': 'Karam Podi',
-      'image': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
-    },
-    {
-      'id': 'murukku',
-      'name': 'Murukku',
-      'image': 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
-    },
-    {
-      'id': 'sunnunda',
-      'name': 'Sunnunda',
-      'image': 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
-    },
-    {
-      'id': 'mixture',
-      'name': 'Mixture',
-      'image': 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg',
-    },
-    {
-      'id': 'banana_chips',
-      'name': 'Banana Chips',
-      'image': 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg',
-    },
+  static final List<Map<String, dynamic>> _defaultSpecialsLightData = <Map<String, dynamic>>[
+    {'id': 'gongura_pickle', 'name': 'Gongura Pickle', 'image': 'assets/images/special_gongura_pickle.png'},
+    {'id': 'tomato_pickle', 'name': 'Tomato Pickle', 'image': 'assets/images/special_tomato_pickle.png'},
+    {'id': 'kandi_podi', 'name': 'Kandi Podi', 'image': 'assets/images/special_kandi_podi.png'},
+    {'id': 'chekkalu', 'name': 'Chekkalu', 'image': 'assets/images/special_chekkalu.png'},
+    {'id': 'ariselu', 'name': 'Ariselu', 'image': 'assets/images/special_ariselu.png'},
+    {'id': 'kaju_mixture', 'name': 'Kaju Mixture', 'image': 'assets/images/special_kaju_mixture.png'},
   ];
 
   static final List<Map<String, dynamic>> _defaultPairingsData = [

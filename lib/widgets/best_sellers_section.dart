@@ -22,14 +22,15 @@
 //   )
 
 import 'dart:async';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'love_button.dart';
+import '../api_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // ============================ MODELS ============================
+
+num _num(dynamic v) => v is num ? v : (num.tryParse('$v') ?? 0);
 
 class BSItem {
   final String id, variantId, name, image, sold, move;
@@ -39,8 +40,8 @@ class BSItem {
       required this.move, required this.price, required this.mrp, required this.rating, required this.moveBy});
   factory BSItem.fromJson(Map j) => BSItem(
       id: '${j['id']}', variantId: '${j['variantId'] ?? ''}', name: j['name'] ?? '', image: j['image'] ?? '',
-      sold: '${j['sold'] ?? ''}', move: j['move'] ?? '', price: (j['price'] ?? 0) as num, mrp: (j['mrp'] ?? 0) as num,
-      rating: (j['rating'] ?? 0) as num, moveBy: ((j['moveBy'] ?? 0) as num).toInt());
+      sold: '${j['sold'] ?? ''}', move: j['move'] ?? '', price: _num(j['price']), mrp: _num(j['mrp']),
+      rating: _num(j['rating']), moveBy: ((j['moveBy'] ?? 0) as num).toInt());
 }
 
 class BSCategory {
@@ -99,45 +100,289 @@ class _BestSellersLoaderState extends State<BestSellersLoader> {
 
   Future<void> _load() async {
     final fallbackJson = <String, dynamic>{
-      "settings": {"enabled": true, "kicker": "THIS MONTH'S CHAMPIONS", "title": "Best", "titleAccent": "sellers", "subtitle": "Ranked by real orders from 12,000+ homes", "intervalMs": 4000, "rows": 3},
+      "settings": {
+        "enabled": true,
+        "kicker": "THIS MONTH'S CHAMPIONS",
+        "title": "Best",
+        "titleAccent": "sellers",
+        "subtitle": "Ranked by real orders from 12,000+ homes",
+        "rows": 3,
+        "intervalMs": 4000
+      },
       "categories": [
         {
-          "id": "all", "name": "All", "emoji": "🔥",
+          "id": "all",
+          "name": "All",
+          "emoji": "🔥",
           "items": [
-            {"id": "p1", "variantId": "v1", "name": "Bellam Avakaya", "image": "assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg", "price": 120, "mrp": 136, "sold": "12K+", "rating": 4.8, "move": "up", "moveBy": 2},
-            {"id": "p2", "variantId": "v4", "name": "Idli Karam Podi", "image": "assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg", "price": 139, "mrp": 150, "sold": "9.8K+", "rating": 4.9, "move": "up", "moveBy": 1},
-            {"id": "p3", "variantId": "v8", "name": "Sunnunda Laddu", "image": "assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg", "price": 199, "mrp": 220, "sold": "8.4K+", "rating": 4.9, "move": "new", "moveBy": 0},
-            {"id": "p4", "variantId": "v6", "name": "Kara Murukku", "image": "assets/images/karam_janthukalu_murukku_strings_snack.jpg", "price": 129, "mrp": 140, "sold": "6.2K+", "rating": 4.7, "move": "up", "moveBy": 3}
+            {
+              "id": "avakaya",
+              "variantId": "",
+              "name": "Bellam Avakaya",
+              "image": "assets/images/loved_bellam_avakaya.png",
+              "price": 219,
+              "mrp": 249,
+              "sold": "12K+",
+              "rating": 4.8,
+              "move": "up",
+              "moveBy": 2
+            },
+            {
+              "id": "karam_podi",
+              "variantId": "",
+              "name": "Idli Karam Podi",
+              "image": "assets/images/loved_idli_karam_podi.png",
+              "price": 139,
+              "mrp": 150,
+              "sold": "9.8K+",
+              "rating": 4.9,
+              "move": "up",
+              "moveBy": 1
+            },
+            {
+              "id": "sunnunda",
+              "variantId": "",
+              "name": "Sunnunda Laddu",
+              "image": "assets/images/loved_sunnunda_laddu.png",
+              "price": 199,
+              "mrp": 220,
+              "sold": "8.4K+",
+              "rating": 4.9,
+              "move": "new",
+              "moveBy": 0
+            },
+            {
+              "id": "murukku",
+              "variantId": "",
+              "name": "Kara Murukku",
+              "image": "assets/images/loved_kara_murukku.png",
+              "price": 129,
+              "mrp": 140,
+              "sold": "6.2K+",
+              "rating": 4.7,
+              "move": "up",
+              "moveBy": 3
+            },
+            {
+              "id": "mixture",
+              "variantId": "",
+              "name": "Khara Mixture",
+              "image": "assets/images/best_khara_mixture.png",
+              "price": 149,
+              "mrp": 165,
+              "sold": "5.5K+",
+              "rating": 4.6,
+              "move": "down",
+              "moveBy": 1
+            },
+            {
+              "id": "gongura",
+              "variantId": "",
+              "name": "Gongura Pickle",
+              "image": "assets/images/loved_gongura_pickle.png",
+              "price": 189,
+              "mrp": 220,
+              "sold": "7.4K+",
+              "rating": 4.8,
+              "move": "up",
+              "moveBy": 1
+            },
+            {
+              "id": "usiri",
+              "variantId": "",
+              "name": "Usiri Pickle",
+              "image": "assets/images/pickle_usirikaya.png",
+              "price": 130,
+              "mrp": 145,
+              "sold": "5.8K+",
+              "rating": 4.6,
+              "move": "",
+              "moveBy": 0
+            },
+            {
+              "id": "chakinalu",
+              "variantId": "",
+              "name": "Chakinalu",
+              "image": "assets/images/best_chakinalu.png",
+              "price": 139,
+              "mrp": 160,
+              "sold": "4.6K+",
+              "rating": 4.7,
+              "move": "new",
+              "moveBy": 0
+            }
           ]
         },
         {
-          "id": "pickles", "name": "Pickles", "emoji": "🥭",
+          "id": "pickles",
+          "name": "Pickles",
+          "emoji": "🥭",
           "items": [
-            {"id": "p1", "variantId": "v1", "name": "Bellam Avakaya", "image": "assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg", "price": 120, "mrp": 136, "sold": "12K+", "rating": 4.8, "move": "up", "moveBy": 2},
-            {"id": "p6", "variantId": "v11", "name": "Allam Pickle", "image": "assets/images/allam_velluli_pickle_ginger_garlic_pickle.jpg", "price": 140, "mrp": 160, "sold": "7.1K+", "rating": 4.7, "move": "up", "moveBy": 1},
-            {"id": "p7", "variantId": "v12", "name": "Usiri Pickle", "image": "assets/images/usiri_pickle_amlagooseberry_pickle.jpg", "price": 130, "mrp": 145, "sold": "5.8K+", "rating": 4.6, "move": "", "moveBy": 0}
+            {
+              "id": "avakaya",
+              "variantId": "",
+              "name": "Bellam Avakaya",
+              "image": "assets/images/loved_bellam_avakaya.png",
+              "price": 219,
+              "mrp": 249,
+              "sold": "12K+",
+              "rating": 4.8,
+              "move": "up",
+              "moveBy": 2
+            },
+            {
+              "id": "gongura",
+              "variantId": "",
+              "name": "Gongura Pickle",
+              "image": "assets/images/loved_gongura_pickle.png",
+              "price": 189,
+              "mrp": 220,
+              "sold": "7.4K+",
+              "rating": 4.8,
+              "move": "up",
+              "moveBy": 1
+            },
+            {
+              "id": "allam_pickle",
+              "variantId": "",
+              "name": "Allam Pickle",
+              "image": "assets/images/pickle_allam_velluli.png",
+              "price": 140,
+              "mrp": 160,
+              "sold": "7.1K+",
+              "rating": 4.7,
+              "move": "up",
+              "moveBy": 1
+            },
+            {
+              "id": "usiri",
+              "variantId": "",
+              "name": "Usiri Pickle",
+              "image": "assets/images/pickle_usirikaya.png",
+              "price": 130,
+              "mrp": 145,
+              "sold": "5.8K+",
+              "rating": 4.6,
+              "move": "",
+              "moveBy": 0
+            }
           ]
         },
         {
-          "id": "powders", "name": "Podis", "emoji": "🌶️",
+          "id": "powders",
+          "name": "Podis",
+          "emoji": "🌶️",
           "items": [
-            {"id": "p2", "variantId": "v4", "name": "Idli Karam Podi", "image": "assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg", "price": 139, "mrp": 150, "sold": "9.8K+", "rating": 4.9, "move": "up", "moveBy": 1},
-            {"id": "p8", "variantId": "v13", "name": "Allam Podi", "image": "assets/images/allam_velluli_karam_podi_ginger_garlic_spice_powder.jpg", "price": 145, "mrp": 160, "sold": "6.4K+", "rating": 4.8, "move": "up", "moveBy": 2},
-            {"id": "p9", "variantId": "v14", "name": "Karvepaku Podi", "image": "assets/images/karvepaku_karam_podi_curry_leaves_powder.jpg", "price": 135, "mrp": 150, "sold": "4.9K+", "rating": 4.7, "move": "new", "moveBy": 0}
+            {
+              "id": "karam_podi",
+              "variantId": "",
+              "name": "Idli Karam Podi",
+              "image": "assets/images/loved_idli_karam_podi.png",
+              "price": 139,
+              "mrp": 150,
+              "sold": "9.8K+",
+              "rating": 4.9,
+              "move": "up",
+              "moveBy": 1
+            },
+            {
+              "id": "allam_podi",
+              "variantId": "",
+              "name": "Allam Karam Podi",
+              "image": "assets/images/best_allam_karam_podi.png",
+              "price": 145,
+              "mrp": 160,
+              "sold": "6.4K+",
+              "rating": 4.8,
+              "move": "up",
+              "moveBy": 2
+            },
+            {
+              "id": "karvepaku",
+              "variantId": "",
+              "name": "Karvepaku Podi",
+              "image": "assets/images/best_karvepaku_podi.png",
+              "price": 135,
+              "mrp": 150,
+              "sold": "4.9K+",
+              "rating": 4.7,
+              "move": "new",
+              "moveBy": 0
+            }
           ]
         },
         {
-          "id": "sweets", "name": "Sweets", "emoji": "🍯",
+          "id": "sweets",
+          "name": "Sweets",
+          "emoji": "🍯",
           "items": [
-            {"id": "p3", "variantId": "v8", "name": "Sunnunda Laddu", "image": "assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg", "price": 199, "mrp": 220, "sold": "8.4K+", "rating": 4.9, "move": "new", "moveBy": 0},
-            {"id": "p10", "variantId": "v15", "name": "Dry Fruits Laddu", "image": "assets/images/dry_fruit_laddu.png", "price": 299, "mrp": 350, "sold": "5.2K+", "rating": 5.0, "move": "up", "moveBy": 1}
+            {
+              "id": "sunnunda",
+              "variantId": "",
+              "name": "Sunnunda Laddu",
+              "image": "assets/images/loved_sunnunda_laddu.png",
+              "price": 199,
+              "mrp": 220,
+              "sold": "8.4K+",
+              "rating": 4.9,
+              "move": "new",
+              "moveBy": 0
+            },
+            {
+              "id": "dryfruit",
+              "variantId": "",
+              "name": "Dry Fruits Laddu",
+              "image": "assets/images/best_dry_fruits_laddu.png",
+              "price": 299,
+              "mrp": 350,
+              "sold": "5.2K+",
+              "rating": 5.0,
+              "move": "up",
+              "moveBy": 1
+            }
           ]
         },
         {
-          "id": "snacks", "name": "Snacks", "emoji": "🥨",
+          "id": "snacks",
+          "name": "Snacks",
+          "emoji": "🥨",
           "items": [
-            {"id": "p4", "variantId": "v6", "name": "Kara Murukku", "image": "assets/images/karam_janthukalu_murukku_strings_snack.jpg", "price": 129, "mrp": 140, "sold": "6.2K+", "rating": 4.7, "move": "up", "moveBy": 3},
-            {"id": "p5", "variantId": "v10", "name": "Khara Mixture", "image": "assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg", "price": 149, "mrp": 165, "sold": "5.5K+", "rating": 4.6, "move": "down", "moveBy": 1}
+            {
+              "id": "murukku",
+              "variantId": "",
+              "name": "Kara Murukku",
+              "image": "assets/images/loved_kara_murukku.png",
+              "price": 129,
+              "mrp": 140,
+              "sold": "6.2K+",
+              "rating": 4.7,
+              "move": "up",
+              "moveBy": 3
+            },
+            {
+              "id": "mixture",
+              "variantId": "",
+              "name": "Khara Mixture",
+              "image": "assets/images/best_khara_mixture.png",
+              "price": 149,
+              "mrp": 165,
+              "sold": "5.5K+",
+              "rating": 4.6,
+              "move": "down",
+              "moveBy": 1
+            },
+            {
+              "id": "chakinalu",
+              "variantId": "",
+              "name": "Chakinalu",
+              "image": "assets/images/best_chakinalu.png",
+              "price": 139,
+              "mrp": 160,
+              "sold": "4.6K+",
+              "rating": 4.7,
+              "move": "new",
+              "moveBy": 0
+            }
           ]
         }
       ]
@@ -145,31 +390,20 @@ class _BestSellersLoaderState extends State<BestSellersLoader> {
 
     if (mounted) setState(() => _data = BestSellersData.fromJson(fallbackJson));
 
-    final urls = [
-      '${widget.apiBase}/home/best-sellers',
-      'https://api.adhvaithafoods.in/api/best_sellers.php',
-      'https://api.adhvaithafoods.in/api/app_settings.php?doc_id=best_sellers',
-    ];
-
-    for (final url in urls) {
-      try {
-        final http.Response r = await http.get(Uri.parse(url), headers: widget.headers).timeout(const Duration(seconds: 4));
-        if (r.statusCode == 200 && mounted && !r.body.trim().startsWith('<!DOCTYPE') && !r.body.trim().startsWith('<html')) {
-          final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
-          for (final dynamic c in (j['categories'] as List?) ?? <dynamic>[]) {
-            for (final dynamic it in ((c as Map)['items'] as List?) ?? <dynamic>[]) {
-              final Map m = it as Map;
-              m['image'] = _abs('${m['image'] ?? ''}');
-            }
-          }
-          final BestSellersData d = BestSellersData.fromJson(j);
-          if (d.categories.isNotEmpty) { // accept real admin data even with only one tab
-            if (mounted) setState(() => _data = d);
-            return;
-          }
+    // Only what the admin "Best Sellers" tab saved (version 2) is used; older saves are ignored
+    // so the built-in brass-bowl products show until the admin saves.
+    try {
+      final Map<String, dynamic> j = await ApiService.getAppConfig('best_sellers');
+      if (!mounted || '${j['version'] ?? ''}' != '2') return;
+      for (final dynamic c in (j['categories'] as List?) ?? <dynamic>[]) {
+        for (final dynamic it in ((c as Map)['items'] as List?) ?? <dynamic>[]) {
+          final Map m = it as Map;
+          m['image'] = _abs('${m['image'] ?? ''}');
         }
-      } catch (_) {}
-    }
+      }
+      final BestSellersData d = BestSellersData.fromJson(j);
+      if (d.categories.isNotEmpty && mounted) setState(() => _data = d);
+    } catch (_) {}
   }
 
   @override

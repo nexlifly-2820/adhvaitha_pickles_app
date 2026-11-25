@@ -665,6 +665,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 _buildHomeVideoSection(),
                 const SectionTitle(TitleKind.andhra),
                 _buildHeroBanner(),
+                // Auto banner carousel — images, order and links come from admin → Auto Banner Carousel
+                const AutoBannerCarousel(banners: <BannerItem>[]),
                 const SectionTitle(TitleKind.offers),
                 const OffersSection(),
                 const SectionTitle(TitleKind.pairing),

@@ -19,7 +19,7 @@ class LotusItem {
   const LotusItem({required this.id, required this.name, required this.image});
 
   factory LotusItem.fromJson(Map<String, dynamic> j) =>
-      LotusItem(id: j['id'] ?? '', name: j['name'] ?? '', image: j['image'] ?? '');
+      LotusItem(id: '${j['id'] ?? ''}', name: '${j['name'] ?? ''}', image: '${j['image'] ?? ''}');
 }
 
 class SpecialsLightSection extends StatefulWidget {
@@ -63,7 +63,12 @@ class _SpecialsLightSectionState extends State<SpecialsLightSection> {
     _sub = AppConfigRepository().getSpecialsLightStream().listen((data) {
       if (!mounted) return;
       if (data.isNotEmpty) {
-        final parsed = data.map((e) => LotusItem.fromJson(e)).toList();
+        // Only use what the new admin manager saved (it always has sizes/prices).
+        // Old saves (name + image only) are ignored so the built-in specials show.
+        final parsed = data
+            .where((e) => e['enabled'] != false && '${e['name'] ?? ''}'.isNotEmpty && (e['variants'] is List) && (e['variants'] as List).isNotEmpty)
+            .map((e) => LotusItem.fromJson(e))
+            .toList();
         if (parsed.isNotEmpty) {
           setState(() => _liveItems = parsed);
         }
@@ -163,36 +168,12 @@ class _SpecialsLightSectionState extends State<SpecialsLightSection> {
   }
 
   static const List<LotusItem> _defaultItems = [
-    LotusItem(
-      id: 'avakaya',
-      name: 'Avakaya',
-      image: 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-    ),
-    LotusItem(
-      id: 'karam_podi',
-      name: 'Karam Podi',
-      image: 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
-    ),
-    LotusItem(
-      id: 'murukku',
-      name: 'Murukku',
-      image: 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
-    ),
-    LotusItem(
-      id: 'sunnunda',
-      name: 'Sunnunda',
-      image: 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
-    ),
-    LotusItem(
-      id: 'mixture',
-      name: 'Mixture',
-      image: 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg',
-    ),
-    LotusItem(
-      id: 'banana_chips',
-      name: 'Banana Chips',
-      image: 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg',
-    ),
+    LotusItem(id: 'gongura_pickle', name: 'Gongura Pickle', image: 'assets/images/special_gongura_pickle.png'),
+    LotusItem(id: 'tomato_pickle', name: 'Tomato Pickle', image: 'assets/images/special_tomato_pickle.png'),
+    LotusItem(id: 'kandi_podi', name: 'Kandi Podi', image: 'assets/images/special_kandi_podi.png'),
+    LotusItem(id: 'chekkalu', name: 'Chekkalu', image: 'assets/images/special_chekkalu.png'),
+    LotusItem(id: 'ariselu', name: 'Ariselu', image: 'assets/images/special_ariselu.png'),
+    LotusItem(id: 'kaju_mixture', name: 'Kaju Mixture', image: 'assets/images/special_kaju_mixture.png'),
   ];
 }
 

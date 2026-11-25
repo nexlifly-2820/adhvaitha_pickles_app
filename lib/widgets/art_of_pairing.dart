@@ -98,136 +98,287 @@ Future<PairingData?> _fetch(String apiBase, Map<String, String>? headers) async 
           final Map<String, dynamic> x = w as Map<String, dynamic>;
           ws.add(PairWeight('${x['label'] ?? ''}', _n(x['price']), _n(x['mrp']), '${x['aVariantId'] ?? ''}', '${x['bVariantId'] ?? ''}'));
         }
-        if (ws.isEmpty) continue;
+        if (ws.isEmpty || m['enabled'] == false) continue;
         remoteCs.add(PairCouple('${m['id']}', '${m['name'] ?? ''}', '${m['tag'] ?? ''}', '${m['mealIcon'] ?? ''}', '${m['mealName'] ?? ''}', '${m['lovedText'] ?? ''}',
             side(m['a']), side(m['b']), ws, '${m['tip'] ?? ''}'));
       }
     }
   } catch (_) {}
 
-  // Local fallback pairing data with 4 gorgeous couples
+  // Local fallback: the 6 built-in couples (used only when the admin has saved nothing)
   final fallbackJson = <String, dynamic>{
-    "settings": {
-      "enabled": true,
-      "eyebrow": "CURATED COMBOS",
-      "title": "The Art of",
-      "titleAccent": "Pairing",
-      "subtitle": "Amma's rishta — flavours made for each other",
-      "explainText": "2 jars Amma pairs together · one combo price",
-      "matchText": "Made for each other",
-      "buttonText": "Meet Amma's perfect couples",
-      "moreText": "MORE PERFECT COUPLES"
-    },
     "couples": [
+  {
+    "id": "c1",
+    "name": "Bellam Avakaya + Idli Karam Podi",
+    "tag": "PICKLE & PODI",
+    "mealIcon": "🌅",
+    "mealName": "BREAKFAST",
+    "lovedText": "Sweet & fiery",
+    "tip": "Mix the podi with ghee, add a spoon of avakaya on the side of hot idlis.",
+    "a": {
+      "productId": "",
+      "name": "Bellam Avakaya",
+      "bio": "Raw mango in jaggery-chilli masala",
+      "image": "assets/images/pair_bellam_avakaya.png",
+      "tags": [
+        "SWEET",
+        "TANGY"
+      ]
+    },
+    "b": {
+      "productId": "",
+      "name": "Idli Karam Podi",
+      "bio": "Roasted urad dal & red chilli",
+      "image": "assets/images/pair_idli_karam_podi.png",
+      "tags": [
+        "SPICY",
+        "CRUNCHY"
+      ]
+    },
+    "weights": [
       {
-        "id": "c1",
-        "name": "Avakaya & Karam Podi",
-        "tag": "TRADITIONAL DUO",
-        "mealIcon": "🍚",
-        "mealName": "Steaming Rice & Ghee",
-        "lovedText": "A timeless Coastal Andhra pairing that brings pure soul comfort to every meal.",
-        "tip": "🍽 Avakaya with hot rice & ghee, podi on the side",
-        "a": {
-          "productId": "avakaya",
-          "name": "Bellam Avakaya",
-          "bio": "Sun-cured raw mango pieces aged in sweet jaggery and pungent mustard spices.",
-          "image": "assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg",
-          "tags": ["Sun-dried", "Jaadi aged"]
-        },
-        "b": {
-          "productId": "karam_podi",
-          "name": "Idli Karam Podi",
-          "bio": "Stone-ground roasted lentils and spices for idlis, dosas and hot rice.",
-          "image": "assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg",
-          "tags": ["Stone ground", "Aromatic"]
-        },
-        "weights": [
-          {"label": "500g Combo", "price": 349, "mrp": 430, "aVariantId": "v2", "bVariantId": "v5"},
-          {"label": "1kg Combo", "price": 680, "mrp": 840, "aVariantId": "v3", "bVariantId": "v5"}
-        ]
+        "label": "250 g each",
+        "price": 379,
+        "mrp": 419,
+        "aVariantId": "250g",
+        "bVariantId": "250g"
       },
       {
-        "id": "c2",
-        "name": "Murukku & Sunnunda",
-        "tag": "SNACK & SWEET",
-        "mealIcon": "☕",
-        "mealName": "Evening Chai",
-        "lovedText": "The ultimate tea-time combination of crunchy spiral murukku and wholesome ghee laddus.",
-        "tip": "🍽 Crunchy murukku with chai, sunnunda to finish",
-        "a": {
-          "productId": "murukku",
-          "name": "Kara Murukku",
-          "bio": "Crispy spiral festive savory made with rice flour and ajwain.",
-          "image": "assets/images/karam_janthukalu_murukku_strings_snack.jpg",
-          "tags": ["Crispy", "Ajwain"]
-        },
-        "b": {
-          "productId": "sunnunda",
-          "name": "Sunnunda Laddu",
-          "bio": "Roasted urad dal blended with pure cow ghee and unrefined jaggery.",
-          "image": "assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg",
-          "tags": ["Pure Ghee", "Traditional"]
-        },
-        "weights": [
-          {"label": "Standard Combo", "price": 319, "mrp": 395, "aVariantId": "v6", "bVariantId": "v8"},
-          {"label": "Family Pack", "price": 599, "mrp": 740, "aVariantId": "v7", "bVariantId": "v9"}
-        ]
-      },
-      {
-        "id": "c3",
-        "name": "Gongura & Kandi Podi",
-        "tag": "ANDHRA PRIDE",
-        "mealIcon": "🍲",
-        "mealName": "Hot Rice",
-        "lovedText": "Tangy sorrel leaves meeting nutty roasted pigeon pea powder for authentic village flavor.",
-        "tip": "🍽 Kandi podi + ghee first, then rice with Gongura",
-        "a": {
-          "productId": "gongura",
-          "name": "Gongura Pickle",
-          "bio": "Sour, leafy & proudly Andhra sorrel leaves pickle.",
-          "image": "assets/images/gongura_pickle.png",
-          "tags": ["Sour", "Pride"]
-        },
-        "b": {
-          "productId": "kandi_podi",
-          "name": "Kandi Podi",
-          "bio": "Nutty, warm & roasted to perfection for hot rice.",
-          "image": "assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg",
-          "tags": ["Roasted", "Comfort"]
-        },
-        "weights": [
-          {"label": "500g Combo", "price": 359, "mrp": 420, "aVariantId": "v5", "bVariantId": "v5"},
-          {"label": "1kg Combo", "price": 664, "mrp": 779, "aVariantId": "v6", "bVariantId": "v5"}
-        ]
-      },
-      {
-        "id": "c4",
-        "name": "Usiri & Mixture",
-        "tag": "CRUNCHY ZEST",
-        "mealIcon": "🥣",
-        "mealName": "Curd Rice",
-        "lovedText": "Tangy amla pickle paired with crunchy spicy mixture for the ultimate curd rice companion.",
-        "tip": "🍽 Cool curd rice with usiri pickle and mixture on top",
-        "a": {
-          "productId": "usiri",
-          "name": "Bellam Avakaya",
-          "bio": "Zesty gooseberry pickle with a cool and healthy heart.",
-          "image": "assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg",
-          "tags": ["Zesty", "Healthy"]
-        },
-        "b": {
-          "productId": "mixture",
-          "name": "Khara Mixture",
-          "bio": "Crunchy assorted savory snack mix with peanuts and sev.",
-          "image": "assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg",
-          "tags": ["Crunchy", "Spicy"]
-        },
-        "weights": [
-          {"label": "Standard Combo", "price": 299, "mrp": 350, "aVariantId": "v1", "bVariantId": "v10"},
-          {"label": "Family Pack", "price": 554, "mrp": 649, "aVariantId": "v2", "bVariantId": "v11"}
-        ]
+        "label": "500 g each",
+        "price": 701,
+        "mrp": 775,
+        "aVariantId": "500g",
+        "bVariantId": "500g"
       }
     ]
+  },
+  {
+    "id": "c2",
+    "name": "Gongura Pickle + Karivepaku Podi",
+    "tag": "ANDHRA CLASSICS",
+    "mealIcon": "🍚",
+    "mealName": "LUNCH",
+    "lovedText": "The Andhra classic",
+    "tip": "Hot rice, ghee, karivepaku podi first — gongura to finish.",
+    "a": {
+      "productId": "",
+      "name": "Gongura Pickle",
+      "bio": "Sorrel leaves, garlic & sesame oil",
+      "image": "assets/images/pair_gongura_pickle.png",
+      "tags": [
+        "TANGY",
+        "SPICY"
+      ]
+    },
+    "b": {
+      "productId": "",
+      "name": "Karivepaku Podi",
+      "bio": "Curry-leaf spice powder",
+      "image": "assets/images/pair_karivepaku_podi.png",
+      "tags": [
+        "HERBY",
+        "AROMATIC"
+      ]
+    },
+    "weights": [
+      {
+        "label": "250 g each",
+        "price": 349,
+        "mrp": 399,
+        "aVariantId": "250g",
+        "bVariantId": "250g"
+      },
+      {
+        "label": "500 g each",
+        "price": 646,
+        "mrp": 738,
+        "aVariantId": "500g",
+        "bVariantId": "500g"
+      }
+    ]
+  },
+  {
+    "id": "c3",
+    "name": "Kara Murukku + Sunnunda Laddu",
+    "tag": "SNACK & SWEET",
+    "mealIcon": "☕",
+    "mealName": "EVENING TEA",
+    "lovedText": "The ultimate tea-time combo",
+    "tip": "Crunchy murukku with chai, sunnunda to finish.",
+    "a": {
+      "productId": "",
+      "name": "Kara Murukku",
+      "bio": "Crispy spiral festive snack",
+      "image": "assets/images/pair_kara_murukku.png",
+      "tags": [
+        "CRISPY",
+        "SPICY"
+      ]
+    },
+    "b": {
+      "productId": "",
+      "name": "Sunnunda Laddu",
+      "bio": "Roasted urad dal & pure ghee",
+      "image": "assets/images/pair_sunnunda_laddu.png",
+      "tags": [
+        "PURE GHEE",
+        "TRADITIONAL"
+      ]
+    },
+    "weights": [
+      {
+        "label": "250 g each",
+        "price": 319,
+        "mrp": 395,
+        "aVariantId": "250g",
+        "bVariantId": "250g"
+      },
+      {
+        "label": "500 g each",
+        "price": 590,
+        "mrp": 731,
+        "aVariantId": "500g",
+        "bVariantId": "500g"
+      }
+    ]
+  },
+  {
+    "id": "c4",
+    "name": "Allam Velluli Pickle + Munagaku Podi",
+    "tag": "HEALTHY HEAT",
+    "mealIcon": "🍛",
+    "mealName": "LUNCH",
+    "lovedText": "Good for you, full of flavour",
+    "tip": "Moringa podi with rice and ghee, ginger-garlic pickle on the side.",
+    "a": {
+      "productId": "",
+      "name": "Allam Velluli Pickle",
+      "bio": "Ginger & garlic in chilli oil",
+      "image": "assets/images/pair_allam_velluli_pickle.png",
+      "tags": [
+        "ZESTY",
+        "SPICY"
+      ]
+    },
+    "b": {
+      "productId": "",
+      "name": "Munagaku Podi",
+      "bio": "Moringa-leaf spice powder",
+      "image": "assets/images/pair_munagaku_podi.png",
+      "tags": [
+        "HEALTHY",
+        "IRON-RICH"
+      ]
+    },
+    "weights": [
+      {
+        "label": "250 g each",
+        "price": 369,
+        "mrp": 419,
+        "aVariantId": "250g",
+        "bVariantId": "250g"
+      },
+      {
+        "label": "500 g each",
+        "price": 683,
+        "mrp": 775,
+        "aVariantId": "500g",
+        "bVariantId": "500g"
+      }
+    ]
+  },
+  {
+    "id": "c5",
+    "name": "Chakinalu + Palli Patti",
+    "tag": "FESTIVE PAIR",
+    "mealIcon": "🪔",
+    "mealName": "SANKRANTI",
+    "lovedText": "A Sankranti tradition",
+    "tip": "Share a box with family during the festival.",
+    "a": {
+      "productId": "",
+      "name": "Chakinalu",
+      "bio": "Rice-flour sesame spirals",
+      "image": "assets/images/pair_chakinalu.png",
+      "tags": [
+        "CRISPY",
+        "SESAME"
+      ]
+    },
+    "b": {
+      "productId": "",
+      "name": "Palli Patti",
+      "bio": "Peanut & jaggery chikki",
+      "image": "assets/images/pair_palli_patti.png",
+      "tags": [
+        "SWEET",
+        "CRUNCHY"
+      ]
+    },
+    "weights": [
+      {
+        "label": "250 g each",
+        "price": 299,
+        "mrp": 349,
+        "aVariantId": "250g",
+        "bVariantId": "250g"
+      },
+      {
+        "label": "500 g each",
+        "price": 553,
+        "mrp": 646,
+        "aVariantId": "500g",
+        "bVariantId": "500g"
+      }
+    ]
+  },
+  {
+    "id": "c6",
+    "name": "Lemon Pickle + Putnala Podi",
+    "tag": "CURD-RICE PARTNERS",
+    "mealIcon": "🥣",
+    "mealName": "DINNER",
+    "lovedText": "Light, tangy, comforting",
+    "tip": "Perfect with curd rice on a hot evening.",
+    "a": {
+      "productId": "",
+      "name": "Lemon Pickle",
+      "bio": "Lemons in chilli masala",
+      "image": "assets/images/pair_lemon_pickle.png",
+      "tags": [
+        "TANGY",
+        "ZESTY"
+      ]
+    },
+    "b": {
+      "productId": "",
+      "name": "Putnala Podi",
+      "bio": "Roasted-gram spice powder",
+      "image": "assets/images/pair_putnala_podi.png",
+      "tags": [
+        "MILD",
+        "NUTTY"
+      ]
+    },
+    "weights": [
+      {
+        "label": "250 g each",
+        "price": 299,
+        "mrp": 339,
+        "aVariantId": "250g",
+        "bVariantId": "250g"
+      },
+      {
+        "label": "500 g each",
+        "price": 553,
+        "mrp": 627,
+        "aVariantId": "500g",
+        "bVariantId": "500g"
+      }
+    ]
+  }
+]
   };
 
   PairSide side(dynamic raw) {
@@ -249,12 +400,7 @@ Future<PairingData?> _fetch(String apiBase, Map<String, String>? headers) async 
         side(m['a']), side(m['b']), ws, '${m['tip'] ?? ''}'));
   }
 
-  final List<PairCouple> finalCs = [...remoteCs];
-  for (final fallbackC in fallbackCs) {
-    if (!finalCs.any((c) => c.name.toLowerCase() == fallbackC.name.toLowerCase())) {
-      finalCs.add(fallbackC);
-    }
-  }
+  final List<PairCouple> finalCs = remoteCs.isNotEmpty ? remoteCs : fallbackCs;
 
   return PairingData(st, finalCs);
 }

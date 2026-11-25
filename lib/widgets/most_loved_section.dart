@@ -173,8 +173,14 @@ class _MostLovedSectionState extends State<MostLovedSection>
   void _listenToMostLovedConfig() {
     _sub = AppConfigRepository().getMostLovedStream().listen((data) {
       if (!mounted) return;
-      if (data.isNotEmpty) {
-        final parsed = MostLovedData.fromJson(data);
+      // Only use what the new admin "Most Loved" tab saved (version 2); older saves are ignored
+      // so the built-in bowls show until the admin saves.
+      if (data.isNotEmpty && '${data['version'] ?? ''}' == '2') {
+        final Map<String, dynamic> clean = Map<String, dynamic>.from(data);
+        clean['products'] = ((data['products'] as List?) ?? <dynamic>[])
+            .where((dynamic e) => e is Map && e['enabled'] != false && ((e['variants'] as List?) ?? <dynamic>[]).isNotEmpty)
+            .toList();
+        final parsed = MostLovedData.fromJson(clean);
         if (parsed.products.isNotEmpty) {
           setState(() {
             _liveData = parsed;
@@ -749,20 +755,28 @@ class _MostLovedSectionState extends State<MostLovedSection>
     );
   }
 
+  // Bottom row: 4 products + "See all" in the 5th place — fits the screen, no scrolling.
+  // If the selected product is beyond the first 4, it takes the 4th place so it is always visible.
+  List<int> get _railIdx {
+    if (_p.length <= 4) return <int>[for (int i = 0; i < _p.length; i++) i];
+    if (_cur < 4) return <int>[0, 1, 2, 3];
+    return <int>[0, 1, 2, _cur];
+  }
+
   Widget _railView() => SizedBox(
         height: 102,
-        child: ListView(
-          controller: _rail,
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
+          child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (var i = 0; i < _p.length; i++)
-              GestureDetector(
+            for (final i in _railIdx)
+              Expanded(
+              child: GestureDetector(
                 onTap: () => _go(i, user: true),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 350),
-                  width: 74,
-                  margin: const EdgeInsets.only(right: 10),
+                  margin: const EdgeInsets.only(right: 8),
                   transform:
                       Matrix4.translationValues(0, i == _cur ? -4 : 0, 0),
                   decoration: BoxDecoration(
@@ -828,21 +842,17 @@ class _MostLovedSectionState extends State<MostLovedSection>
                       if (i == _cur)
                         Positioned(
                           left: 0,
+                          right: 0,
                           bottom: 0,
-                          child: AnimatedBuilder(
-                            animation: _progress,
-                            builder: (_, __) => Container(
-                              width: 74 * _progress.value,
-                              height: 3,
-                              color: _gold,
-                            ),
-                          ),
+                          child: Container(height: 3, color: _gold),
                         ),
                     ],
                   ),
                 ),
               ),
-            GestureDetector(
+              ),
+            Expanded(
+            child: GestureDetector(
               onTap: () {
                 HapticFeedback.lightImpact();
                 if (widget.onSeeAll != null) {
@@ -863,7 +873,6 @@ class _MostLovedSectionState extends State<MostLovedSection>
                 }
               },
               child: Container(
-                width: 72,
                 margin: const EdgeInsets.only(bottom: 0),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
@@ -881,7 +890,9 @@ class _MostLovedSectionState extends State<MostLovedSection>
                 ),
               ),
             ),
+            ),
           ],
+        ),
         ),
       );
 
@@ -897,7 +908,7 @@ class _MostLovedSectionState extends State<MostLovedSection>
         name: 'Bellam Avakaya',
         short: 'Avakaya',
         tagline: 'sweet jaggery meets fiery mango',
-        image: 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
+        image: 'assets/images/loved_bellam_avakaya.png',
         colors: [Color(0xFFF7B733), Color(0xFFE2722B)],
         rating: 4.8,
         soldToday: 320,
@@ -905,9 +916,9 @@ class _MostLovedSectionState extends State<MostLovedSection>
         spice: 2,
         badge: '👑 No.1 this week',
         variants: [
-          MLVariant('v1', '250g', 120, 136, true),
-          MLVariant('v2', '500g', 230, 260, true),
-          MLVariant('v3', '1kg', 440, 500, true),
+          MLVariant('p1_0', '250g', 219, 249, true),
+          MLVariant('p1_1', '500g', 415, 470, true),
+          MLVariant('p1_2', '1kg', 790, 895, true),
         ],
       ),
       MLProduct(
@@ -915,7 +926,7 @@ class _MostLovedSectionState extends State<MostLovedSection>
         name: 'Idli Karam Podi',
         short: 'Karam Podi',
         tagline: 'authentic gun powder spice blend',
-        image: 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
+        image: 'assets/images/loved_idli_karam_podi.png',
         colors: [Color(0xFF8E1B2B), Color(0xFF5C0A0D)],
         rating: 4.9,
         soldToday: 280,
@@ -923,8 +934,8 @@ class _MostLovedSectionState extends State<MostLovedSection>
         spice: 3,
         badge: '🔥 Bestseller',
         variants: [
-          MLVariant('v4', '200g', 139, 150, true),
-          MLVariant('v5', '500g', 320, 350, true),
+          MLVariant('p2_0', '200g', 139, 150, true),
+          MLVariant('p2_1', '500g', 320, 350, true),
         ],
       ),
       MLProduct(
@@ -932,7 +943,7 @@ class _MostLovedSectionState extends State<MostLovedSection>
         name: 'Kara Murukku',
         short: 'Murukku',
         tagline: 'crispy spiral festive savory',
-        image: 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+        image: 'assets/images/loved_kara_murukku.png',
         colors: [Color(0xFF18453B), Color(0xFF235D4E)],
         rating: 4.7,
         soldToday: 195,
@@ -940,8 +951,8 @@ class _MostLovedSectionState extends State<MostLovedSection>
         spice: 1,
         badge: '✨ Crunchy',
         variants: [
-          MLVariant('v6', '250g', 129, 140, true),
-          MLVariant('v7', '500g', 249, 270, true),
+          MLVariant('p3_0', '250g', 129, 140, true),
+          MLVariant('p3_1', '500g', 249, 270, true),
         ],
       ),
       MLProduct(
@@ -949,7 +960,7 @@ class _MostLovedSectionState extends State<MostLovedSection>
         name: 'Sunnunda Laddu',
         short: 'Sunnunda',
         tagline: 'roasted urad dal & pure cow ghee',
-        image: 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+        image: 'assets/images/loved_sunnunda_laddu.png',
         colors: [Color(0xFF8B4513), Color(0xFFB8860B)],
         rating: 4.9,
         soldToday: 210,
@@ -957,8 +968,42 @@ class _MostLovedSectionState extends State<MostLovedSection>
         spice: 0,
         badge: '🍯 Ghee Special',
         variants: [
-          MLVariant('v8', '250g', 199, 220, true),
-          MLVariant('v9', '500g', 380, 420, true),
+          MLVariant('p4_0', '250g', 199, 220, true),
+          MLVariant('p4_1', '500g', 380, 420, true),
+        ],
+      ),
+      MLProduct(
+        id: 'p5',
+        name: 'Gongura Pickle',
+        short: 'Gongura',
+        tagline: 'tangy sorrel leaves in sesame oil',
+        image: 'assets/images/loved_gongura_pickle.png',
+        colors: [Color(0xFF2E5E2A), Color(0xFF16361A)],
+        rating: 4.8,
+        soldToday: 240,
+        loves: '1.6k',
+        spice: 3,
+        badge: '🌿 Andhra Classic',
+        variants: [
+          MLVariant('p5_0', '250g', 189, 220, true),
+          MLVariant('p5_1', '500g', 359, 415, true),
+        ],
+      ),
+      MLProduct(
+        id: 'p6',
+        name: 'Ariselu',
+        short: 'Ariselu',
+        tagline: 'jaggery rice sweets with sesame',
+        image: 'assets/images/loved_ariselu.png',
+        colors: [Color(0xFFB5651D), Color(0xFF7A3E12)],
+        rating: 4.8,
+        soldToday: 150,
+        loves: '1.2k',
+        spice: 0,
+        badge: '🪔 Festive Favourite',
+        variants: [
+          MLVariant('p6_0', '250g', 229, 260, true),
+          MLVariant('p6_1', '500g', 435, 495, true),
         ],
       ),
     ],

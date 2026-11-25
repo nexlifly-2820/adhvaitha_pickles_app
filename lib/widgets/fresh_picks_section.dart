@@ -20,6 +20,8 @@ import '../image_util.dart';
 
 // ============================ MODELS ============================
 
+num _fpNum(dynamic v) => v is num ? v : (num.tryParse('$v') ?? 0);
+
 class FPVariant {
   final String id, label;
   final num price, mrp;
@@ -29,10 +31,10 @@ class FPVariant {
 
   factory FPVariant.fromJson(Map j) => FPVariant(
         '${j['id'] ?? ''}',
-        j['label'] ?? '',
-        j['price'] ?? 0,
-        j['mrp'] ?? j['price'] ?? 0,
-        j['inStock'] ?? true,
+        '${j['label'] ?? ''}',
+        _fpNum(j['price']),
+        _fpNum(j['mrp'] ?? j['price']),
+        j['inStock'] != false,
       );
 }
 
@@ -176,8 +178,14 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
   void _listenToFreshPicksConfig() {
     _sub = AppConfigRepository().getFreshPicksStream().listen((data) {
       if (!mounted) return;
-      if (data.isNotEmpty) {
-        final parsed = FreshPicksData.fromJson(data);
+      // Only what the admin "Fresh Picks" tab saved (version 2) is used; older saves are ignored
+      // so the built-in kadai products show until the admin saves.
+      if (data.isNotEmpty && '${data['version'] ?? ''}' == '2') {
+        final Map<String, dynamic> clean = Map<String, dynamic>.from(data);
+        clean['products'] = ((data['products'] as List?) ?? <dynamic>[])
+            .where((dynamic e) => e is Map && e['enabled'] != false && '${e['name'] ?? ''}'.trim().isNotEmpty && ((e['variants'] as List?) ?? <dynamic>[]).isNotEmpty)
+            .toList();
+        final parsed = FreshPicksData.fromJson(clean);
         if (parsed.products.isNotEmpty) {
           setState(() {
             _liveData = parsed;
@@ -972,11 +980,14 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
     );
   }
   Widget _shelf() => Padding(
-        padding: const EdgeInsets.fromLTRB(14, 22, 14, 0),
+        padding: const EdgeInsets.fromLTRB(14, 18, 14, 0),
         child: Column(
           children: [
+            Text('Tap a jar to see it in the kadai',
+                style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFFE9C7A8))),
+            const SizedBox(height: 2),
             SizedBox(
-              height: 74,
+              height: 104,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -988,7 +999,7 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                     offset: Offset(0, i == _cur ? -6 : 0),
                     child: Container(
                       width: 52,
-                      margin: const EdgeInsets.only(top: 8, bottom: 4),
+                      margin: const EdgeInsets.only(top: 8, bottom: 32),
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
@@ -1019,7 +1030,25 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
                             ],
                           ),
                           alignment: Alignment.center,
-                          child: _buildImg(_p[i].image, 44, 38),
+                          child: _buildImg(_p[i].image, 46, 42),
+                        ),
+                        // name under the jar
+                        Positioned(
+                          left: -5,
+                          right: -5,
+                          top: 66,
+                          child: Text(
+                            _p[i].name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              fontSize: 8.5,
+                              height: 1.15,
+                              fontWeight: FontWeight.w600,
+                              color: i == _cur ? const Color(0xFFF6C453) : const Color(0xFFF3DCC0),
+                            ),
+                          ),
                         ),
                         Positioned(
                           top: -8,
@@ -1082,39 +1111,91 @@ class _FreshPicksSectionState extends State<FreshPicksSection>
         id: 'p1',
         name: 'Chakinalu',
         tagline: 'Sankranti spiral snack',
-        image: 'assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg',
+        image: 'assets/images/fresh_chakinalu.png',
         madeLabel: 'Made today, 6 AM',
         batch: 'Batch #24',
         badge: 'NEW',
         variants: [
-          FPVariant('v1', '250g', 100, 115, true),
-          FPVariant('v2', '500g', 190, 220, true),
+          FPVariant('p1_0', '250g', 139, 160, true),
+          FPVariant('p1_1', '500g', 265, 305, true),
         ],
       ),
       FPProduct(
         id: 'p2',
         name: 'Idli Karam Podi',
         tagline: 'freshly roasted & ground spice powder',
-        image: 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
+        image: 'assets/images/fresh_idli_karam_podi.png',
         madeLabel: 'Made today, 7 AM',
         batch: 'Batch #25',
         badge: 'HOT',
         variants: [
-          FPVariant('v3', '200g', 139, 150, true),
-          FPVariant('v4', '500g', 320, 350, true),
+          FPVariant('p2_0', '200g', 139, 150, true),
+          FPVariant('p2_1', '500g', 320, 350, true),
         ],
       ),
       FPProduct(
         id: 'p3',
         name: 'Sunnunda Laddu',
         tagline: 'ghee-infused roasted urad laddus',
-        image: 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+        image: 'assets/images/fresh_sunnunda_laddu.png',
         madeLabel: 'Made today, 5 AM',
         batch: 'Batch #22',
         badge: 'FRESH',
         variants: [
-          FPVariant('v5', '250g', 199, 220, true),
-          FPVariant('v6', '500g', 380, 420, true),
+          FPVariant('p3_0', '250g', 199, 220, true),
+          FPVariant('p3_1', '500g', 380, 420, true),
+        ],
+      ),
+      FPProduct(
+        id: 'p4',
+        name: 'Ariselu',
+        tagline: 'jaggery rice sweets with sesame',
+        image: 'assets/images/fresh_ariselu.png',
+        madeLabel: 'Made today, 8 AM',
+        batch: 'Batch #26',
+        badge: 'NEW',
+        variants: [
+          FPVariant('p4_0', '250g', 229, 260, true),
+          FPVariant('p4_1', '500g', 435, 495, true),
+        ],
+      ),
+      FPProduct(
+        id: 'p5',
+        name: 'Gongura Pickle',
+        tagline: 'tangy sorrel leaves in sesame oil',
+        image: 'assets/images/fresh_gongura_pickle.png',
+        madeLabel: 'Made today, 9 AM',
+        batch: 'Batch #19',
+        badge: 'FRESH',
+        variants: [
+          FPVariant('p5_0', '250g', 189, 220, true),
+          FPVariant('p5_1', '500g', 359, 415, true),
+        ],
+      ),
+      FPProduct(
+        id: 'p6',
+        name: 'Ribbon Pakoda',
+        tagline: 'crunchy gram-flour ribbons',
+        image: 'assets/images/fresh_ribbon_pakoda.png',
+        madeLabel: 'Made today, 10 AM',
+        batch: 'Batch #27',
+        badge: 'HOT',
+        variants: [
+          FPVariant('p6_0', '250g', 129, 145, true),
+          FPVariant('p6_1', '500g', 245, 275, true),
+        ],
+      ),
+      FPProduct(
+        id: 'p7',
+        name: 'Kobbari Laddu',
+        tagline: 'coconut & jaggery laddus',
+        image: 'assets/images/fresh_kobbari_laddu.png',
+        madeLabel: 'Made today, 6 AM',
+        batch: 'Batch #23',
+        badge: 'NEW',
+        variants: [
+          FPVariant('p7_0', '250g', 179, 199, true),
+          FPVariant('p7_1', '500g', 340, 380, true),
         ],
       ),
     ],

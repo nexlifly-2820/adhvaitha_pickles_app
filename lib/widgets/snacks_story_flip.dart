@@ -6,13 +6,19 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../product_listing_page.dart';
 import '../navigation_util.dart';
-import '../app_config_repository.dart';
+import '../api_service.dart';
 import '../image_util.dart';
 import '../product_lookup.dart';
 
 class Ingredient {
   final String name, image;
   const Ingredient(this.name, this.image);
+}
+
+class StoryWeight {
+  final String label;
+  final double price;
+  const StoryWeight(this.label, this.price);
 }
 
 class StorySnack {
@@ -23,6 +29,8 @@ class StorySnack {
   final List<Ingredient> ingredients;
   final String? since;
   final bool wished;
+  final String place, quote;
+  final List<StoryWeight> weights;
 
   const StorySnack({
     required this.id,
@@ -34,21 +42,36 @@ class StorySnack {
     this.since,
     this.backArt,
     this.wished = false,
+    this.place = '',
+    this.quote = '',
+    this.weights = const <StoryWeight>[],
   });
 
-  factory StorySnack.fromJson(Map<String, dynamic> j) => StorySnack(
-        id: j['id'] ?? '',
-        name: j['name'] ?? '',
-        image: j['image'] ?? '',
-        story: j['story'] ?? '',
-        price: (j['price'] ?? 0).round(),
-        since: j['since'],
-        backArt: j['backArt'],
-        wished: j['wished'] ?? false,
-        ingredients: ((j['ingredients'] ?? []) as List)
-            .map((e) => Ingredient(e['name'] ?? '', e['image'] ?? ''))
-            .toList(),
-      );
+  factory StorySnack.fromJson(Map<String, dynamic> j) {
+    double n(dynamic v) => v is num ? v.toDouble() : (double.tryParse('$v') ?? 0);
+    final List<StoryWeight> ws = <StoryWeight>[
+      for (final dynamic w in (j['weights'] as List?) ?? <dynamic>[])
+        if (w is Map && '${w['label'] ?? ''}'.trim().isNotEmpty && n(w['price']) > 0) StoryWeight('${w['label']}'.trim(), n(w['price'])),
+    ];
+    final String since = '${j['since'] ?? ''}'.trim();
+    return StorySnack(
+      id: '${j['id'] ?? ''}',
+      name: '${j['name'] ?? ''}',
+      image: '${j['image'] ?? ''}',
+      story: '${j['story'] ?? ''}',
+      price: n(j['price']).round(),
+      since: since.isEmpty ? null : since,
+      backArt: j['backArt'] == null ? null : '${j['backArt']}',
+      wished: j['wished'] == true,
+      place: '${j['place'] ?? ''}'.trim(),
+      quote: '${j['quote'] ?? ''}'.trim(),
+      weights: ws,
+      ingredients: ((j['ingredients'] ?? []) as List)
+          .whereType<Map>()
+          .map((e) => Ingredient('${e['name'] ?? ''}', '${e['image'] ?? ''}'))
+          .toList(),
+    );
+  }
 }
 
 class SnacksStoryFlip extends StatefulWidget {
@@ -79,16 +102,28 @@ class _SnacksStoryFlipState extends State<SnacksStoryFlip> {
     _listenToStorySnacks();
   }
 
-  void _listenToStorySnacks() {
-    _sub = AppConfigRepository().getStorySnacksStream().listen((data) {
-      if (!mounted) return;
-      if (data.isNotEmpty) {
-        final parsed = data.map((e) => StorySnack.fromJson(e)).toList();
-        if (parsed.isNotEmpty) {
-          setState(() => _liveItems = parsed);
-        }
-      }
-    });
+  bool _enabled = true;
+  String _tagline = 'Served hot in a newspaper potlam — tap to read its story';
+  String _viewAll = 'View all snacks';
+
+  // Only what the admin "Snacks with a Story" tab saved (version 2) is used; older saves are ignored
+  // so the built-in snacks show until the admin saves.
+  Future<void> _listenToStorySnacks() async {
+    try {
+      final Map<String, dynamic> d = await ApiService.getAppConfig('story_snacks');
+      if (!mounted || '${d['version'] ?? ''}' != '2') return;
+      final List<StorySnack> parsed = <StorySnack>[
+        for (final dynamic e in (d['list'] as List?) ?? <dynamic>[])
+          if (e is Map && e['enabled'] != false && '${e['name'] ?? ''}'.trim().isNotEmpty) StorySnack.fromJson(Map<String, dynamic>.from(e)),
+      ];
+      final Map<String, dynamic> s = d['settings'] is Map ? Map<String, dynamic>.from(d['settings'] as Map) : <String, dynamic>{};
+      setState(() {
+        if (parsed.isNotEmpty) _liveItems = parsed;
+        _enabled = s['enabled'] != false;
+        if (s['tagline'] != null) _tagline = '${s['tagline']}';
+        if ('${s['viewAll'] ?? ''}'.trim().isNotEmpty) _viewAll = '${s['viewAll']}'.trim();
+      });
+    } catch (_) {}
   }
 
   @override
@@ -111,13 +146,15 @@ class _SnacksStoryFlipState extends State<SnacksStoryFlip> {
   Widget build(BuildContext context) {
     final s = MediaQuery.of(context).size.width / 390;
     final displayItems = _effectiveItems;
+    if (!_enabled || displayItems.isEmpty) return const SizedBox.shrink();
 
     return CustomPaint(
       painter: _KraftPainter(),
       child: Padding(
         padding: EdgeInsets.only(top: 6 * s, bottom: 22 * s),
         child: Column(children: <Widget>[
-          Text('Served hot in a newspaper potlam — tap to read its story',
+          if (_tagline.trim().isNotEmpty)
+          Text(_tagline,
               textAlign: TextAlign.center, style: GoogleFonts.poppins(fontSize: 10.5 * s, color: const Color(0xFF7A5A3A))),
           SizedBox(height: 18 * s),
           SizedBox(
@@ -145,7 +182,7 @@ class _SnacksStoryFlipState extends State<SnacksStoryFlip> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 18 * s, vertical: 9 * s),
               decoration: BoxDecoration(color: _kMaroon, borderRadius: BorderRadius.circular(20 * s)),
-              child: Text('View all snacks ›', style: GoogleFonts.poppins(fontSize: 12 * s, fontWeight: FontWeight.w700, color: const Color(0xFFFFE7B8))),
+              child: Text('$_viewAll ›', style: GoogleFonts.poppins(fontSize: 12 * s, fontWeight: FontWeight.w700, color: const Color(0xFFFFE7B8))),
             ),
           ),
         ]),
@@ -157,54 +194,46 @@ class _SnacksStoryFlipState extends State<SnacksStoryFlip> {
     StorySnack(
       id: 'murukku',
       name: 'Kara Murukku',
-      image: 'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+      image: 'assets/images/snack_kara_murukku.png',
       price: 129,
       story: 'A crispy spiral snack made from rice flour and urad dal, prepared in our family kitchen for festive evenings.',
       since: '1985',
-      ingredients: [
-        Ingredient('Rice Flour', 'assets/images/rice_papad_crispy_rice_flour_papadums.jpg'),
-        Ingredient('Urad Dal', 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg'),
-        Ingredient('Spices', 'assets/images/special_kura_karam_podi_all-purpose_curry_powder.jpg'),
-      ],
+      place: 'Vijayawada',
+      quote: 'Best with evening chai.',
+      weights: <StoryWeight>[StoryWeight('250g', 129), StoryWeight('500g', 245), StoryWeight('1kg', 464)],
     ),
     StorySnack(
       id: 'mixture',
       name: 'Khara Mixture',
-      image: 'assets/images/khara_mixture_assorted_crunchy_savory_mix.jpg',
+      image: 'assets/images/snack_khara_mixture.png',
       price: 149,
       story: 'A delicious assortment of spiced boondi, peanuts, and sev tossed with roasted curry leaves in pure oil.',
       since: '1992',
-      ingredients: [
-        Ingredient('Gram Flour', 'assets/images/bundhi_crispy_spiced_gram_flour_droplets.jpg'),
-        Ingredient('Peanuts', 'assets/images/palli_patti_peanut_and_jaggery_chikki.jpg'),
-        Ingredient('Curry Leaves', 'assets/images/karvepaku_karam_podi_curry_leaves_powder.jpg'),
-      ],
+      place: 'Guntur',
+      quote: 'Perfect for movie nights.',
+      weights: <StoryWeight>[StoryWeight('250g', 149), StoryWeight('500g', 283), StoryWeight('1kg', 536)],
     ),
     StorySnack(
       id: 'sunnunda',
       name: 'Sunnunda Laddu',
-      image: 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+      image: 'assets/images/snack_sunnunda_laddu.png',
       price: 199,
       story: 'Traditional roasted urad dal laddus sweetened with organic bellam (jaggery) and rich cow ghee.',
       since: '1978',
-      ingredients: [
-        Ingredient('Urad Dal', 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg'),
-        Ingredient('Pure Ghee', 'assets/images/good_food_text.png'),
-        Ingredient('Bellam', 'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg'),
-      ],
+      place: 'Rajahmundry',
+      quote: 'One a day, the Amma way.',
+      weights: <StoryWeight>[StoryWeight('250g', 199), StoryWeight('500g', 378), StoryWeight('1kg', 716)],
     ),
     StorySnack(
-      id: 'chips',
+      id: 'banana_chips',
       name: 'Banana Chips',
-      image: 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg',
+      image: 'assets/images/snack_banana_chips.png',
       price: 119,
       story: 'Thinly sliced raw bananas fried in cold-pressed coconut oil and sprinkled with sea salt & black pepper.',
       since: '1998',
-      ingredients: [
-        Ingredient('Raw Banana', 'assets/images/allu_chips_thinly_sliced_indian_potato_chips.jpg'),
-        Ingredient('Coconut Oil', 'assets/images/good_food_text.png'),
-        Ingredient('Sea Salt', 'assets/images/uppava_traditional_salted_pickle.jpg'),
-      ],
+      place: 'Nellore',
+      quote: 'Crunch you can hear.',
+      weights: <StoryWeight>[StoryWeight('250g', 119), StoryWeight('500g', 226), StoryWeight('1kg', 428)],
     ),
   ];
 }
@@ -252,6 +281,7 @@ class _PotlamCardState extends State<_PotlamCard> with TickerProviderStateMixin 
 
   /// real weights from the product list when available, otherwise sensible packs from the base price
   static List<_Wt> _weightsFor(StorySnack it) {
+    if (it.weights.isNotEmpty) return it.weights.take(4).map((StoryWeight w) => _Wt(w.label, w.price)).toList();
     final Map<String, double> m = findCatalogProduct(it.name)?.weightPriceMap ?? const <String, double>{};
     if (m.length >= 2) {
       return m.entries.take(3).map((MapEntry<String, double> e) => _Wt(e.key, e.value)).toList();
@@ -357,24 +387,11 @@ class _PotlamCardState extends State<_PotlamCard> with TickerProviderStateMixin 
             ),
             // snack heaped on top
             Positioned(
-              top: 6 * s,
-              child: ClipRRect(
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.elliptical(74 * s, 62 * s),
-                  bottom: Radius.elliptical(74 * s, 26 * s),
-                ),
-                child: SizedBox(
-                  width: 148 * s,
-                  height: 106 * s,
-                  child: Stack(fit: StackFit.expand, children: <Widget>[
-                    Transform.scale(scale: 1.65, child: _img(it.image)),
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: <Color>[Color(0x00000000), Color(0x00000000), Color(0x66301500)], stops: <double>[0, .6, 1]),
-                      ),
-                    ),
-                  ]),
-                ),
+              top: -4 * s,
+              child: SizedBox(
+                width: 150 * s,
+                height: 126 * s,
+                child: _img(it.image, fit: BoxFit.contain, alignment: Alignment.bottomCenter),
               ),
             ),
             // newspaper cone
@@ -444,7 +461,7 @@ class _PotlamCardState extends State<_PotlamCard> with TickerProviderStateMixin 
   // ---------- back: newspaper story ----------
   Widget _back(double s) {
     final StorySnack it = widget.item;
-    final String place = <String>['VIJAYAWADA', 'GUNTUR', 'RAJAHMUNDRY', 'NELLORE'][widget.index % 4];
+    final String place = it.place.isNotEmpty ? it.place.toUpperCase() : <String>['VIJAYAWADA', 'GUNTUR', 'RAJAHMUNDRY', 'NELLORE'][widget.index % 4];
     return Container(
       width: 166 * s,
       height: 338 * s,
@@ -459,7 +476,7 @@ class _PotlamCardState extends State<_PotlamCard> with TickerProviderStateMixin 
         Container(
           padding: EdgeInsets.only(bottom: 3 * s),
           decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: _kInk, width: 2))),
-          child: Text('THE AMMA TIMES', textAlign: TextAlign.center, style: GoogleFonts.playfairDisplay(fontSize: 11 * s, fontWeight: FontWeight.w900, letterSpacing: 1, color: _kInk)),
+          child: Text('AMBHUJAKSHI', textAlign: TextAlign.center, style: GoogleFonts.playfairDisplay(fontSize: 11 * s, fontWeight: FontWeight.w900, letterSpacing: 1, color: _kInk)),
         ),
         Container(
           padding: EdgeInsets.symmetric(vertical: 2 * s),
@@ -480,7 +497,7 @@ class _PotlamCardState extends State<_PotlamCard> with TickerProviderStateMixin 
                 .272, .534, .131, 0, 0, //
                 0, 0, 0, 1, 0,
               ]),
-              child: _img(it.image),
+              child: _img(it.image, fit: BoxFit.contain),
             ),
           ),
         ),
@@ -492,7 +509,7 @@ class _PotlamCardState extends State<_PotlamCard> with TickerProviderStateMixin 
             style: GoogleFonts.poppins(fontSize: 9.5 * s, height: 1.45, color: const Color(0xFF3A2E22)),
           ),
         ),
-        Text('“Best with evening chai.”', style: GoogleFonts.kalam(fontSize: 12 * s, fontWeight: FontWeight.w700, color: const Color(0xFFB0202F))),
+        Text('“${it.quote.isNotEmpty ? it.quote : 'Best with evening chai.'}”', maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.kalam(fontSize: 12 * s, fontWeight: FontWeight.w700, color: const Color(0xFFB0202F))),
       ]),
     );
   }
@@ -555,16 +572,18 @@ class _PotlamCardState extends State<_PotlamCard> with TickerProviderStateMixin 
     );
   }
 
-  Widget _img(String u) {
-    final String p = bestImageFor(widget.item.name, u.trim());
+  Widget _img(String u, {BoxFit fit = BoxFit.cover, Alignment alignment = Alignment.center}) {
+    final String given = u.trim();
+    final String p = given.isNotEmpty ? given : bestImageFor(widget.item.name, given);
     if (p.startsWith('assets/')) {
       return Image.asset(p,
-          fit: BoxFit.cover,
+          fit: fit,
+          alignment: alignment,
           cacheWidth: 520,
           gaplessPlayback: true,
-          errorBuilder: (_, __, ___) => buildSmartImage(p, fit: BoxFit.cover));
+          errorBuilder: (_, __, ___) => buildSmartImage(bestImageFor(widget.item.name, ''), fit: fit));
     }
-    return buildSmartImage(p, fit: BoxFit.cover);
+    return buildSmartImage(p, fit: fit, alignment: alignment);
   }
 }
 
@@ -599,7 +618,7 @@ class _NewspaperConePainter extends CustomPainter {
 
     // masthead
     final TextPainter mast = _mast ??= (TextPainter(
-      text: TextSpan(text: 'The Amma Times', style: GoogleFonts.playfairDisplay(fontSize: 13.5 * s, fontWeight: FontWeight.w700, color: _kInk.withOpacity(.85))),
+      text: TextSpan(text: 'Ambhujakshi', style: GoogleFonts.playfairDisplay(fontSize: 13.5 * s, fontWeight: FontWeight.w700, color: _kInk.withOpacity(.85))),
       textDirection: TextDirection.ltr,
     )..layout());
     mast.paint(c, Offset((w - mast.width) / 2, 19 * s));
