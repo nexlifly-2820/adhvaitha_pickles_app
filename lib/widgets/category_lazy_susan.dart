@@ -12,6 +12,11 @@ import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import '../shop_catalog.dart';
+import '../models.dart';
+import '../navigation_util.dart';
+import '../product_detail_page.dart';
+import '../product_manager.dart';
 
 Color _hex(String? h, Color f) {
   final s = (h ?? '').replaceFirst('#', '');
@@ -121,7 +126,7 @@ class _CategoryLazySusanState extends State<CategoryLazySusan> with TickerProvid
     _rot = AnimationController.unbounded(vsync: this);
     _rays = AnimationController(vsync: this, duration: const Duration(seconds: 60))..repeat();
     _rot.addListener(_onRot);
-    _apply(widget.fallback ?? kCategoryFallback, first: true);
+    _apply(widget.fallback ?? ShopCatalog.forLazySusan(), first: true);
     _load();
   }
 
@@ -149,22 +154,19 @@ class _CategoryLazySusanState extends State<CategoryLazySusan> with TickerProvid
   }
 
   Future<void> _load() async {
+    // Categories and products come from the admin's Shop Catalog (doc "shop_catalog").
     try {
-      final http.Response r = await http.get(Uri.parse(widget.apiUrl), headers: widget.headers).timeout(const Duration(seconds: 8));
+      final Map<String, dynamic> d = await ShopCatalog.load();
       if (!mounted) return;
-      if (r.statusCode != 200 || r.body.trim().startsWith('<') || r.body.trim().startsWith('<!DOCTYPE')) return;
-      final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
-      if ((j['settings'] as Map?)?['enabled'] == false) {
+      if ((d['settings'] as Map?)?['enabled']?.toString() == 'false') {
         setState(() => _hidden = true);
         return;
       }
-      final List<dynamic> list = (j['categories'] as List?) ?? <dynamic>[];
-      if (list.isEmpty) return;
-      for (final dynamic e in list) {
+      final Map<String, dynamic> j = ShopCatalog.forLazySusan(d);
+      if (((j['categories'] as List?) ?? const <dynamic>[]).isEmpty) return;
+      for (final dynamic e in j['categories'] as List) {
         final String img = '${(e as Map)['image'] ?? ''}';
-        if (img.isNotEmpty && !img.startsWith('assets/')) {
-          precacheImage(NetworkImage(img.startsWith('http') ? img : Uri.parse(widget.apiUrl).resolve(img).toString()), context).catchError((Object _) {});
-        }
+        if (img.startsWith('http')) precacheImage(NetworkImage(img), context).catchError((Object _) {});
       }
       _apply(j);
     } catch (e) {
@@ -457,7 +459,14 @@ class _CategoryLazySusanState extends State<CategoryLazySusan> with TickerProvid
                 tween: Tween(begin: 0, end: 1), duration: Duration(milliseconds: 400 + i * 80), curve: Curves.easeOutBack,
                 builder: (_, v, child) => Opacity(opacity: v.clamp(0.0, 1.0), child: Transform.translate(offset: Offset(0, 16 * (1 - v)), child: child)),
                 child: GestureDetector(
-                  onTap: () => widget.onProduct?.call('${p['id']}'),
+                  onTap: () {
+                    final Product? cp = ShopCatalog.product('${p['id']}');
+                    if (cp != null) {
+                      AppNavigator.push(context, ProductDetailPage(product: cp, allProducts: ProductManager().products));
+                    } else {
+                      widget.onProduct?.call('${p['id']}');
+                    }
+                  },
                   child: Container(
                     width: 104, padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(color: Colors.white.withOpacity(.12), borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withOpacity(.2))),

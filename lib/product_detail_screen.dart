@@ -34,6 +34,10 @@ import 'product_manager.dart';
 import 'product_repository.dart';
 import 'product_lookup.dart';
 import 'cart_manager.dart';
+import 'image_util.dart';
+import 'product_extras.dart';
+import 'shop_catalog.dart';
+import 'new_look_images.dart';
 
 const _red = Color(0xFF9E1424), _ink = Color(0xFF2A1A12), _muted = Color(0xFF8A7660), _bg = Color(0xFFFBF6EF);
 const _green = Color(0xFF1E7A46), _line = Color(0xFFEFE4D2), _faint = Color(0xFFA88B68);
@@ -54,6 +58,17 @@ class _Variant {
   final double price, mrp;
   _Variant(Map<String, dynamic> j) : id = '${j['id']}', label = j['label'] ?? '', price = _d(j['price']), mrp = _d(j['mrp']);
 }
+
+  // product photos: new cut-outs (PNG) sit whole on a warm cream plate; full photos fill the frame
+Widget _photo(String url, {bool thumb = false}) {
+  final bool cut = url.toLowerCase().split('?').first.endsWith('.png');
+  if (!cut) return buildSmartImage(url, fit: BoxFit.cover);
+  return DecoratedBox(
+    decoration: const BoxDecoration(gradient: RadialGradient(center: Alignment(0, -.1), radius: .95, colors: <Color>[Color(0xFFFFF8EA), Color(0xFFF6E3C2), Color(0xFFE2C08E)], stops: <double>[0, .6, 1])),
+    child: Padding(padding: EdgeInsets.all(thumb ? 4 : 22), child: buildSmartImage(url, fit: BoxFit.contain)),
+  );
+}
+
 
 class ProductDetailScreen extends StatefulWidget {
   final String apiBase, productId;
@@ -92,6 +107,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
     _applyData(_local != null ? _fromProduct(_local!) : _defaultProduct);
     _load();
+    ShopCatalog.load().then((_) {
+      if (mounted && _local != null && ShopCatalog.find(_local!.name) != null) _applyData(_fromProduct(_local!));
+    });
   }
 
   Product? _local;
@@ -114,7 +132,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   /// Builds the page data from the app's own product, so every product opens with its own name, photo and prices.
   static Map<String, dynamic> _fromProduct(Product p) {
-    final List<MapEntry<String, double>> w = p.weightPriceMap.entries.toList();
+    final Map<String, dynamic>? sc = ShopCatalog.find(p.name); // admin's shop catalogue entry, if any
+    final String kind = productKind(p.name, '${sc?['_category'] ?? p.category}');
+    final KindInfo info = kindInfo[kind] ?? kindInfo['other']!;
     final List<Review> rv = p.reviews.where((Review r) => r.status == 'approved').toList();
     final List<double> bars = <double>[0, 0, 0, 0, 0];
     for (final Review r in rv) {
@@ -122,36 +142,80 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       bars[k] += 1;
     }
     final double total = rv.isEmpty ? 1 : rv.length.toDouble();
+    double d(dynamic v) => v is num ? v.toDouble() : double.tryParse('$v') ?? 0;
+
+    // sizes: exactly what the shop shows (real MRP), else the product's own sizes
+    final List<Map<String, dynamic>> variants = <Map<String, dynamic>>[];
+    if (sc != null) {
+      for (final dynamic v in (sc['variants'] as List?) ?? const <dynamic>[]) {
+        if (v is Map && v['inStock']?.toString() != 'false' && d(v['price']) > 0) {
+          variants.add(<String, dynamic>{'id': 'v${variants.length + 1}', 'label': '${v['label']}', 'price': d(v['price']), 'mrp': d(v['mrp']) > d(v['price']) ? d(v['mrp']) : d(v['price'])});
+        }
+      }
+    }
+    if (variants.isEmpty) {
+      final List<MapEntry<String, double>> w = p.weightPriceMap.entries.where((MapEntry<String, double> e) => e.value > 0).toList()
+        ..sort((MapEntry<String, double> a, MapEntry<String, double> b) => a.value.compareTo(b.value));
+      for (int i = 0; i < w.length; i++) {
+        variants.add(<String, dynamic>{'id': 'v${i + 1}', 'label': w[i].key, 'price': w[i].value, 'mrp': (w[i].value * 1.15).roundToDouble()});
+      }
+    }
+
+    final int spice = sc != null && sc['spice'] != null ? d(sc['spice']).round() : defaultSpice(p.name, kind);
+    final double rating = rv.isNotEmpty
+        ? rv.fold<double>(0, (double a, Review r) => a + r.rating) / rv.length
+        : (sc != null && d(sc['rating']) > 0 ? d(sc['rating']) : (p.rating > 0 ? p.rating : 4.8));
+    final String photo = sc != null ? ShopCatalog.img(sc['image']) : productLookImage(p.name, p.image, category: p.category);
+    final String desc = '${sc?['description'] ?? ''}'.trim().isNotEmpty ? '${sc!['description']}' : p.description;
+    // admin's ingredients for this product, else the built-in list
+    final List<Map<String, dynamic>> builtIn = ingredientsFor(p.name);
+    String emojiFor(String name) {
+      for (final Map<String, dynamic> b in builtIn) {
+        if ('${b['name']}'.toLowerCase() == name.toLowerCase()) return '${b['emoji']}';
+      }
+      return '🌿';
+    }
+    final List<Map<String, dynamic>> ings = sc != null && sc['ingredients'] is List
+        ? <Map<String, dynamic>>[
+            for (final dynamic g in sc['ingredients'] as List)
+              if (g is Map && '${g['name'] ?? ''}'.trim().isNotEmpty) <String, dynamic>{'name': '${g['name']}', 'image': '${g['image'] ?? ''}', 'emoji': emojiFor('${g['name']}')},
+          ]
+        : builtIn;
+    String txt(String key, String fallback) => '${sc?[key] ?? ''}'.trim().isNotEmpty ? '${sc![key]}'.trim() : fallback;
+    final List<String> features = sc != null && sc['features'] is List && (sc['features'] as List).isNotEmpty
+        ? (sc['features'] as List).map((dynamic e) => '$e').where((String e) => e.trim().isNotEmpty).take(4).toList()
+        : info.features;
+    final Map<String, dynamic> st = Map<String, dynamic>.from((ShopCatalog.data['settings'] as Map?) ?? const <String, dynamic>{});
+    String stx(String key, String fallback) => '${st[key] ?? ''}'.trim().isNotEmpty ? '${st[key]}'.trim() : fallback;
+    final String note = '${sc?['cureNote'] ?? ''}'.trim();
+
     return <String, dynamic>{
       'id': p.name,
       'name': p.name,
-      'categoryLabel': p.subCategory.isNotEmpty && p.subCategory != 'Classic' ? '${p.category} · ${p.subCategory}' : p.category,
-      'rating': p.rating,
+      'categoryLabel': '${sc?['_category'] ?? p.category}',
+      'rating': rating,
       'reviewCount': rv.length,
       'soldText': p.purchaseCount > 0 ? '${p.purchaseCount}+ sold' : '',
-      'spice': 3,
-      'spiceLabel': 'Medium',
+      'spice': spice,
+      'spiceLabel': spiceLabel(spice),
       'viewersToday': p.viewCount,
       'photos': <Map<String, dynamic>>[
-        <String, dynamic>{'url': p.image, 'caption': p.origin, 'glints': <List<double>>[]},
-        if (p.storyImage.isNotEmpty) <String, dynamic>{'url': p.storyImage, 'caption': 'Made in small batches', 'glints': <List<double>>[]},
+        <String, dynamic>{'url': photo, 'caption': note.isNotEmpty ? note : info.process, 'glints': <List<double>>[]},
+        if (p.storyImage.isNotEmpty && !isOldLookImage(p.storyImage)) <String, dynamic>{'url': p.storyImage, 'caption': 'Made in small batches', 'glints': <List<double>>[]},
       ],
       'videoUrl': '',
-      'variants': <Map<String, dynamic>>[
-        for (int i = 0; i < w.length; i++)
-          <String, dynamic>{'id': 'v${i + 1}', 'label': w[i].key, 'price': w[i].value, 'mrp': (w[i].value * 1.25).roundToDouble()},
-      ],
+      'variants': variants,
       'defaultVariantId': 'v1',
-      'description': p.description,
-      'highlight': p.secretIngredient.name,
-      'features': p.trustBadges.take(3).toList(),
-      'ingredients': p.ingredients.map((Map<String, String> m) => <String, dynamic>{'name': m['name'] ?? '', 'image': m['image'] ?? ''}).toList(),
+      'description': desc,
+      'highlight': txt('highlight', info.highlight),
+      'features': features,
+      'ingredients': ings.isNotEmpty ? ings : <Map<String, dynamic>>[],
       'journey': <Map<String, dynamic>>[
-        <String, dynamic>{'icon': '📍', 'label': 'Origin', 'title': p.origin, 'text': 'Sourced from trusted local farms'},
-        <String, dynamic>{'icon': '🫙', 'label': 'Process', 'title': 'Handmade', 'text': p.preparationMethod},
-        <String, dynamic>{'icon': '🗓️', 'label': 'Shelf life', 'title': p.shelfLife, 'text': p.storageInstructions},
+        <String, dynamic>{'icon': '📍', 'label': 'Origin', 'title': txt('origin', info.origin), 'text': 'Ingredients from trusted local farms'},
+        <String, dynamic>{'icon': kind == 'pickle' ? '☀️' : kind == 'podi' ? '🪨' : kind == 'snack' ? '🔥' : '🧈', 'label': 'Process', 'title': txt('process', info.process), 'text': txt('processText', info.processText)},
+        <String, dynamic>{'icon': '🗓️', 'label': 'Shelf life', 'title': txt('shelfLife', info.shelfLife), 'text': txt('storage', info.storage)},
       ],
-      'artisan': <String, dynamic>{'name': p.artisanName, 'since': '1982', 'quote': p.artisanDescription, 'photo': p.artisanImage},
+      'artisan': <String, dynamic>{'name': stx('artisanName', 'Ambhujakshi Amma'), 'since': stx('artisanSince', 'Cooking since 1982'), 'quote': '${st['artisanQuote'] ?? ''}'.trim().isNotEmpty ? '${st['artisanQuote']}' : info.quote, 'photo': stx('artisanPhoto', 'assets/images/ing_amma.png')},
       'recipes': <dynamic>[],
       'ratingBars': bars.map((double b) => rv.isEmpty ? 0.0 : b / total).toList(),
       'reviews': rv
@@ -214,6 +278,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   };
 
   Future<void> _load() async {
+    // products in the admin's Shop Catalog already have everything; don't let older server data replace it
+    if (ShopCatalog.find(_local?.name ?? widget.productId) != null) return;
     try {
       final r = await http.get(Uri.parse('${widget.apiBase}/products/${widget.productId}/detail'), headers: widget.headers);
       if (r.statusCode == 200) {
@@ -344,7 +410,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Widget _meta(Map p) => Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, runSpacing: 4, children: [
         Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: _green, borderRadius: BorderRadius.circular(8)),
             child: Text('★ ${_d(p['rating']).toStringAsFixed(1)}', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white))),
-        Text('${p['reviewCount'] ?? 0} reviews', style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF7A5A44))),
+        Text((p['reviewCount'] ?? 0) == 0 ? 'Be the first to review' : '${p['reviewCount']} reviews', style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF7A5A44))),
         if ((p['soldText'] ?? '').toString().isNotEmpty) Text('· ${p['soldText']}', style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF7A5A44))),
         if ((p['spice'] ?? 0) > 0) Row(mainAxisSize: MainAxisSize.min, children: [
           Text('· ', style: GoogleFonts.poppins(fontSize: 11, color: _muted)), _chillies(p['spice'], 11),
@@ -452,7 +518,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             Column(children: [
               Container(width: 54, height: 54, padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [Colors.white, Color(0xFFFBF0DE)])),
-                  child: Image.network(g['image'] ?? '', fit: BoxFit.contain)),
+                  child: buildSmartImage('${g['image'] ?? ''}', fit: BoxFit.contain, errorWidget: Center(child: Text('${g['emoji'] ?? '🌿'}', style: const TextStyle(fontSize: 24))))),
               const SizedBox(height: 4),
               Text(g['name'] ?? '', textAlign: TextAlign.center, style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600)),
             ]),
@@ -485,8 +551,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _artisan(Map a) => Row(children: [
-        Container(width: 70, height: 70, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: const [BoxShadow(color: Color(0xFFFFD27A), spreadRadius: 3)],
-            image: DecorationImage(image: NetworkImage(a['photo'] ?? ''), fit: BoxFit.cover))),
+        Container(width: 70, height: 70, clipBehavior: Clip.antiAlias,
+            decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFFFF3DC), boxShadow: [BoxShadow(color: Color(0xFFFFD27A), spreadRadius: 3)]),
+            child: buildSmartImage('${a['photo'] ?? ''}', fit: BoxFit.cover,
+                errorWidget: Padding(padding: const EdgeInsets.all(8), child: buildSmartImage('assets/images/AMBHUJAKSHI  logo.png', fit: BoxFit.contain)))),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(a['name'] ?? '', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700)),
@@ -504,7 +572,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               width: 150, margin: const EdgeInsets.only(right: 10), clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(color: const Color(0xFFFBF3E6), borderRadius: BorderRadius.circular(16)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Image.network(r['image'] ?? '', width: 150, height: 96, fit: BoxFit.cover),
+                buildSmartImage('${r['image'] ?? ''}', width: 150, height: 96, fit: BoxFit.cover),
                 Padding(padding: const EdgeInsets.fromLTRB(9, 7, 9, 0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(r['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 11.5, fontWeight: FontWeight.w700)),
                   Text(r['subtitle'] ?? '', maxLines: 1, style: GoogleFonts.poppins(fontSize: 9.5, color: _muted)),
@@ -529,7 +597,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         Column(children: [
           Text(_d(p['rating']).toStringAsFixed(1), style: GoogleFonts.rozhaOne(fontSize: 30, height: 1)),
           Text('★★★★★', style: GoogleFonts.poppins(fontSize: 10, color: const Color(0xFFE39B1C))),
-          Text('${p['reviewCount'] ?? 0} reviews', style: GoogleFonts.poppins(fontSize: 9.5, color: _muted)),
+          Text((p['reviewCount'] ?? 0) == 0 ? 'Be the first to review' : '${p['reviewCount']} reviews', style: GoogleFonts.poppins(fontSize: 9.5, color: _muted)),
         ]),
         const SizedBox(width: 14),
         Expanded(child: Column(children: [
@@ -578,7 +646,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Row(children: [
           if ((p['logo'] ?? '').toString().isNotEmpty)
             Container(width: 44, height: 44, padding: const EdgeInsets.all(3), decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                child: ClipOval(child: Image.network(p['logo']))),
+                child: ClipOval(child: buildSmartImage('${p['logo'] ?? ''}', fit: BoxFit.contain))),
           const SizedBox(width: 10),
           Expanded(child: Text('"${p['brandLine']}"', style: GoogleFonts.kalam(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white))),
         ]),
@@ -682,7 +750,7 @@ class _LivingGalleryState extends State<_LivingGallery> with TickerProviderState
                     CustomPaint(painter: _GlintPainter(_life.value * 18, ph[i].glints)),
                   ]);
                 },
-                child: Image.network(ph[i].url, fit: BoxFit.cover),
+                child: _photo(ph[i].url),
               ),
             ),
             const IgnorePointer(child: DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
@@ -723,7 +791,7 @@ class _LivingGalleryState extends State<_LivingGallery> with TickerProviderState
               duration: const Duration(milliseconds: 300),
               width: 56, margin: const EdgeInsets.only(right: 8), clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: i == _i ? _red : Colors.transparent, width: 2)),
-              child: Opacity(opacity: i == _i ? 1 : .7, child: Image.network(ph[i].url, fit: BoxFit.cover)),
+              child: Opacity(opacity: i == _i ? 1 : .7, child: _photo(ph[i].url, thumb: true)),
             ),
           ),
         if (widget.videoUrl.isNotEmpty)
@@ -731,7 +799,7 @@ class _LivingGalleryState extends State<_LivingGallery> with TickerProviderState
             onTap: () => widget.onVideo?.call(widget.videoUrl),
             child: Container(width: 56, clipBehavior: Clip.antiAlias, decoration: BoxDecoration(borderRadius: BorderRadius.circular(14)),
                 child: Stack(fit: StackFit.expand, children: [
-                  Image.network(ph.last.url, fit: BoxFit.cover),
+                  _photo(ph.last.url, thumb: true),
                   Container(color: Colors.black38, alignment: Alignment.center, child: const Icon(Icons.play_arrow_rounded, color: Colors.white)),
                 ])),
           ),

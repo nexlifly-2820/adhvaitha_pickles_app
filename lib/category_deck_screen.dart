@@ -28,6 +28,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'shop_catalog.dart';
+import 'cart_manager.dart';
+import 'models.dart';
+import 'navigation_util.dart';
+import 'product_detail_page.dart';
+import 'product_manager.dart';
 
 Color _hex(String? s, Color fb) {
   if (s == null || s.isEmpty) return fb;
@@ -99,7 +105,7 @@ class _CategoryDeckScreenState extends State<CategoryDeckScreen> with TickerProv
   @override
   void initState() {
     super.initState();
-    _applyDeck(_getDefaultDeckForSlug(widget.slug));
+    _applyDeck(ShopCatalog.forDeck(widget.slug) ?? _getDefaultDeckForSlug(widget.slug));
     _load();
     _photoTimer = Timer.periodic(const Duration(milliseconds: 2200), (_) { if (mounted) setState(() => _alt = !_alt); });
   }
@@ -229,6 +235,14 @@ class _CategoryDeckScreenState extends State<CategoryDeckScreen> with TickerProv
 
   Future<void> _load() async {
     try {
+      final Map<String, dynamic> d = await ShopCatalog.load();
+      final Map<String, dynamic>? deck = ShopCatalog.forDeck(widget.slug, d);
+      if (deck != null) {
+        _applyDeck(deck);
+        return;
+      }
+    } catch (_) {}
+    try {
       final r = await http.get(Uri.parse('${widget.apiBase}/category/${widget.slug}/products'), headers: widget.headers);
       if (r.statusCode == 200) {
         final j = jsonDecode(r.body) as Map<String, dynamic>;
@@ -246,10 +260,14 @@ class _CategoryDeckScreenState extends State<CategoryDeckScreen> with TickerProv
     setState(() {
       _title = j['category']?['name'] ?? widget.slug.toUpperCase();
       _eyebrow = '${(j['products'] as List?)?.length ?? 0} VARIETIES';
-      _items = ((j['products'] as List?) ?? []).map((e) => DeckProduct.fromJson(e)).toList();
+      _items = ((j['products'] as List?) ?? []).map((e) => DeckProduct.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+      if (_items.isNotEmpty && _cur >= _items.length) _cur = 0;
       _loading = false;
     });
   }
+
+  // transparent cut-outs (the new bowl photos) are PNGs; old full photos are JPGs
+  static bool _isCutout(String url) => url.toLowerCase().split('?').first.endsWith('.png');
 
   Widget _smartImage(String url, {double? width, double? height, BoxFit? fit}) {
     if (url.startsWith('assets/')) {
@@ -281,9 +299,34 @@ class _CategoryDeckScreenState extends State<CategoryDeckScreen> with TickerProv
     HapticFeedback.lightImpact();
     final before = _qty[p.id] ?? 0;
     setState(() => _qty[p.id] = q);
-    final ok = await (widget.onAdd?.call(p.id, v.id, q) ?? Future.value(true));
+    final Product? cp = ShopCatalog.product(p.id);
+    bool ok;
+    if (cp != null) {
+      // catalogue product: put exactly this size in the cart (q is the total wanted)
+      final String w = v.label.isNotEmpty ? v.label : (cp.weightPriceMap.keys.isNotEmpty ? cp.weightPriceMap.keys.first : '250g');
+      if (q > before) {
+        CartManager().addToCart(cp, quantity: q - before, weight: w);
+      } else {
+        for (int k = 0; k < before - q; k++) {
+          CartManager().decrementProductQuantity(cp.name, w);
+        }
+      }
+      widget.cartCount?.value = CartManager().itemCount;
+      ok = true;
+    } else {
+      ok = await (widget.onAdd?.call(p.id, v.id, q) ?? Future.value(true));
+    }
     if (!ok && mounted) { setState(() => _qty[p.id] = before); return; }
     if (before == 0 && q > 0 && mounted) _toast('🛒 ${p.name} added');
+  }
+
+  void _open(DeckProduct p) {
+    final Product? cp = ShopCatalog.product(p.id);
+    if (cp != null) {
+      AppNavigator.push(context, ProductDetailPage(product: cp, allProducts: ProductManager().products));
+    } else {
+      widget.onOpen?.call(p.id);
+    }
   }
 
   void _toast(String t) {
@@ -422,7 +465,7 @@ class _CategoryDeckScreenState extends State<CategoryDeckScreen> with TickerProv
           );
         },
         child: GestureDetector(
-          onTap: () => widget.onOpen?.call(p.id),
+          onTap: () => _open(p),
           onHorizontalDragUpdate: (d) => setState(() => _drag += d.delta.dx),
           onHorizontalDragEnd: (d) {
             final v = d.primaryVelocity ?? 0;
@@ -454,8 +497,17 @@ class _CategoryDeckScreenState extends State<CategoryDeckScreen> with TickerProv
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(30),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(.8), blurRadius: 40, offset: const Offset(0, 30), spreadRadius: -20)]),
       child: Stack(fit: StackFit.expand, children: [
-        AnimatedSwitcher(duration: const Duration(milliseconds: 800),
-            child: _smartImage(photo, fit: BoxFit.cover, width: c.maxWidth, height: c.maxHeight)),
+        if (_isCutout(photo))
+          DecoratedBox(
+            decoration: BoxDecoration(gradient: RadialGradient(center: const Alignment(0, -.25), radius: 1.05, colors: <Color>[Color.lerp(p.c1, Colors.white, .18)!, p.c1, p.c2], stops: const <double>[0, .45, 1])),
+            child: Align(
+              alignment: const Alignment(0, -.42),
+              child: FractionallySizedBox(widthFactor: .86, heightFactor: .6, child: _smartImage(photo, fit: BoxFit.contain)),
+            ),
+          )
+        else
+          AnimatedSwitcher(duration: const Duration(milliseconds: 800),
+              child: _smartImage(photo, fit: BoxFit.cover, width: c.maxWidth, height: c.maxHeight)),
         const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
             colors: [Color(0x59000000), Colors.transparent, Colors.transparent, Color(0xEB140400)], stops: [0, .25, .45, 1]))),
         if (p.tag.isNotEmpty)
@@ -568,7 +620,7 @@ class _CategoryDeckScreenState extends State<CategoryDeckScreen> with TickerProv
             tween: Tween(begin: 0, end: 1), duration: Duration(milliseconds: 450 + i * 120), curve: Curves.easeOutBack,
             builder: (_, t, child) => Opacity(opacity: t.clamp(0, 1), child: Transform.translate(offset: Offset(0, 20 * (1 - t)), child: child)),
             child: GestureDetector(
-              onTap: () => widget.onOpen?.call(p.id),
+              onTap: () => _open(p),
               child: Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(10),
@@ -576,7 +628,7 @@ class _CategoryDeckScreenState extends State<CategoryDeckScreen> with TickerProv
                     border: Border.all(color: Colors.white.withOpacity(.15))),
                 child: Row(children: [
                   ClipRRect(borderRadius: BorderRadius.circular(16),
-                      child: _smartImage(p.thumb.isNotEmpty ? p.thumb : (p.photos.isEmpty ? '' : p.photos.first), width: 92, height: 92, fit: BoxFit.cover)),
+                      child: Builder(builder: (_) { final String t = p.thumb.isNotEmpty ? p.thumb : (p.photos.isEmpty ? '' : p.photos.first); return _isCutout(t) ? Container(width: 92, height: 92, padding: const EdgeInsets.all(6), decoration: BoxDecoration(gradient: RadialGradient(colors: <Color>[p.c1, p.c2])), child: _smartImage(t, fit: BoxFit.contain)) : _smartImage(t, width: 92, height: 92, fit: BoxFit.cover); })),
                   const SizedBox(width: 12),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(p.name, style: GoogleFonts.rozhaOne(fontSize: 19, height: 1, color: Colors.white)),

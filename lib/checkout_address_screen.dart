@@ -170,33 +170,78 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> with Sing
     setState(() {
       _gps = 1;
       _gpsTitle = 'Finding you…';
+      _gpsSub = '';
     });
     try {
-      bool enabled = await Geolocator.isLocationServiceEnabled();
-      if (!enabled) throw 'Please turn on location';
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        await Geolocator.openLocationSettings();
+        throw 'Turn on location (GPS), then tap again';
+      }
       LocationPermission perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
-      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) throw 'Location permission needed';
-      final Position pos = await Geolocator.getCurrentPosition();
-      final List<Placemark> marks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
-      if (marks.isEmpty) throw 'Could not find your address';
-      final Placemark m = marks.first;
-      final List<String> roadParts = <String>[
-        if ((m.thoroughfare ?? '').isNotEmpty) m.thoroughfare!,
-        if ((m.subLocality ?? '').isNotEmpty) m.subLocality!,
-      ];
-      _lastPin = m.postalCode ?? '';
-      _pin.text = m.postalCode ?? _pin.text;
-      _city.text = (m.locality ?? '').isNotEmpty ? m.locality! : (m.subAdministrativeArea ?? _city.text);
-      _state.text = m.administrativeArea ?? _state.text;
-      if (roadParts.isNotEmpty) _road.text = roadParts.join(', ');
+      if (perm == LocationPermission.deniedForever) {
+        await Geolocator.openAppSettings();
+        throw 'Allow location for this app in Settings, then tap again';
+      }
+      if (perm == LocationPermission.denied) throw 'Location permission is needed to fill your address';
+
+      // never wait forever: quick last-known fix first, then a fresh one with a time limit
+      Position? pos;
+      try {
+        pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high, timeLimit: const Duration(seconds: 12));
+      } catch (_) {
+        pos = await Geolocator.getLastKnownPosition();
+        pos ??= await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.medium, timeLimit: const Duration(seconds: 10));
+      }
+      final Position p = pos;
+
+      // address from the phone's geocoder; if that fails, from OpenStreetMap
+      String pin = '', city = '', state = '', road = '', area = '', house = '';
+      try {
+        final List<Placemark> marks = await placemarkFromCoordinates(p.latitude, p.longitude).timeout(const Duration(seconds: 8));
+        if (marks.isNotEmpty) {
+          final Placemark m = marks.first;
+          pin = m.postalCode ?? '';
+          city = (m.locality ?? '').isNotEmpty ? m.locality! : (m.subAdministrativeArea ?? '');
+          state = m.administrativeArea ?? '';
+          road = m.thoroughfare ?? '';
+          area = m.subLocality ?? '';
+          house = m.subThoroughfare ?? '';
+        }
+      } catch (_) {}
+      if (pin.isEmpty || city.isEmpty) {
+        try {
+          final http.Response r = await http.get(
+            Uri.parse('https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=${p.latitude}&lon=${p.longitude}'),
+            headers: const <String, String>{'User-Agent': 'AmbhujakshiApp/1.0 (orders@adhvaithafoods.in)', 'Accept-Language': 'en'},
+          ).timeout(const Duration(seconds: 8));
+          final Map<String, dynamic> a = Map<String, dynamic>.from(((jsonDecode(r.body) as Map)['address'] as Map?) ?? const <String, dynamic>{});
+          String g(List<String> ks) => ks.map((String k) => '${a[k] ?? ''}').firstWhere((String v) => v.isNotEmpty, orElse: () => '');
+          if (pin.isEmpty) pin = g(<String>['postcode']);
+          if (city.isEmpty) city = g(<String>['city', 'town', 'village', 'county', 'state_district']);
+          if (state.isEmpty) state = g(<String>['state']);
+          if (road.isEmpty) road = g(<String>['road', 'pedestrian']);
+          if (area.isEmpty) area = g(<String>['suburb', 'neighbourhood', 'quarter', 'city_district']);
+          if (house.isEmpty) house = g(<String>['house_number']);
+        } catch (_) {}
+      }
+      if (pin.isEmpty && city.isEmpty && road.isEmpty) throw 'Found you, but could not read the address — please type it';
+
+      pin = pin.replaceAll(' ', '');
+      _lastPin = pin;
+      if (pin.isNotEmpty) _pin.text = pin;
+      if (city.isNotEmpty) _city.text = city;
+      if (state.isNotEmpty) _state.text = state;
+      final String roadLine = <String>[road, area].where((String e) => e.isNotEmpty).join(', ');
+      if (roadLine.isNotEmpty) _road.text = roadLine;
+      if (house.isNotEmpty && _house.text.trim().isEmpty) _house.text = house;
       if (!mounted) return;
       HapticFeedback.lightImpact();
       setState(() {
         _gps = 2;
-        _gpsTitle = [m.subLocality, m.locality].where((String? e) => (e ?? '').isNotEmpty).join(', ');
+        _gpsTitle = <String>[area, city].where((String e) => e.isNotEmpty).join(', ');
         if (_gpsTitle.isEmpty) _gpsTitle = 'Location found';
-        _gpsSub = 'Location found · accurate to ${pos.accuracy.round()} m';
+        _gpsSub = 'Location found · accurate to ${p.accuracy.round()} m · please check house no.';
         _bump++;
       });
     } catch (e) {
@@ -204,7 +249,7 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> with Sing
       setState(() {
         _gps = 0;
         _gpsTitle = 'Use my current location';
-        _gpsSub = '$e';
+        _gpsSub = e is String ? e : 'Could not get your location — please try again or type the address';
       });
     }
   }

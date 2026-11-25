@@ -7,6 +7,9 @@ import 'cart_manager.dart';
 import 'navigation_util.dart';
 import 'order_history_page.dart';
 import 'main.dart';
+import 'order_manager.dart';
+import 'models.dart';
+import 'product_lookup.dart';
 
 class CheckoutPage extends StatelessWidget {
   const CheckoutPage({super.key});
@@ -36,8 +39,20 @@ class CheckoutPage extends StatelessWidget {
                   "name": ci.product.name,
                   "qty": ci.quantity,
                   "price": ci.product.getRawPriceForWeight(ci.weight),
-                  "photo": ci.product.image,
+                  "photo": bestImageFor(ci.product.name, ci.product.image),
                 }).toList();
+                final String orderId = '${order['id'] ?? order['orderId'] ?? 'ORD${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}'}';
+                final CartManager cm = CartManager();
+                OrderManager().recordPlacedOrder(
+                  id: orderId,
+                  items: List<CartItem>.from(cm.items),
+                  subtotal: cm.subtotal,
+                  deliveryFee: cm.deliveryFee,
+                  discount: cm.discountAmount,
+                  total: (bill['total'] is num) ? (bill['total'] as num).toDouble() : cm.total,
+                  address: address.values.where((dynamic v) => v is String && v.trim().isNotEmpty).join(', '),
+                  paymentMethod: '${order['paymentMethod'] ?? order['method'] ?? 'Online'}',
+                );
                 CartManager().clearCart();
                 // grab these BEFORE the checkout screens are removed — their context stops working after that
                 final NavigatorState nav = Navigator.of(context);
@@ -45,7 +60,7 @@ class CheckoutPage extends StatelessWidget {
                 nav.pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => OrderPlacedScreen(
                     apiBase: apiBase,
-                    orderId: '${order['id'] ?? 'ORD${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}'}',
+                    orderId: orderId,
                     logoAsset: 'assets/images/AMBHUJAKSHI  logo.png',
                     initialItems: orderedItems,
                     onTrack: (id) {

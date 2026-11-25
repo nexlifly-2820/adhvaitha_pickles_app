@@ -18,6 +18,24 @@ Widget buildSmartImage(
   }
 
   final String cleanPath = path.trim();
+  // pictures that ship inside the app load straight away (no network round-trip first)
+  if (cleanPath.startsWith('assets/')) {
+    return Image.asset(
+      cleanPath,
+      width: width,
+      height: height,
+      fit: fit,
+      alignment: alignment,
+      errorBuilder: (_, __, ___) => Image.network(
+        '$kAdminBaseUrl/$cleanPath',
+        width: width,
+        height: height,
+        fit: fit,
+        alignment: alignment,
+        errorBuilder: (_, __, ___) => errorWidget ?? SizedBox(width: width, height: height),
+      ),
+    );
+  }
   final String fullUrl = cleanPath.startsWith('http')
       ? cleanPath
       : '$kAdminBaseUrl/${cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath}';
