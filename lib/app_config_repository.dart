@@ -523,8 +523,11 @@ class AppConfigRepository {
     try {
       final data = await ApiService.getAppConfig('fresh_picks');
       debugPrint("Fresh Picks API fetched data: $data");
-      if (data.isNotEmpty && (data.containsKey('products') || data.containsKey('settings'))) {
-        yield Map<String, dynamic>.from(data);
+      // Only the new admin format (version 2) replaces the built-in 13 spices.
+      if (data.isNotEmpty && data['version']?.toString() == '2' && data['products'] is List && (data['products'] as List).isNotEmpty) {
+        final Map<String, dynamic> d = Map<String, dynamic>.from(data);
+        d['products'] = (d['products'] as List).where((dynamic p) => p is Map && p['enabled']?.toString() != 'false').toList();
+        yield (d['products'] as List).isEmpty ? _defaultSpicesData : d;
       } else {
         yield _defaultFreshPicksData;
       }
@@ -549,8 +552,11 @@ class AppConfigRepository {
     try {
       final data = await ApiService.getAppConfig('spices_grinder');
       debugPrint("Spices Grinder API fetched data: $data");
-      if (data.isNotEmpty && (data.containsKey('products') || data.containsKey('settings'))) {
-        yield Map<String, dynamic>.from(data);
+      // Only the new admin format (version 2) replaces the built-in 13 spices.
+      if (data.isNotEmpty && data['version']?.toString() == '2' && data['products'] is List && (data['products'] as List).isNotEmpty) {
+        final Map<String, dynamic> d = Map<String, dynamic>.from(data);
+        d['products'] = (d['products'] as List).where((dynamic p) => p is Map && p['enabled']?.toString() != 'false').toList();
+        yield (d['products'] as List).isEmpty ? _defaultSpicesData : d;
       } else {
         yield _defaultSpicesData;
       }
@@ -575,8 +581,11 @@ class AppConfigRepository {
     try {
       final data = await ApiService.getAppConfig('sweets');
       debugPrint("Sweets API fetched data: $data");
-      if (data.isNotEmpty && (data.containsKey('products') || data.containsKey('settings'))) {
-        yield Map<String, dynamic>.from(data);
+      // Only the new admin format (version 2) replaces the built-in 13 spices.
+      if (data.isNotEmpty && data['version']?.toString() == '2' && data['products'] is List && (data['products'] as List).isNotEmpty) {
+        final Map<String, dynamic> d = Map<String, dynamic>.from(data);
+        d['products'] = (d['products'] as List).where((dynamic p) => p is Map && p['enabled']?.toString() != 'false').toList();
+        yield (d['products'] as List).isEmpty ? _defaultSpicesData : d;
       } else {
         yield _defaultSweetsData;
       }
@@ -1152,134 +1161,968 @@ class AppConfigRepository {
   };
 
   static final Map<String, dynamic> _defaultSpicesData = {
-    'settings': {
-      'enabled': true,
-      'kicker': 'FROM WHOLE SPICE TO PODI',
-      'title': 'Fresh ground',
-      'titleAccent': 'spices',
-      'subtitle': 'Pounded in stone, the way Ammamma did.',
-      'cardTag': '🪨 STONE-GROUND TODAY'
-    },
-    'products': [
-      {
-        'id': 'p1',
-        'name': 'Moringa Karam Podi',
-        'tagline': 'Drumstick-leaf spice powder',
-        'image': 'assets/images/munagaku_karam_podi_moringa_leaves_spice_powder.jpg',
-        'powderColor': '#6B7A2A',
-        'accentColor': '#A8D86A',
-        'glowColor': '#3A4A14',
-        'heat': 2,
-        'throwIn': [
-          {
-            'name': 'Moringa leaves',
-            'pieces': ['assets/images/moringa_0.png', 'assets/images/moringa_1.png'],
-            'count': 3,
-            'size': 'big'
-          },
-          {
-            'name': 'Dry red chilli',
-            'pieces': ['assets/images/redchilli_0.png', 'assets/images/chillies_0.png'],
-            'count': 2,
-            'size': 'big'
-          },
-          {
-            'name': 'Cumin',
-            'pieces': ['assets/images/cumin_0.png', 'assets/images/cumin_1.png'],
-            'count': 8,
-            'size': 'small'
-          }
-        ],
-        'chips': [
-          {'name': 'Moringa leaves', 'icon': 'assets/images/moringa_0.png'},
-          {'name': 'Red chilli', 'icon': 'assets/images/redchilli_0.png'},
-          {'name': 'Cumin', 'icon': 'assets/images/cumin_0.png'}
-        ],
-        'variants': [
-          {'id': 'v1', 'label': '100g', 'price': 129, 'mrp': 149, 'inStock': true},
-          {'id': 'v2', 'label': '250g', 'price': 249, 'mrp': 280, 'inStock': true}
-        ]
+      "version": 2,
+      "settings": {
+        "enabled": true,
+        "kicker": "FROM WHOLE SPICE TO PODI",
+        "title": "Fresh ground",
+        "titleAccent": "spices",
+        "subtitle": "Pounded in stone, the way Ammamma did.",
+        "cardTag": "🪨 STONE-GROUND TODAY"
       },
-      {
-        'id': 'p2',
-        'name': 'Idli Karam Podi',
-        'tagline': 'authentic gun powder spice blend',
-        'image': 'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
-        'powderColor': '#B8321E',
-        'accentColor': '#FF7A45',
-        'glowColor': '#7A2A14',
-        'heat': 3,
-        'throwIn': [
-          {
-            'name': 'Red chilli',
-            'pieces': ['assets/images/redchilli_0.png', 'assets/images/chillies_1.png'],
-            'count': 4,
-            'size': 'big'
-          },
-          {
-            'name': 'Urad dal',
-            'pieces': ['assets/images/urad_0.png', 'assets/images/urad_1.png'],
-            'count': 6,
-            'size': 'small'
-          },
-          {
-            'name': 'Chana dal',
-            'pieces': ['assets/images/chanadal_0.png', 'assets/images/chanadal_1.png'],
-            'count': 6,
-            'size': 'small'
-          }
-        ],
-        'chips': [
-          {'name': 'Red chilli', 'icon': 'assets/images/redchilli_0.png'},
-          {'name': 'Urad dal', 'icon': 'assets/images/urad_0.png'},
-          {'name': 'Chana dal', 'icon': 'assets/images/chanadal_0.png'}
-        ],
-        'variants': [
-          {'id': 'v3', 'label': '200g', 'price': 139, 'mrp': 150, 'inStock': true},
-          {'id': 'v4', 'label': '500g', 'price': 320, 'mrp': 350, 'inStock': true}
-        ]
-      },
-      {
-        'id': 'p3',
-        'name': 'Karvepaku Podi',
-        'tagline': 'aromatic curry leaves spice powder',
-        'image': 'assets/images/karvepaku_karam_podi_curry_leaves_powder.jpg',
-        'powderColor': '#386B32',
-        'accentColor': '#7AC96B',
-        'glowColor': '#1E4218',
-        'heat': 2,
-        'throwIn': [
-          {
-            'name': 'Curry leaves',
-            'pieces': ['assets/images/curryleaf_0.png', 'assets/images/curryleaf_1.png'],
-            'count': 5,
-            'size': 'big'
-          },
-          {
-            'name': 'Garlic & chilli',
-            'pieces': ['assets/images/ginger_0.png', 'assets/images/redchilli_0.png'],
-            'count': 3,
-            'size': 'big'
-          },
-          {
-            'name': 'Sesame & cumin',
-            'pieces': ['assets/images/sesame_0.png', 'assets/images/cumin_0.png'],
-            'count': 8,
-            'size': 'small'
-          }
-        ],
-        'chips': [
-          {'name': 'Curry leaves', 'icon': 'assets/images/curryleaf_0.png'},
-          {'name': 'Garlic', 'icon': 'assets/images/ginger_0.png'},
-          {'name': 'Sesame', 'icon': 'assets/images/sesame_0.png'}
-        ],
-        'variants': [
-          {'id': 'v5', 'label': '100g', 'price': 119, 'mrp': 135, 'true': true},
-          {'id': 'v6', 'label': '250g', 'price': 229, 'mrp': 260, 'true': true}
-        ]
-      }
-    ]
-  };
+      "products": [
+        {
+          "id": "allam_velluli",
+          "productId": "allam_velluli_karam_podi",
+          "name": "Allam Velluli Karam Podi",
+          "tagline": "Ginger-garlic spice powder",
+          "image": "assets/images/sp_allam_velluli_podi.png",
+          "enabled": true,
+          "powderColor": "#C2410C",
+          "accentColor": "#FF8A4C",
+          "glowColor": "#7A2A10",
+          "heat": 3,
+          "throwIn": [
+            {
+              "name": "Ginger",
+              "pieces": [
+                "assets/images/ginger_0.png",
+                "assets/images/ginger_1.png"
+              ],
+              "count": 3,
+              "size": "big"
+            },
+            {
+              "name": "Red chilli",
+              "pieces": [
+                "assets/images/redchilli_0.png",
+                "assets/images/chillies_0.png"
+              ],
+              "count": 3,
+              "size": "big"
+            },
+            {
+              "name": "Cumin",
+              "pieces": [
+                "assets/images/cumin_0.png",
+                "assets/images/cumin_1.png"
+              ],
+              "count": 8,
+              "size": "small"
+            }
+          ],
+          "chips": [
+            {
+              "name": "Ginger",
+              "icon": "assets/images/ginger_0.png"
+            },
+            {
+              "name": "Red chilli",
+              "icon": "assets/images/redchilli_0.png"
+            },
+            {
+              "name": "Cumin",
+              "icon": "assets/images/cumin_0.png"
+            }
+          ],
+          "variants": [
+            {
+              "id": "allam_velluli_250g",
+              "label": "250g",
+              "price": 145,
+              "mrp": 167,
+              "inStock": true
+            },
+            {
+              "id": "allam_velluli_500g",
+              "label": "500g",
+              "price": 276,
+              "mrp": 317,
+              "inStock": true
+            },
+            {
+              "id": "allam_velluli_1kg",
+              "label": "1kg",
+              "price": 522,
+              "mrp": 601,
+              "inStock": true
+            }
+          ]
+        },
+        {
+          "id": "karvepaku",
+          "productId": "karvepaku_karam_podi",
+          "name": "Karvepaku Karam Podi",
+          "tagline": "Curry-leaf spice powder",
+          "image": "assets/images/sp_karvepaku_podi.png",
+          "enabled": true,
+          "powderColor": "#4D5A1E",
+          "accentColor": "#9DB040",
+          "glowColor": "#2C3510",
+          "heat": 2,
+          "throwIn": [
+            {
+              "name": "Curry leaves",
+              "pieces": [
+                "assets/images/curryleaf_0.png",
+                "assets/images/curryleaf_1.png"
+              ],
+              "count": 5,
+              "size": "big"
+            },
+            {
+              "name": "Red chilli",
+              "pieces": [
+                "assets/images/redchilli_0.png",
+                "assets/images/chillies_0.png"
+              ],
+              "count": 2,
+              "size": "big"
+            },
+            {
+              "name": "Urad dal",
+              "pieces": [
+                "assets/images/urad_0.png",
+                "assets/images/urad_1.png"
+              ],
+              "count": 6,
+              "size": "small"
+            }
+          ],
+          "chips": [
+            {
+              "name": "Curry leaves",
+              "icon": "assets/images/curryleaf_0.png"
+            },
+            {
+              "name": "Red chilli",
+              "icon": "assets/images/redchilli_0.png"
+            },
+            {
+              "name": "Urad dal",
+              "icon": "assets/images/urad_0.png"
+            }
+          ],
+          "variants": [
+            {
+              "id": "karvepaku_250g",
+              "label": "250g",
+              "price": 135,
+              "mrp": 155,
+              "inStock": true
+            },
+            {
+              "id": "karvepaku_500g",
+              "label": "500g",
+              "price": 256,
+              "mrp": 294,
+              "inStock": true
+            },
+            {
+              "id": "karvepaku_1kg",
+              "label": "1kg",
+              "price": 486,
+              "mrp": 558,
+              "inStock": true
+            }
+          ]
+        },
+        {
+          "id": "munagaku",
+          "productId": "munagaku_karam_podi",
+          "name": "Munagaku Karam Podi",
+          "tagline": "Drumstick-leaf spice powder",
+          "image": "assets/images/sp_munagaku_podi.png",
+          "enabled": true,
+          "powderColor": "#6B7A2A",
+          "accentColor": "#B5C24A",
+          "glowColor": "#36400F",
+          "heat": 2,
+          "throwIn": [
+            {
+              "name": "Moringa leaves",
+              "pieces": [
+                "assets/images/moringa_0.png",
+                "assets/images/moringa_1.png"
+              ],
+              "count": 4,
+              "size": "big"
+            },
+            {
+              "name": "Red chilli",
+              "pieces": [
+                "assets/images/redchilli_0.png",
+                "assets/images/chillies_0.png"
+              ],
+              "count": 2,
+              "size": "big"
+            },
+            {
+              "name": "Cumin",
+              "pieces": [
+                "assets/images/cumin_0.png",
+                "assets/images/cumin_1.png"
+              ],
+              "count": 8,
+              "size": "small"
+            }
+          ],
+          "chips": [
+            {
+              "name": "Moringa leaves",
+              "icon": "assets/images/moringa_0.png"
+            },
+            {
+              "name": "Red chilli",
+              "icon": "assets/images/redchilli_0.png"
+            },
+            {
+              "name": "Cumin",
+              "icon": "assets/images/cumin_0.png"
+            }
+          ],
+          "variants": [
+            {
+              "id": "munagaku_250g",
+              "label": "250g",
+              "price": 149,
+              "mrp": 171,
+              "inStock": true
+            },
+            {
+              "id": "munagaku_500g",
+              "label": "500g",
+              "price": 283,
+              "mrp": 325,
+              "inStock": true
+            },
+            {
+              "id": "munagaku_1kg",
+              "label": "1kg",
+              "price": 536,
+              "mrp": 616,
+              "inStock": true
+            }
+          ]
+        },
+        {
+          "id": "idli_karam",
+          "productId": "special_idli_karam_podi",
+          "name": "Idli Karam Podi",
+          "tagline": "Gun powder for idli & dosa",
+          "image": "assets/images/sp_idli_karam_podi.png",
+          "enabled": true,
+          "powderColor": "#D9541E",
+          "accentColor": "#FF9A4D",
+          "glowColor": "#7A2A10",
+          "heat": 3,
+          "throwIn": [
+            {
+              "name": "Red chilli",
+              "pieces": [
+                "assets/images/redchilli_0.png",
+                "assets/images/chillies_1.png"
+              ],
+              "count": 4,
+              "size": "big"
+            },
+            {
+              "name": "Urad dal",
+              "pieces": [
+                "assets/images/urad_0.png",
+                "assets/images/urad_1.png"
+              ],
+              "count": 6,
+              "size": "small"
+            },
+            {
+              "name": "Chana dal",
+              "pieces": [
+                "assets/images/chanadal_0.png",
+                "assets/images/chanadal_1.png"
+              ],
+              "count": 6,
+              "size": "small"
+            }
+          ],
+          "chips": [
+            {
+              "name": "Red chilli",
+              "icon": "assets/images/redchilli_0.png"
+            },
+            {
+              "name": "Urad dal",
+              "icon": "assets/images/urad_0.png"
+            },
+            {
+              "name": "Chana dal",
+              "icon": "assets/images/chanadal_0.png"
+            }
+          ],
+          "variants": [
+            {
+              "id": "idli_karam_250g",
+              "label": "250g",
+              "price": 139,
+              "mrp": 160,
+              "inStock": true
+            },
+            {
+              "id": "idli_karam_500g",
+              "label": "500g",
+              "price": 264,
+              "mrp": 304,
+              "inStock": true
+            },
+            {
+              "id": "idli_karam_1kg",
+              "label": "1kg",
+              "price": 500,
+              "mrp": 576,
+              "inStock": true
+            }
+          ]
+        },
+        {
+          "id": "kura_karam",
+          "productId": "special_kura_karam_podi",
+          "name": "Kura Karam Podi",
+          "tagline": "All-purpose curry powder",
+          "image": "assets/images/sp_kura_karam_podi.png",
+          "enabled": true,
+          "powderColor": "#B91C1C",
+          "accentColor": "#FF6B4A",
+          "glowColor": "#6B1010",
+          "heat": 3,
+          "throwIn": [
+            {
+              "name": "Red chilli",
+              "pieces": [
+                "assets/images/redchilli_0.png",
+                "assets/images/chillies_0.png"
+              ],
+              "count": 4,
+              "size": "big"
+            },
+            {
+              "name": "Coriander",
+              "pieces": [
+                "assets/images/coriander_0.png",
+                "assets/images/coriander_1.png"
+              ],
+              "count": 6,
+              "size": "small"
+            },
+            {
+              "name": "Cumin",
+              "pieces": [
+                "assets/images/cumin_0.png",
+                "assets/images/cumin_1.png"
+              ],
+              "count": 8,
+              "size": "small"
+            }
+          ],
+          "chips": [
+            {
+              "name": "Red chilli",
+              "icon": "assets/images/redchilli_0.png"
+            },
+            {
+              "name": "Coriander",
+              "icon": "assets/images/coriander_0.png"
+            },
+            {
+              "name": "Cumin",
+              "icon": "assets/images/cumin_0.png"
+            }
+          ],
+          "variants": [
+            {
+              "id": "kura_karam_250g",
+              "label": "250g",
+              "price": 139,
+              "mrp": 160,
+              "inStock": true
+            },
+            {
+              "id": "kura_karam_500g",
+              "label": "500g",
+              "price": 264,
+              "mrp": 304,
+              "inStock": true
+            },
+            {
+              "id": "kura_karam_1kg",
+              "label": "1kg",
+              "price": 500,
+              "mrp": 576,
+              "inStock": true
+            }
+          ]
+        },
+        {
+          "id": "putnala",
+          "productId": "putnala_karam_podi",
+          "name": "Putnala Karam Podi",
+          "tagline": "Roasted-gram spice powder",
+          "image": "assets/images/sp_putnala_podi.png",
+          "enabled": true,
+          "powderColor": "#D9A441",
+          "accentColor": "#F5CB6B",
+          "glowColor": "#7A5410",
+          "heat": 1,
+          "throwIn": [
+            {
+              "name": "Roasted gram",
+              "pieces": [
+                "assets/images/roastedgram_0.png"
+              ],
+              "count": 3,
+              "size": "big"
+            },
+            {
+              "name": "Red chilli",
+              "pieces": [
+                "assets/images/redchilli_0.png",
+                "assets/images/chillies_0.png"
+              ],
+              "count": 2,
+              "size": "big"
+            },
+            {
+              "name": "Cumin",
+              "pieces": [
+                "assets/images/cumin_0.png",
+                "assets/images/cumin_1.png"
+              ],
+              "count": 6,
+              "size": "small"
+            }
+          ],
+          "chips": [
+            {
+              "name": "Roasted gram",
+              "icon": "assets/images/roastedgram_0.png"
+            },
+            {
+              "name": "Red chilli",
+              "icon": "assets/images/redchilli_0.png"
+            },
+            {
+              "name": "Cumin",
+              "icon": "assets/images/cumin_0.png"
+            }
+          ],
+          "variants": [
+            {
+              "id": "putnala_250g",
+              "label": "250g",
+              "price": 129,
+              "mrp": 148,
+              "inStock": true
+            },
+            {
+              "id": "putnala_500g",
+              "label": "500g",
+              "price": 245,
+              "mrp": 281,
+              "inStock": true
+            },
+            {
+              "id": "putnala_1kg",
+              "label": "1kg",
+              "price": 464,
+              "mrp": 533,
+              "inStock": true
+            }
+          ]
+        },
+        {
+          "id": "menthi",
+          "productId": "menthi_podi",
+          "name": "Menthi Podi",
+          "tagline": "Fenugreek spice powder",
+          "image": "assets/images/sp_menthi_podi.png",
+          "enabled": true,
+          "powderColor": "#C99A1E",
+          "accentColor": "#F2C64A",
+          "glowColor": "#6E5208",
+          "heat": 2,
+          "throwIn": [
+            {
+              "name": "Fenugreek",
+              "pieces": [
+                "assets/images/fenugreek_0.png"
+              ],
+              "count": 3,
+              "size": "big"
+            },
+            {
+              "name": "Red chilli",
+              "pieces": [
+                "assets/images/redchilli_0.png",
+                "assets/images/chillies_0.png"
+              ],
+              "count": 2,
+              "size": "big"
+            },
+            {
+              "name": "Mustard",
+              "pieces": [
+                "assets/images/mustard_0.png"
+              ],
+              "count": 2,
+              "size": "big"
+            }
+          ],
+          "chips": [
+            {
+              "name": "Fenugreek",
+              "icon": "assets/images/fenugreek_0.png"
+            },
+            {
+              "name": "Red chilli",
+              "icon": "assets/images/redchilli_0.png"
+            },
+            {
+              "name": "Mustard",
+              "icon": "assets/images/mustard_0.png"
+            }
+          ],
+          "variants": [
+            {
+              "id": "menthi_250g",
+              "label": "250g",
+              "price": 129,
+              "mrp": 148,
+              "inStock": true
+            },
+            {
+              "id": "menthi_500g",
+              "label": "500g",
+              "price": 245,
+              "mrp": 281,
+              "inStock": true
+            },
+            {
+              "id": "menthi_1kg",
+              "label": "1kg",
+              "price": 464,
+              "mrp": 533,
+              "inStock": true
+            }
+          ]
+        },
+        {
+          "id": "daniya",
+          "productId": "daniya_powder",
+          "name": "Daniya Powder",
+          "tagline": "Freshly ground coriander",
+          "image": "assets/images/sp_daniya_powder.png",
+          "enabled": true,
+          "powderColor": "#A8814F",
+          "accentColor": "#D6B07A",
+          "glowColor": "#5A3F1C",
+          "heat": 1,
+          "throwIn": [
+            {
+              "name": "Coriander",
+              "pieces": [
+                "assets/images/coriander_0.png",
+                "assets/images/coriander_1.png"
+              ],
+              "count": 10,
+              "size": "small"
+            }
+          ],
+          "chips": [
+            {
+              "name": "Coriander",
+              "icon": "assets/images/coriander_0.png"
+            }
+          ],
+          "variants": [
+            {
+              "id": "daniya_250g",
+              "label": "250g",
+              "price": 99,
+              "mrp": 114,
+              "inStock": true
+            },
+            {
+              "id": "daniya_500g",
+              "label": "500g",
+              "price": 188,
+              "mrp": 217,
+              "inStock": true
+            },
+            {
+              "id": "daniya_1kg",
+              "label": "1kg",
+              "price": 356,
+              "mrp": 410,
+              "inStock": true
+            }
+          ]
+        },
+        {
+          "id": "haldi",
+          "productId": "haldi_powder",
+          "name": "Haldi Powder",
+          "tagline": "Pure turmeric powder",
+          "image": "assets/images/sp_haldi_powder.png",
+          "enabled": true,
+          "powderColor": "#E8A317",
+          "accentColor": "#FFD04A",
+          "glowColor": "#7A5208",
+          "heat": 1,
+          "throwIn": [
+            {
+              "name": "Turmeric",
+              "pieces": [
+                "assets/images/turmeric_0.png"
+              ],
+              "count": 4,
+              "size": "big"
+            }
+          ],
+          "chips": [
+            {
+              "name": "Turmeric",
+              "icon": "assets/images/turmeric_0.png"
+            }
+          ],
+          "variants": [
+            {
+              "id": "haldi_250g",
+              "label": "250g",
+              "price": 99,
+              "mrp": 114,
+              "inStock": true
+            },
+            {
+              "id": "haldi_500g",
+              "label": "500g",
+              "price": 188,
+              "mrp": 217,
+              "inStock": true
+            },
+            {
+              "id": "haldi_1kg",
+              "label": "1kg",
+              "price": 356,
+              "mrp": 410,
+              "inStock": true
+            }
+          ]
+        },
+        {
+          "id": "garam",
+          "productId": "garam_masala_powder",
+          "name": "Garam Masala",
+          "tagline": "Warm whole-spice blend",
+          "image": "assets/images/sp_garam_masala.png",
+          "enabled": true,
+          "powderColor": "#6B3A1E",
+          "accentColor": "#B0703F",
+          "glowColor": "#3A1C0A",
+          "heat": 2,
+          "throwIn": [
+            {
+              "name": "Cinnamon",
+              "pieces": [
+                "assets/images/cinnamon_0.png"
+              ],
+              "count": 2,
+              "size": "big"
+            },
+            {
+              "name": "Star anise",
+              "pieces": [
+                "assets/images/staranise_0.png"
+              ],
+              "count": 2,
+              "size": "big"
+            },
+            {
+              "name": "Cloves",
+              "pieces": [
+                "assets/images/cloves_0.png"
+              ],
+              "count": 2,
+              "size": "big"
+            }
+          ],
+          "chips": [
+            {
+              "name": "Cinnamon",
+              "icon": "assets/images/cinnamon_0.png"
+            },
+            {
+              "name": "Star anise",
+              "icon": "assets/images/staranise_0.png"
+            },
+            {
+              "name": "Cloves",
+              "icon": "assets/images/cloves_0.png"
+            }
+          ],
+          "variants": [
+            {
+              "id": "garam_250g",
+              "label": "250g",
+              "price": 159,
+              "mrp": 183,
+              "inStock": true
+            },
+            {
+              "id": "garam_500g",
+              "label": "500g",
+              "price": 302,
+              "mrp": 348,
+              "inStock": true
+            },
+            {
+              "id": "garam_1kg",
+              "label": "1kg",
+              "price": 572,
+              "mrp": 659,
+              "inStock": true
+            }
+          ]
+        },
+        {
+          "id": "sambhar",
+          "productId": "sambhar_masala_powder",
+          "name": "Sambhar Masala",
+          "tagline": "For everyday sambar",
+          "image": "assets/images/sp_sambhar_masala.png",
+          "enabled": true,
+          "powderColor": "#B4451C",
+          "accentColor": "#F07A3E",
+          "glowColor": "#5E200A",
+          "heat": 2,
+          "throwIn": [
+            {
+              "name": "Red chilli",
+              "pieces": [
+                "assets/images/redchilli_0.png",
+                "assets/images/chillies_0.png"
+              ],
+              "count": 3,
+              "size": "big"
+            },
+            {
+              "name": "Coriander",
+              "pieces": [
+                "assets/images/coriander_0.png",
+                "assets/images/coriander_1.png"
+              ],
+              "count": 6,
+              "size": "small"
+            },
+            {
+              "name": "Chana dal",
+              "pieces": [
+                "assets/images/chanadal_0.png",
+                "assets/images/chanadal_1.png"
+              ],
+              "count": 5,
+              "size": "small"
+            }
+          ],
+          "chips": [
+            {
+              "name": "Red chilli",
+              "icon": "assets/images/redchilli_0.png"
+            },
+            {
+              "name": "Coriander",
+              "icon": "assets/images/coriander_0.png"
+            },
+            {
+              "name": "Chana dal",
+              "icon": "assets/images/chanadal_0.png"
+            }
+          ],
+          "variants": [
+            {
+              "id": "sambhar_250g",
+              "label": "250g",
+              "price": 139,
+              "mrp": 160,
+              "inStock": true
+            },
+            {
+              "id": "sambhar_500g",
+              "label": "500g",
+              "price": 264,
+              "mrp": 304,
+              "inStock": true
+            },
+            {
+              "id": "sambhar_1kg",
+              "label": "1kg",
+              "price": 500,
+              "mrp": 576,
+              "inStock": true
+            }
+          ]
+        },
+        {
+          "id": "chicken",
+          "productId": "chicken_masala_powder",
+          "name": "Chicken Masala",
+          "tagline": "Rich chicken curry blend",
+          "image": "assets/images/sp_chicken_masala.png",
+          "enabled": true,
+          "powderColor": "#A3301A",
+          "accentColor": "#E8653A",
+          "glowColor": "#561408",
+          "heat": 3,
+          "throwIn": [
+            {
+              "name": "Red chilli",
+              "pieces": [
+                "assets/images/redchilli_0.png",
+                "assets/images/chillies_0.png"
+              ],
+              "count": 3,
+              "size": "big"
+            },
+            {
+              "name": "Cardamom",
+              "pieces": [
+                "assets/images/cardamom_0.png"
+              ],
+              "count": 2,
+              "size": "big"
+            },
+            {
+              "name": "Bay leaf",
+              "pieces": [
+                "assets/images/bayleaf_0.png"
+              ],
+              "count": 2,
+              "size": "big"
+            }
+          ],
+          "chips": [
+            {
+              "name": "Red chilli",
+              "icon": "assets/images/redchilli_0.png"
+            },
+            {
+              "name": "Cardamom",
+              "icon": "assets/images/cardamom_0.png"
+            },
+            {
+              "name": "Bay leaf",
+              "icon": "assets/images/bayleaf_0.png"
+            }
+          ],
+          "variants": [
+            {
+              "id": "chicken_250g",
+              "label": "250g",
+              "price": 149,
+              "mrp": 171,
+              "inStock": true
+            },
+            {
+              "id": "chicken_500g",
+              "label": "500g",
+              "price": 283,
+              "mrp": 325,
+              "inStock": true
+            },
+            {
+              "id": "chicken_1kg",
+              "label": "1kg",
+              "price": 536,
+              "mrp": 616,
+              "inStock": true
+            }
+          ]
+        },
+        {
+          "id": "mutton",
+          "productId": "mutton_masala_powder",
+          "name": "Mutton Masala",
+          "tagline": "Bold mutton curry blend",
+          "image": "assets/images/sp_mutton_masala.png",
+          "enabled": true,
+          "powderColor": "#7A2414",
+          "accentColor": "#C2503A",
+          "glowColor": "#3D0E06",
+          "heat": 3,
+          "throwIn": [
+            {
+              "name": "Black pepper",
+              "pieces": [
+                "assets/images/blackpepper_0.png"
+              ],
+              "count": 2,
+              "size": "big"
+            },
+            {
+              "name": "Cloves",
+              "pieces": [
+                "assets/images/cloves_0.png"
+              ],
+              "count": 2,
+              "size": "big"
+            },
+            {
+              "name": "Cinnamon",
+              "pieces": [
+                "assets/images/cinnamon_0.png"
+              ],
+              "count": 2,
+              "size": "big"
+            }
+          ],
+          "chips": [
+            {
+              "name": "Black pepper",
+              "icon": "assets/images/blackpepper_0.png"
+            },
+            {
+              "name": "Cloves",
+              "icon": "assets/images/cloves_0.png"
+            },
+            {
+              "name": "Cinnamon",
+              "icon": "assets/images/cinnamon_0.png"
+            }
+          ],
+          "variants": [
+            {
+              "id": "mutton_250g",
+              "label": "250g",
+              "price": 159,
+              "mrp": 183,
+              "inStock": true
+            },
+            {
+              "id": "mutton_500g",
+              "label": "500g",
+              "price": 302,
+              "mrp": 348,
+              "inStock": true
+            },
+            {
+              "id": "mutton_1kg",
+              "label": "1kg",
+              "price": 572,
+              "mrp": 659,
+              "inStock": true
+            }
+          ]
+        }
+      ]
+    };
 
   static final List<Map<String, dynamic>> _defaultAutoBannersData = [
     {'id': 'b1', 'image': 'assets/images/banner_1.jpg', 'link': {'category': 'Pickles'}},

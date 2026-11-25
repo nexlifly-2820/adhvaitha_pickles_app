@@ -83,8 +83,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   void initState() {
     super.initState();
-    RecentlyViewedStore().recordSlug(widget.productId);
     _local = widget.product ?? _findLocal(widget.productId);
+    // remember exactly the product that was opened
+    if (_local != null) {
+      RecentlyViewedStore().record(_local!);
+    } else {
+      RecentlyViewedStore().recordSlug(widget.productId);
+    }
     _applyData(_local != null ? _fromProduct(_local!) : _defaultProduct);
     _load();
   }

@@ -4,7 +4,6 @@ import 'models.dart';
 import 'cart_manager.dart';
 import 'navigation_util.dart';
 import 'cart_page.dart';
-import 'recently_viewed_store.dart';
 
 class ProductDetailPage extends StatelessWidget {
   final Product product;
@@ -14,11 +13,14 @@ class ProductDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    RecentlyViewedStore().record(product);
     return ProductDetailScreen(
       apiBase: 'https://admin.adhvaithafoods.in/api',
       productId: product.name.toLowerCase().replaceAll(' ', '-'),
       product: product,
+      onAddToCart: (pid, vid, qty) async {
+        CartManager().addToCart(product, quantity: qty);
+        return true;
+      },
       onCart: () => AppNavigator.push(context, const CartPage()),
     );
   }
