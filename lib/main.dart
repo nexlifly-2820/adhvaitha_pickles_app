@@ -28,7 +28,7 @@ void main() async {
   await Firebase.initializeApp();
   
   // Initialize Managers
-  await NotificationManager().init();
+  NotificationManager().init(); // not awaited: the permission prompt must not hold up the splash screen
   ProductManager().init();
   
   // Background message handler

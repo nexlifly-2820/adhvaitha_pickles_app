@@ -54,12 +54,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     'welcomeBack': 'Welcome back', 'privacyUrl': '', 'termsUrl': '', 'otpLength': 6, 'resendSeconds': 30,
   };
   List<String> _wall = [
-    'assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg',
-    'assets/images/gongura_pickle.png',
-    'assets/images/lemon_pickle.png',
-    'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
-    'assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg',
-    'assets/images/karam_janthukalu_murukku_strings_snack.jpg',
+    'assets/images/login_wall_1.jpg',
+    'assets/images/login_wall_2.jpg',
+    'assets/images/login_wall_3.jpg',
+    'assets/images/login_wall_4.jpg',
+    'assets/images/login_wall_5.jpg',
+    'assets/images/login_wall_6.jpg',
+    'assets/images/login_wall_7.jpg',
+    'assets/images/login_wall_8.jpg',
+    'assets/images/login_wall_9.jpg',
   ];
 
   Widget _loginImage(String u, {double? height, double? width, BoxFit fit = BoxFit.cover}) {

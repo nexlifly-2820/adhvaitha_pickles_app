@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import '../product_lookup.dart';
 import '../order_manager.dart';
 import '../models.dart' as app_models;
 import '../image_util.dart';
@@ -171,6 +172,16 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       if (r.statusCode == 200) {
         final j = jsonDecode(r.body) as Map<String, dynamic>;
         if (!mounted) return;
+        // the server has no orders for this customer yet → show the ones placed on this phone
+        final int serverTotal = ((j['orders'] as List?) ?? const <dynamic>[]).length + ((j['counts'] as Map?)?.values.fold<int>(0, (int a, dynamic v) => a + ((v is num) ? v.toInt() : 0)) ?? 0);
+        if (serverTotal == 0) {
+          await OrderManager().ensureLoaded();
+          await OrderManager().syncStatuses();
+          if (OrderManager().orders.isNotEmpty) {
+            _loadFromOrderManager();
+            return;
+          }
+        }
         setState(() {
           if (j['settings'] != null) {
             _s = OrdersSettings.fromJson(j['settings']);
@@ -189,6 +200,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       // Fallback to local OrderManager
     }
 
+    await OrderManager().ensureLoaded();
+    await OrderManager().syncStatuses(); // latest status from the admin
     _loadFromOrderManager();
   }
 
@@ -230,10 +243,10 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
           subtitle: firstItem != null
               ? '${firstItem.weight} · ${o.items.length} item(s)'
               : '${o.items.length} item(s)',
-          image: firstItem != null ? firstItem.product.image : '',
+          image: firstItem != null ? bestImageFor(firstItem.product.name, firstItem.product.image) : '',
           status: o.status,
           note: 'Amma is packing your homemade delicacies with extra love 💛',
-          message: 'Estimated delivery: ${o.estimatedDelivery != null ? "${o.estimatedDelivery!.day} Oct" : "TBD"}',
+          message: 'Estimated delivery: ${o.estimatedDelivery != null ? "${o.estimatedDelivery!.day} ${const <String>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][o.estimatedDelivery!.month - 1]}" : "in 3-5 days"}',
           amount: o.total,
           step: stepVal,
         ));

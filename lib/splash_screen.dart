@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:video_player/video_player.dart';
 import 'main.dart';
-import 'onboarding_page.dart';
+import 'login_page.dart';
 import 'api_service.dart';
 import 'app_config_repository.dart';
 import 'app_update_page.dart';
@@ -132,7 +132,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (FirebaseAuth.instance.currentUser != null) {
       nextScreen = const MainScreen();
     } else {
-      nextScreen = const OnboardingPage();
+      nextScreen = const LoginPage(); // onboarding removed: go straight to login
     }
 
     if (!mounted) return;

@@ -17,6 +17,7 @@ import '../image_util.dart';
 import '../cart_manager.dart';
 import '../product_manager.dart';
 import '../order_manager.dart';
+import '../product_lookup.dart';
 import '../models.dart' as app_models;
 import '../navigation_util.dart';
 import 'order_placed_screen.dart';
@@ -192,9 +193,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     final localOrders = OrderManager().orders;
     final match = localOrders.firstWhere(
       (o) => o.id == widget.orderId,
-      orElse: () => localOrders.isNotEmpty
-          ? localOrders.first
-          : app_models.Order(
+      orElse: () => app_models.Order(
               id: widget.orderId,
               date: DateTime.now(),
               items: [],
@@ -204,7 +203,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               discountAmount: 0.0,
               status: 'Placed',
               paymentMethod: 'Paid Online',
-              shippingAddress: 'Main Road, Srikakulam',
+              shippingAddress: '',
               batchId: 'BCH-2026106',
               spiceOrigin: 'Guntur',
             ),
@@ -238,9 +237,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 ? 'Order <em>cancelled</em>'
                 : 'Amma is <em>cooking</em> 🍲',
         "etaText": statusLower.contains('deliver')
-            ? 'Delivered on ${match.date.day} Oct'
-            : 'Estimated delivery in 24 hours',
-        "placedAtText": '${match.date.day} Oct, ${match.date.year}',
+            ? 'Delivered on ${_dayMonth(match.estimatedDelivery ?? match.date)}'
+            : 'Estimated delivery by ${_dayMonth(match.estimatedDelivery ?? match.date.add(const Duration(days: 4)))}',
+        "placedAtText": '${_dayMonth(match.date)}, ${match.date.year}',
         "otp": "4829",
         "batch": "20261",
         "supportPhone": "+91 9876543210",
@@ -252,7 +251,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                       "variantId": i.weight,
                       "name": i.product.name,
                       "variant": i.weight,
-                      "image": i.product.image,
+                      "image": bestImageFor(i.product.name, i.product.image),
                       "category": i.product.category,
                       "qty": i.quantity,
                       "price": i.product.getRawPriceForWeight(i.weight),
@@ -274,21 +273,16 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   "tagColor": "#C2273A"
                 }
               ],
-        "address": {
-          "label": "Home",
-          "name": "Customer",
-          "line": "Door #4-12, Main Road, Srikakulam - 532404",
-          "phone": "+91 9876543210"
-        },
+        "address": _addr(match.shippingAddress),
         "bill": {
-          "itemTotal": match.total,
-          "delivery": 0,
-          "deliveryMrp": 40,
-          "saved": 15,
+          "itemTotal": match.subtotal > 0 ? match.subtotal : match.total,
+          "delivery": match.deliveryFee,
+          "deliveryMrp": match.deliveryFee > 0 ? match.deliveryFee : 40,
+          "saved": match.discountAmount,
           "total": match.total,
-          "paidLabel": "Paid Online",
-          "payment": "UPI / PhonePe",
-          "txn": "TXN987214"
+          "paidLabel": match.paymentMethod.toLowerCase().contains('cod') || match.paymentMethod.toLowerCase().contains('cash') ? 'Pay on delivery' : 'Paid online',
+          "payment": match.paymentMethod.isNotEmpty ? match.paymentMethod : 'Online',
+          "txn": match.id
         }
       },
       "diary": statusLower.contains('cancel')
@@ -2991,4 +2985,36 @@ class _InViewState extends State<_InView> {
 
   @override
   Widget build(BuildContext context) => widget.builder(_seen);
+}
+
+
+String _dayMonth(DateTime t) => '${t.day} ${const <String>['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][t.month - 1]}';
+
+/// Reads the address saved with the order: "[Home] Name · phone\nhouse, road, city, state - pin".
+Map<String, dynamic> _addr(String raw) {
+  String text = raw.trim();
+  String label = 'Delivery address';
+  final RegExpMatch? m = RegExp(r'^\[([^\]]+)\]\s*').firstMatch(text);
+  if (m != null) {
+    label = m.group(1)!;
+    text = text.substring(m.end);
+  }
+  final List<String> lines = text.split('\n');
+  String name = '', phone = '', line = text;
+  if (lines.length >= 2) {
+    final List<String> who = lines.first.split(' · ');
+    name = who.first.trim();
+    phone = who.length > 1 ? who[1].trim() : '';
+    line = lines.sublist(1).join(', ').trim();
+  } else {
+    final RegExpMatch? p = RegExp(r'[6-9]\d{9}').firstMatch(text);
+    if (p != null) phone = p.group(0)!;
+  }
+  if (label.isNotEmpty) label = label[0].toUpperCase() + label.substring(1);
+  return <String, dynamic>{
+    'label': label,
+    'name': name.isNotEmpty ? name : 'You',
+    'line': line.isNotEmpty ? line : 'Address not available',
+    'phone': phone.isNotEmpty ? (phone.startsWith('+') ? phone : '+91 $phone') : '',
+  };
 }

@@ -36,7 +36,7 @@ class ApiService {
           .post(
             Uri.parse("$baseUrl/orders.php"),
             headers: _headers,
-            body: jsonEncode(orderData),
+            body: jsonEncode(encodeText(orderData)),
           )
           .timeout(const Duration(seconds: 15));
 
@@ -310,11 +310,11 @@ class ApiService {
         }
 
         if (result.containsKey('content') && result['content'] is Map) {
-          return Map<String, dynamic>.from(result['content']);
+          return Map<String, dynamic>.from(decodeText(result['content']) as Map);
         } else if (result.containsKey('data') && result['data'] is Map) {
-          return Map<String, dynamic>.from(result['data']);
+          return Map<String, dynamic>.from(decodeText(result['data']) as Map);
         }
-        return result;
+        return Map<String, dynamic>.from(decodeText(result) as Map);
       }
     } catch (e) {
       debugPrint('ApiService error fetching app config ($docId): $e');
@@ -380,7 +380,7 @@ class ApiService {
             headers: _headers,
             body: jsonEncode({
               'doc_id': docId,
-              'content': content,
+              'content': encodeText(content),
             }),
           )
           .timeout(const Duration(seconds: 10));
@@ -434,4 +434,37 @@ class ApiService {
     }
     return {};
   }
+}
+
+
+/// The shop's database turns emojis (and sometimes ₹ / Telugu) into "?", so the admin stores every
+/// non-ASCII character as "&#x1F336;". These turn it back (and encode when the app saves).
+dynamic decodeText(dynamic v) {
+  if (v is String) {
+    if (!v.contains('&#x')) return v;
+    return v.replaceAllMapped(RegExp(r'&#x([0-9A-Fa-f]{1,6});'), (Match m) {
+      final int? cp = int.tryParse(m.group(1)!, radix: 16);
+      return cp == null || cp > 0x10FFFF ? m.group(0)! : String.fromCharCode(cp);
+    });
+  }
+  if (v is List) return v.map(decodeText).toList();
+  if (v is Map) return v.map((dynamic k, dynamic x) => MapEntry<String, dynamic>('$k', decodeText(x)));
+  return v;
+}
+
+dynamic encodeText(dynamic v) {
+  if (v is String) {
+    final StringBuffer b = StringBuffer();
+    for (final int cp in v.runes) {
+      if (cp > 0x7e) {
+        b.write('&#x${cp.toRadixString(16).toUpperCase()};');
+      } else {
+        b.writeCharCode(cp);
+      }
+    }
+    return b.toString();
+  }
+  if (v is List) return v.map(encodeText).toList();
+  if (v is Map) return v.map((dynamic k, dynamic x) => MapEntry<String, dynamic>('$k', encodeText(x)));
+  return v;
 }

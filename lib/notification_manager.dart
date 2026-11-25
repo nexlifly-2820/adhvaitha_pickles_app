@@ -6,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'api_service.dart';
+import 'user_manager.dart';
+import 'dart:convert';
 
 class NotificationManager {
   static final NotificationManager _instance = NotificationManager._internal();
@@ -15,68 +17,62 @@ class NotificationManager {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
+  static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
+    'high_importance_channel',
+    'High Importance Notifications',
+    description: 'Order updates and offers from Ambhujakshi.',
+    importance: Importance.max,
+  );
+  bool _started = false;
+
   Future<void> init() async {
-    // 1. Request permissions
-    NotificationSettings settings = await _fcm.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
-
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print('User granted notification permission');
-      
-      // 2. Setup Local Notifications for Foreground
-      const AndroidInitializationSettings initializationSettingsAndroid =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
-      const InitializationSettings initializationSettings = InitializationSettings(
-        android: initializationSettingsAndroid,
-      );
+    if (_started) return;
+    _started = true;
+    try {
+      // channel used by notifications sent from the admin (also when the app is closed)
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(_channel);
       await _localNotifications.initialize(
-        initializationSettings,
-        onDidReceiveNotificationResponse: (details) {
-          print("Notification tapped: ${details.payload}");
-        },
+        const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher'), iOS: DarwinInitializationSettings()),
+        onDidReceiveNotificationResponse: (NotificationResponse details) => debugPrint('Notification tapped: ${details.payload}'),
       );
 
-      // 3. Listen for Foreground Messages
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        print("Message received in foreground: ${message.notification?.title}");
-        _showLocalNotification(message);
-      });
+      // Android 13+ needs this runtime permission, iOS asks too
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+      await _fcm.requestPermission(alert: true, badge: true, sound: true);
+      await _fcm.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
 
-      // 4. Handle Notification Taps (App in Background/Terminated)
-      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        print("App opened via notification: ${message.data}");
-      });
+      FirebaseMessaging.onMessage.listen(_showLocalNotification);
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage m) => debugPrint('Opened from notification: ${m.data}'));
 
-      // 5. Check if app was opened from a terminated state
-      RemoteMessage? initialMessage = await _fcm.getInitialMessage();
-      if (initialMessage != null) {
-        print("App launched from terminated state via notification");
-      }
-
-      // 6. Sync Token & Topics
-      await updateToken();
+      // "All users" notifications
       await _fcm.subscribeToTopic('marketing');
+
+      // personal notifications: keep this phone's token linked to the signed-in customer
+      await updateToken();
+      _fcm.onTokenRefresh.listen((_) => updateToken());
+      FirebaseAuth.instance.authStateChanges().listen((_) => updateToken());
+    } catch (e) {
+      debugPrint('Notification setup failed: $e');
     }
   }
 
   Future<void> updateToken() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
     try {
-      String? token = await _fcm.getToken();
-      if (token != null) {
-        await ApiService.saveFcmToken(
-          userId: user.uid,
-          token: token,
-        );
-      }
+      final String? token = await _fcm.getToken();
+      if (token == null) return;
+      final String userId = UserManager().currentUserId;
+      await http
+          .post(Uri.parse('https://admin.adhvaithafoods.in/api/push/register'),
+              headers: const <String, String>{'Content-Type': 'application/json'}, body: jsonEncode(<String, String>{'userId': userId, 'token': token}))
+          .timeout(const Duration(seconds: 10));
+      final User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) await ApiService.saveFcmToken(userId: user.uid, token: token); // older server copy
     } catch (e) {
-      print("Error updating FCM token: $e");
+      debugPrint('Error updating FCM token: $e');
     }
   }
 
@@ -89,13 +85,14 @@ class NotificationManager {
     return filePath;
   }
 
-  void _showLocalNotification(RemoteMessage message) async {
+  Future<void> _showLocalNotification(RemoteMessage message) async {
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
     String? imageUrl = message.data['image'] ?? notification?.android?.imageUrl;
 
     BigPictureStyleInformation? bigPictureStyleInformation;
     if (imageUrl != null && imageUrl.isNotEmpty) {
+      try {
       final String largeIconPath = await _downloadAndSaveFile(imageUrl, 'largeIcon');
       final String bigPicturePath = await _downloadAndSaveFile(imageUrl, 'bigPicture');
 
@@ -105,6 +102,7 @@ class NotificationManager {
         contentTitle: notification?.title,
         summaryText: notification?.body,
       );
+      } catch (_) {}
     }
 
     if (notification != null) {

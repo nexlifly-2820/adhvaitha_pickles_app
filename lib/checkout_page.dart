@@ -50,7 +50,7 @@ class CheckoutPage extends StatelessWidget {
                   deliveryFee: cm.deliveryFee,
                   discount: cm.discountAmount,
                   total: (bill['total'] is num) ? (bill['total'] as num).toDouble() : cm.total,
-                  address: address.values.where((dynamic v) => v is String && v.trim().isNotEmpty).join(', '),
+                  address: _addressText(address),
                   paymentMethod: '${order['paymentMethod'] ?? order['method'] ?? 'Online'}',
                 );
                 CartManager().clearCart();
@@ -85,4 +85,14 @@ class CheckoutPage extends StatelessWidget {
       },
     );
   }
+}
+
+/// "Name · phone" on the first line, the full address on the second (read back by Order details).
+String _addressText(Map<String, dynamic> a) {
+  String g(String k) => '${a[k] ?? ''}'.trim();
+  final String who = <String>[g('name'), g('phone')].where((String e) => e.isNotEmpty).join(' · ');
+  final String place = <String>[g('house'), g('road'), g('city'), g('state')].where((String e) => e.isNotEmpty).join(', ');
+  final String pin = g('pincode');
+  final String type = g('type');
+  return '${type.isNotEmpty ? '[$type] ' : ''}$who\n$place${pin.isNotEmpty ? ' - $pin' : ''}';
 }
