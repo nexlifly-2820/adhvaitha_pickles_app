@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'love_button.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import '../api_service.dart';
 
 // ============================ MODELS ============================
 
@@ -19,11 +20,16 @@ class FestivalTile {
   final String image;  // transparent PNG cut-out of the main product
   final String image2; // optional smaller second product (bottom-right)
   final ProductLink link;
+  final List<Product> products; // products shown when this chip is selected (set in admin)
   FestivalTile.fromJson(Map<String, dynamic> j)
-      : title = j['title'] ?? '',
-        image = j['image'] ?? '',
-        image2 = j['image2'] ?? '',
-        link = Map<String, dynamic>.from(j['link'] ?? {});
+      : title = '${j['title'] ?? ''}',
+        image = '${j['image'] ?? ''}',
+        image2 = '${j['image2'] ?? ''}',
+        link = j['link'] is Map ? Map<String, dynamic>.from(j['link'] as Map) : <String, dynamic>{},
+        products = <Product>[
+          for (final dynamic p in (j['products'] as List?) ?? <dynamic>[])
+            if (p is Map && '${p['name'] ?? ''}'.trim().isNotEmpty && p['enabled'] != false) Product.fromJson(Map<String, dynamic>.from(p)),
+        ];
 }
 
 class FestivalTheme {
@@ -46,16 +52,18 @@ class FestivalConfig {
   final List<FestivalTile> tiles, chips;
   final List<String> strip;
   final ProductLink products; // default product row filter
+  final bool enabled;
   FestivalConfig.fromJson(Map<String, dynamic> j)
-      : id = j['id'] ?? '',
+      : enabled = j['enabled'] != false,
+        id = j['id'] ?? '',
         kicker = j['kicker'] ?? 'CELEBRATE',
         title = j['title'] ?? '',
         subtitle = j['subtitle'] ?? '',
         art = j['art'] ?? '',
         chipsTitle = j['chipsTitle'] ?? 'FESTIVE SPECIALS',
         theme = FestivalTheme.fromJson(Map<String, dynamic>.from(j['theme'] ?? {})),
-        tiles = ((j['tiles'] ?? []) as List).map((e) => FestivalTile.fromJson(e)).toList(),
-        chips = ((j['chips'] ?? []) as List).map((e) => FestivalTile.fromJson(e)).toList(),
+        tiles = ((j['tiles'] ?? []) as List).whereType<Map>().map((e) => FestivalTile.fromJson(Map<String, dynamic>.from(e))).where((x) => x.title.isNotEmpty).toList(),
+        chips = ((j['chips'] ?? []) as List).whereType<Map>().map((e) => FestivalTile.fromJson(Map<String, dynamic>.from(e))).where((x) => x.title.isNotEmpty).toList(),
         strip = List<String>.from(j['strip'] ?? const []),
         products = Map<String, dynamic>.from(j['products'] ?? {});
 }
@@ -66,11 +74,11 @@ class Product {
   final String? badge;
   Product.fromJson(Map<String, dynamic> j)
       : id = '${j['id'] ?? ''}',
-        name = j['name'] ?? '',
-        image = j['image'] ?? '',
-        unit = j['unit'] ?? '',
-        price = ((j['price'] as num?)?.round()) ?? 0,
-        badge = j['badge'];
+        name = '${j['name'] ?? ''}',
+        image = '${j['image'] ?? ''}',
+        unit = '${j['unit'] ?? ''}',
+        price = (j['price'] is num ? (j['price'] as num) : (num.tryParse('${j['price']}') ?? 0)).round(),
+        badge = (j['badge'] == null || '${j['badge']}'.trim().isEmpty) ? null : '${j['badge']}';
 }
 
 Color _hex(dynamic v, Color fallback) {
@@ -150,66 +158,272 @@ class _FestivalSectionState extends State<FestivalSection> {
     _load();
   }
 
-  Future<void> _load() async {
-    try {
-      FestivalConfig? cfg = await widget.api.activeFestival();
-      if (cfg == null) {
-        cfg = FestivalConfig.fromJson({
-          "id": "festive_special",
-          "kicker": "FESTIVAL OF HARVEST",
-          "title": "Sankranti Feast & Delicacies",
-          "subtitle": "Celebrate the harvest with authentic home-made festival sweets & pickles.",
-          "theme": {
-            "bgTop": "#C3132F",
-            "bgBottom": "#8A0F2A",
-            "tile": "#C3132F",
-            "tileBorder": "#F3C06C",
-            "title": "#FFFFFF",
-            "kicker": "#FFE39A",
-            "strip": "#E9952C",
-            "chipBg": "#FDF1DC",
-            "accent": "#F6C453"
-          },
-          "art": "assets/images/chakinalu_traditional_sankranti_spiral_snacks.jpg",
-          "chipsTitle": "FESTIVE SPECIALS",
-          "tiles": [
-            {
-              "title": "Pindi Vantalu",
-              "image": "assets/images/snacks.png",
-              "link": {"category": "Snacks"}
-            },
-            {
-              "title": "Festive Sweets",
-              "image": "assets/images/sweets.png",
-              "link": {"category": "Sweets"}
-            },
-            {
-              "title": "Gifting Corner",
-              "image": "assets/images/combos.png",
-              "link": {"category": "Combos"}
-            },
-            {
-              "title": "Pickles & Podis",
-              "image": "assets/images/pickles.png",
-              "link": {"category": "Pickles"}
+  static final Map<String, dynamic> _defaultFestival = <String, dynamic>{
+        "enabled": true,
+        "id": "sankranti",
+        "kicker": "FESTIVAL OF HARVEST",
+        "title": "Sankranti Feast & Delicacies",
+        "subtitle": "Celebrate the harvest with authentic home-made festival sweets & pickles.",
+        "art": "assets/images/fest_art.png",
+        "chipsTitle": "FESTIVE SPECIALS",
+        "theme": {
+          "bgTop": "#C3132F",
+          "bgBottom": "#8A0F2A",
+          "tile": "#C3132F",
+          "tileBorder": "#F3C06C",
+          "title": "#FFFFFF",
+          "kicker": "#FFE39A",
+          "strip": "#E9952C",
+          "chipBg": "#FDF1DC",
+          "accent": "#F6C453"
+        },
+        "tiles": [
+          {
+            "title": "Pindi Vantalu",
+            "image": "assets/images/fest_tile_pindi.png",
+            "image2": "",
+            "link": {
+              "category": "Snacks"
             }
-          ],
-          "chips": [
-            {"title": "Pickles", "image": "assets/images/avakaya_pickle.png", "link": {"category": "Pickles"}},
-            {"title": "Sweets", "image": "assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg", "link": {"category": "Sweets"}},
-            {"title": "Snacks", "image": "assets/images/karam_janthukalu_murukku_strings_snack.jpg", "link": {"category": "Snacks"}}
-          ],
-          "strip": ["🚚 Free Delivery on Festive Combos", "🎁 Free Gift Box on orders above ₹999"],
-          "products": {"category": "Pickles"}
-        });
+          },
+          {
+            "title": "Festive Sweets",
+            "image": "assets/images/fest_kobbari_laddu.png",
+            "image2": "assets/images/fest_sunnunda.png",
+            "link": {
+              "category": "Sweets"
+            }
+          },
+          {
+            "title": "Gifting Corner",
+            "image": "assets/images/fest_tile_gifting.png",
+            "image2": "",
+            "link": {
+              "category": "Combos"
+            }
+          },
+          {
+            "title": "Pickles & Podis",
+            "image": "assets/images/fest_avakaya.png",
+            "image2": "assets/images/fest_karam_podi.png",
+            "link": {
+              "category": "Pickles"
+            }
+          }
+        ],
+        "chips": [
+          {
+            "title": "Pickles",
+            "image": "assets/images/fest_avakaya.png",
+            "link": {
+              "category": "Pickles"
+            },
+            "products": [
+              {
+                "id": "f1",
+                "name": "Bellam Avakaya",
+                "image": "assets/images/fest_avakaya.png",
+                "unit": "250g",
+                "price": 219,
+                "badge": "BESTSELLER"
+              },
+              {
+                "id": "f2",
+                "name": "Gongura Pickle",
+                "image": "assets/images/fest_gongura.png",
+                "unit": "250g",
+                "price": 189,
+                "badge": "ANDHRA"
+              },
+              {
+                "id": "f3",
+                "name": "Lemon Pickle",
+                "image": "assets/images/pickle_lemon.png",
+                "unit": "250g",
+                "price": 159,
+                "badge": "TANGY"
+              },
+              {
+                "id": "f4",
+                "name": "Allam Velluli Pickle",
+                "image": "assets/images/pickle_allam_velluli.png",
+                "unit": "250g",
+                "price": 199,
+                "badge": "HOT"
+              }
+            ]
+          },
+          {
+            "title": "Podis",
+            "image": "assets/images/fest_karam_podi.png",
+            "link": {
+              "category": "Powders"
+            },
+            "products": [
+              {
+                "id": "f5",
+                "name": "Idli Karam Podi",
+                "image": "assets/images/fest_karam_podi.png",
+                "unit": "200g",
+                "price": 139,
+                "badge": "HOT"
+              },
+              {
+                "id": "f6",
+                "name": "Kandi Podi",
+                "image": "assets/images/fest_kandi_podi.png",
+                "unit": "200g",
+                "price": 149,
+                "badge": "CLASSIC"
+              },
+              {
+                "id": "f7",
+                "name": "Putnala Podi",
+                "image": "assets/images/fest_putnala_podi.png",
+                "unit": "200g",
+                "price": 129,
+                "badge": "MILD"
+              },
+              {
+                "id": "f8",
+                "name": "Allam Karam Podi",
+                "image": "assets/images/best_allam_karam_podi.png",
+                "unit": "200g",
+                "price": 145,
+                "badge": "ZESTY"
+              }
+            ]
+          },
+          {
+            "title": "Sweets",
+            "image": "assets/images/fest_sunnunda.png",
+            "link": {
+              "category": "Sweets"
+            },
+            "products": [
+              {
+                "id": "f9",
+                "name": "Sunnunda Laddu",
+                "image": "assets/images/fest_sunnunda.png",
+                "unit": "250g",
+                "price": 199,
+                "badge": "GHEE"
+              },
+              {
+                "id": "f10",
+                "name": "Dry Fruits Laddu",
+                "image": "assets/images/fest_dryfruit_laddu.png",
+                "unit": "250g",
+                "price": 299,
+                "badge": "PREMIUM"
+              },
+              {
+                "id": "f11",
+                "name": "Ariselu",
+                "image": "assets/images/fest_ariselu.png",
+                "unit": "250g",
+                "price": 229,
+                "badge": "FESTIVE"
+              },
+              {
+                "id": "f12",
+                "name": "Kobbari Laddu",
+                "image": "assets/images/fest_kobbari_laddu.png",
+                "unit": "250g",
+                "price": 179,
+                "badge": "NEW"
+              }
+            ]
+          },
+          {
+            "title": "Snacks",
+            "image": "assets/images/fest_murukku.png",
+            "link": {
+              "category": "Snacks"
+            },
+            "products": [
+              {
+                "id": "f13",
+                "name": "Kara Murukku",
+                "image": "assets/images/fest_murukku.png",
+                "unit": "250g",
+                "price": 129,
+                "badge": "CRISPY"
+              },
+              {
+                "id": "f14",
+                "name": "Khara Mixture",
+                "image": "assets/images/fest_mixture.png",
+                "unit": "250g",
+                "price": 149,
+                "badge": "CRUNCHY"
+              },
+              {
+                "id": "f15",
+                "name": "Banana Chips",
+                "image": "assets/images/fest_banana_chips.png",
+                "unit": "250g",
+                "price": 119,
+                "badge": "KERALA"
+              },
+              {
+                "id": "f16",
+                "name": "Chekkalu",
+                "image": "assets/images/fest_chekkalu.png",
+                "unit": "250g",
+                "price": 139,
+                "badge": "SANKRANTI"
+              },
+              {
+                "id": "f17",
+                "name": "Ribbon Pakoda",
+                "image": "assets/images/fest_ribbon_pakoda.png",
+                "unit": "250g",
+                "price": 129,
+                "badge": "NEW"
+              }
+            ]
+          }
+        ],
+        "strip": [
+          "🚚 Free Delivery on Festive Combos",
+          "🎁 Free Gift Box on orders above ₹999"
+        ]
+      };
+
+  Future<void> _load() async {
+    FestivalConfig cfg = FestivalConfig.fromJson(_defaultFestival);
+    // What the admin "Festive Specials" tab saved (version 2) wins; older data is ignored.
+    try {
+      final Map<String, dynamic> d = await ApiService.getAppConfig('festive_section');
+      if ('${d['version'] ?? ''}' == '2' && d['festival'] is Map) {
+        cfg = FestivalConfig.fromJson(Map<String, dynamic>.from(d['festival'] as Map));
       }
-      if (!mounted) return;
-      setState(() => _cfg = cfg);
-      await _loadProducts(cfg.chips.isNotEmpty ? cfg.chips.first.link : cfg.products);
     } catch (_) {}
+    if (!mounted) return;
+    if (!cfg.enabled) {
+      setState(() => _cfg = null);
+      return;
+    }
+    setState(() {
+      _cfg = cfg;
+      _chip = 0;
+    });
+    if (cfg.chips.isNotEmpty) {
+      await _loadProducts(cfg.chips.first.link, cfg.chips.first.products);
+    } else {
+      await _loadProducts(cfg.products);
+    }
   }
 
-  Future<void> _loadProducts(ProductLink link) async {
+  Future<void> _loadProducts(ProductLink link, [List<Product> inline = const <Product>[]]) async {
+    if (inline.isNotEmpty) {
+      setState(() {
+        _products = inline;
+        _loadingProducts = false;
+      });
+      return;
+    }
     setState(() => _loadingProducts = true);
     try {
       List<Product> list = await widget.api.products(link);
@@ -408,7 +622,7 @@ class _FestivalSectionState extends State<FestivalSection> {
                       height: 111 * s,
                       child: _chipItem(cfg.chips[i], i == _chip, t, s, () {
                         setState(() => _chip = i);
-                        _loadProducts(cfg.chips[i].link);
+                        _loadProducts(cfg.chips[i].link, cfg.chips[i].products);
                       }),
                     ),
                 ]),

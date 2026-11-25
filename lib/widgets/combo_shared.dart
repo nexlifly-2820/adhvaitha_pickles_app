@@ -9,7 +9,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
+import '../api_service.dart';
 
 // ───────────────────────── models ─────────────────────────
 class ComboPrice {
@@ -67,57 +67,54 @@ String _abs(String apiBase, String u) {
   return u.startsWith('/') ? '$origin$u' : '$origin/$u';
 }
 
-Future<ComboData?> fetchCombo(String apiBase, Map<String, String>? headers) async {
-  try {
-    final http.Response r = await http.get(Uri.parse('$apiBase/combo-box'), headers: headers).timeout(const Duration(seconds: 8));
-    if (r.statusCode == 200 && !r.body.trim().startsWith('<!DOCTYPE') && !r.body.trim().startsWith('<html')) {
-      final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
-      final Map<String, dynamic> s = (j['settings'] as Map<String, dynamic>?) ?? <String, dynamic>{};
-      final ComboSettings st = ComboSettings();
-      st.enabled = s['enabled'] != false;
-      String str(String k, String d) => (s[k] == null || '${s[k]}'.isEmpty) ? d : '${s[k]}';
-      st.eyebrow = str('eyebrow', st.eyebrow);
-      st.titleStart = str('titleStart', st.titleStart);
-      st.titleAccent = str('titleAccent', st.titleAccent);
-      st.boxLabel = str('boxLabel', st.boxLabel);
-      st.lidText = str('lidText', st.lidText).replaceAll('\n', ' ');
-      st.tagText = str('tagText', st.tagText);
-      st.homeLine = str('homeLine', st.homeLine);
-      st.homeTitle = str('homeTitle', st.homeTitle);
-      st.homeAccent = str('homeAccent', st.homeAccent);
-      st.homeButton = str('homeButton', st.homeButton);
-      st.jars = math.max(2, math.min(4, _n(s['jars']).toInt() == 0 ? 4 : _n(s['jars']).toInt()));
-      final List<dynamic> sz = (s['sizes'] as List?) ?? <dynamic>[];
-      if (sz.isNotEmpty) st.sizes = sz.map((dynamic e) => '$e').toList();
-      final List<dynamic> cats = (s['categories'] as List?) ?? <dynamic>[];
-      if (cats.isNotEmpty) st.categories = cats.map((dynamic e) => '$e').toList();
-      final List<dynamic> tr = (s['tiers'] as List?) ?? <dynamic>[];
-      if (tr.isNotEmpty) {
-        st.tiers = tr.map((dynamic e) {
-          final Map<String, dynamic> m = e as Map<String, dynamic>;
-          return ComboTier(_n(m['jars']).toInt(), _n(m['percent']));
-        }).where((ComboTier t) => t.jars > 0 && t.percent > 0).toList()
-          ..sort((ComboTier a, ComboTier b) => a.jars.compareTo(b.jars));
-      }
-      final List<ComboProduct> ps = <ComboProduct>[];
-      for (final dynamic raw in (j['products'] as List?) ?? <dynamic>[]) {
-        final Map<String, dynamic> m = raw as Map<String, dynamic>;
-        final Map<String, ComboPrice> prices = <String, ComboPrice>{};
-        final Map<String, dynamic> pm = (m['prices'] as Map<String, dynamic>?) ?? <String, dynamic>{};
-        pm.forEach((String k, dynamic v) {
-          final Map<String, dynamic> x = v as Map<String, dynamic>;
-          prices[k] = ComboPrice('${x['variantId'] ?? ''}', _n(x['price']), _n(x['mrp']), x['inStock'] != false);
-        });
-        if (prices.isEmpty) continue;
-        ps.add(ComboProduct('${m['id']}', '${m['productId'] ?? ''}', '${m['name'] ?? ''}', _abs(apiBase, '${m['image'] ?? ''}'),
-            '${m['category'] ?? ''}', prices));
-      }
-      if (ps.isNotEmpty) return ComboData(st, ps);
-    }
-  } catch (_) {}
+ComboData? _parseCombo(Map<String, dynamic> j, String apiBase) {
+  final Map<String, dynamic> s = j['settings'] is Map ? Map<String, dynamic>.from(j['settings'] as Map) : <String, dynamic>{};
+  final ComboSettings st = ComboSettings();
+  st.enabled = s['enabled'] != false;
+  String str(String k, String d) => (s[k] == null || '${s[k]}'.isEmpty) ? d : '${s[k]}';
+  st.eyebrow = str('eyebrow', st.eyebrow);
+  st.titleStart = str('titleStart', st.titleStart);
+  st.titleAccent = str('titleAccent', st.titleAccent);
+  st.boxLabel = str('boxLabel', st.boxLabel);
+  st.lidText = str('lidText', st.lidText).replaceAll('\n', ' ');
+  st.tagText = str('tagText', st.tagText);
+  st.homeLine = str('homeLine', st.homeLine);
+  st.homeTitle = str('homeTitle', st.homeTitle);
+  st.homeAccent = str('homeAccent', st.homeAccent);
+  st.homeButton = str('homeButton', st.homeButton);
+  st.jars = math.max(2, math.min(4, _n(s['jars']).toInt() == 0 ? 4 : _n(s['jars']).toInt()));
+  final List<dynamic> sz = (s['sizes'] as List?) ?? <dynamic>[];
+  if (sz.isNotEmpty) st.sizes = sz.map((dynamic e) => '$e').where((String e) => e.trim().isNotEmpty).toList();
+  final List<dynamic> cats = (s['categories'] as List?) ?? <dynamic>[];
+  if (cats.isNotEmpty) st.categories = cats.map((dynamic e) => '$e').where((String e) => e.trim().isNotEmpty).toList();
+  final List<dynamic> tr = (s['tiers'] as List?) ?? <dynamic>[];
+  if (tr.isNotEmpty) {
+    st.tiers = tr.whereType<Map>().map((Map m) => ComboTier(_n(m['jars']).toInt(), _n(m['percent'])))
+        .where((ComboTier t) => t.jars > 0 && t.percent > 0).toList()
+      ..sort((ComboTier a, ComboTier b) => a.jars.compareTo(b.jars));
+  }
+  final List<ComboProduct> ps = <ComboProduct>[];
+  for (final dynamic raw in (j['products'] as List?) ?? <dynamic>[]) {
+    if (raw is! Map) continue;
+    final Map<String, dynamic> m = Map<String, dynamic>.from(raw);
+    if (m['enabled'] == false || '${m['name'] ?? ''}'.trim().isEmpty) continue;
+    final Map<String, ComboPrice> prices = <String, ComboPrice>{};
+    final Map<String, dynamic> pm = m['prices'] is Map ? Map<String, dynamic>.from(m['prices'] as Map) : <String, dynamic>{};
+    pm.forEach((String k, dynamic v) {
+      if (v is! Map) return;
+      final double price = _n(v['price']);
+      if (price <= 0) return;
+      prices[k] = ComboPrice('${v['variantId'] ?? k}', price, _n(v['mrp']), v['inStock'] != false);
+    });
+    if (prices.isEmpty) continue;
+    ps.add(ComboProduct('${m['id']}', '${m['productId'] ?? ''}', '${m['name'] ?? ''}', _abs(apiBase, '${m['image'] ?? ''}'), '${m['category'] ?? ''}', prices));
+  }
+  if (ps.isEmpty) return null;
+  return ComboData(st, ps);
+}
 
-  // Local fallback combo box data
-  final fallbackJson = <String, dynamic>{
+// Built-in combo: every product as a brass bowl. Used until the admin saves the Combo Box tab.
+final Map<String, dynamic> _comboFallback = <String, dynamic>{
     "settings": {
       "enabled": true,
       "eyebrow": "BUILD YOUR BOX",
@@ -125,107 +122,1032 @@ Future<ComboData?> fetchCombo(String apiBase, Map<String, String>? headers) asyn
       "titleAccent": "Combo Box",
       "boxLabel": "Amma's Combo",
       "lidText": "Made with love, packed by Amma",
-      "tagText": "For you, with love 💛",
+      "tagText": "For you, with love",
       "homeLine": "pick any 4 jars, Amma packs them",
       "homeTitle": "Fill the box,",
       "homeAccent": "save more",
       "homeButton": "Start building your box",
       "jars": 4,
-      "sizes": ["250g", "500g", "1kg"],
-      "categories": ["Pickles", "Podis", "Snacks", "Sweets"],
+      "sizes": [
+        "250g",
+        "500g",
+        "1kg"
+      ],
+      "categories": [
+        "Pickles",
+        "Podis",
+        "Snacks",
+        "Sweets"
+      ],
       "tiers": [
-        {"jars": 2, "percent": 10},
-        {"jars": 3, "percent": 15},
-        {"jars": 4, "percent": 25}
+        {
+          "jars": 2,
+          "percent": 10
+        },
+        {
+          "jars": 3,
+          "percent": 15
+        },
+        {
+          "jars": 4,
+          "percent": 25
+        }
       ]
     },
     "products": [
       {
-        "id": "p1", "productId": "avakaya", "name": "Bellam Avakaya", "category": "Pickles",
-        "image": "assets/images/bellam_avakaya_sweet_jaggery_mango_pickle.jpg",
+        "id": "bellam_avakaya",
+        "productId": "bellam_avakaya",
+        "name": "Bellam Avakaya",
+        "category": "Pickles",
+        "image": "assets/images/loved_bellam_avakaya.png",
+        "enabled": true,
         "prices": {
-          "250g": {"variantId": "v1", "price": 120, "mrp": 150, "inStock": true},
-          "500g": {"variantId": "v2", "price": 228, "mrp": 280, "inStock": true},
-          "1kg": {"variantId": "v3", "price": 440, "mrp": 540, "inStock": true}
+          "250g": {
+            "variantId": "250g",
+            "price": 219,
+            "mrp": 252,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 416,
+            "mrp": 479,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 788,
+            "mrp": 907,
+            "inStock": true
+          }
         }
       },
       {
-        "id": "p2", "productId": "gongura", "name": "Gongura Pickle", "category": "Pickles",
-        "image": "assets/images/gongura_pickle.png",
+        "id": "gongura_pickle",
+        "productId": "gongura_pickle",
+        "name": "Gongura Pickle",
+        "category": "Pickles",
+        "image": "assets/images/loved_gongura_pickle.png",
+        "enabled": true,
         "prices": {
-          "250g": {"variantId": "v4", "price": 130, "mrp": 160, "inStock": true},
-          "500g": {"variantId": "v5", "price": 245, "mrp": 299, "inStock": true},
-          "1kg": {"variantId": "v6", "price": 479, "mrp": 580, "inStock": true}
+          "250g": {
+            "variantId": "250g",
+            "price": 189,
+            "mrp": 217,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 359,
+            "mrp": 412,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 680,
+            "mrp": 781,
+            "inStock": true
+          }
         }
       },
       {
-        "id": "p3", "productId": "idli_karam", "name": "Idli Karam Podi", "category": "Podis",
-        "image": "assets/images/special_idli_karam_podi_gun_powder_spice_for_idlis.jpg",
+        "id": "allam_velluli_pickle",
+        "productId": "allam_velluli_pickle",
+        "name": "Allam Velluli Pickle",
+        "category": "Pickles",
+        "image": "assets/images/pickle_allam_velluli.png",
+        "enabled": true,
         "prices": {
-          "250g": {"variantId": "v7", "price": 139, "mrp": 170, "inStock": true},
-          "500g": {"variantId": "v8", "price": 320, "mrp": 380, "inStock": true}
+          "250g": {
+            "variantId": "250g",
+            "price": 199,
+            "mrp": 229,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 378,
+            "mrp": 435,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 716,
+            "mrp": 824,
+            "inStock": true
+          }
         }
       },
       {
-        "id": "p4", "productId": "sunnunda", "name": "Sunnunda Laddu", "category": "Sweets",
-        "image": "assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg",
+        "id": "usiri_pickle",
+        "productId": "usiri_pickle",
+        "name": "Usiri Pickle",
+        "category": "Pickles",
+        "image": "assets/images/pickle_usirikaya.png",
+        "enabled": true,
         "prices": {
-          "250g": {"variantId": "v9", "price": 199, "mrp": 240, "inStock": true},
-          "500g": {"variantId": "v10", "price": 380, "mrp": 450, "inStock": true}
+          "250g": {
+            "variantId": "250g",
+            "price": 179,
+            "mrp": 206,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 340,
+            "mrp": 391,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 644,
+            "mrp": 742,
+            "inStock": true
+          }
         }
       },
       {
-        "id": "p5", "productId": "murukku", "name": "Kara Murukku", "category": "Snacks",
-        "image": "assets/images/karam_janthukalu_murukku_strings_snack.jpg",
+        "id": "uppava",
+        "productId": "uppava",
+        "name": "Uppava",
+        "category": "Pickles",
+        "image": "assets/images/cb_uppava.png",
+        "enabled": true,
         "prices": {
-          "250g": {"variantId": "v11", "price": 129, "mrp": 155, "inStock": true},
-          "500g": {"variantId": "v12", "price": 249, "mrp": 299, "inStock": true}
+          "250g": {
+            "variantId": "250g",
+            "price": 159,
+            "mrp": 183,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 302,
+            "mrp": 348,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 572,
+            "mrp": 659,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "special_idli_karam_podi",
+        "productId": "special_idli_karam_podi",
+        "name": "Special Idli Karam Podi",
+        "category": "Podis",
+        "image": "assets/images/loved_idli_karam_podi.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 139,
+            "mrp": 160,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 264,
+            "mrp": 304,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 500,
+            "mrp": 576,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "allam_velluli_karam_podi",
+        "productId": "allam_velluli_karam_podi",
+        "name": "Allam Velluli Karam Podi",
+        "category": "Podis",
+        "image": "assets/images/best_allam_karam_podi.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 145,
+            "mrp": 167,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 276,
+            "mrp": 317,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 522,
+            "mrp": 601,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "karvepaku_karam_podi",
+        "productId": "karvepaku_karam_podi",
+        "name": "Karvepaku Karam Podi",
+        "category": "Podis",
+        "image": "assets/images/best_karvepaku_podi.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 135,
+            "mrp": 155,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 256,
+            "mrp": 294,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 486,
+            "mrp": 558,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "putnala_karam_podi",
+        "productId": "putnala_karam_podi",
+        "name": "Putnala Karam Podi",
+        "category": "Podis",
+        "image": "assets/images/fest_putnala_podi.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 129,
+            "mrp": 148,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 245,
+            "mrp": 281,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 464,
+            "mrp": 533,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "munagaku_karam_podi",
+        "productId": "munagaku_karam_podi",
+        "name": "Munagaku Karam Podi",
+        "category": "Podis",
+        "image": "assets/images/cb_munagaku_karam_podi.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 149,
+            "mrp": 171,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 283,
+            "mrp": 325,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 536,
+            "mrp": 616,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "special_kura_karam_podi",
+        "productId": "special_kura_karam_podi",
+        "name": "Special Kura Karam Podi",
+        "category": "Podis",
+        "image": "assets/images/cb_kura_karam_podi.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 139,
+            "mrp": 160,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 264,
+            "mrp": 304,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 500,
+            "mrp": 576,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "menthi_podi",
+        "productId": "menthi_podi",
+        "name": "Menthi Podi",
+        "category": "Podis",
+        "image": "assets/images/cb_menthi_podi.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 129,
+            "mrp": 148,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 245,
+            "mrp": 281,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 464,
+            "mrp": 533,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "sambhar_masala_powder",
+        "productId": "sambhar_masala_powder",
+        "name": "Sambhar Masala Powder",
+        "category": "Podis",
+        "image": "assets/images/cb_sambhar_masala.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 139,
+            "mrp": 160,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 264,
+            "mrp": 304,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 500,
+            "mrp": 576,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "garam_masala_powder",
+        "productId": "garam_masala_powder",
+        "name": "Garam Masala Powder",
+        "category": "Podis",
+        "image": "assets/images/cb_garam_masala.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 159,
+            "mrp": 183,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 302,
+            "mrp": 348,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 572,
+            "mrp": 659,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "chicken_masala_powder",
+        "productId": "chicken_masala_powder",
+        "name": "Chicken Masala Powder",
+        "category": "Podis",
+        "image": "assets/images/cb_chicken_masala.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 149,
+            "mrp": 171,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 283,
+            "mrp": 325,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 536,
+            "mrp": 616,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "mutton_masala_powder",
+        "productId": "mutton_masala_powder",
+        "name": "Mutton Masala Powder",
+        "category": "Podis",
+        "image": "assets/images/cb_mutton_masala.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 159,
+            "mrp": 183,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 302,
+            "mrp": 348,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 572,
+            "mrp": 659,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "daniya_powder",
+        "productId": "daniya_powder",
+        "name": "Daniya Powder",
+        "category": "Podis",
+        "image": "assets/images/cb_daniya_powder.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 99,
+            "mrp": 114,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 188,
+            "mrp": 217,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 356,
+            "mrp": 410,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "haldi_powder",
+        "productId": "haldi_powder",
+        "name": "Haldi Powder",
+        "category": "Podis",
+        "image": "assets/images/cb_haldi_powder.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 99,
+            "mrp": 114,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 188,
+            "mrp": 217,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 356,
+            "mrp": 410,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "chakinalu",
+        "productId": "chakinalu",
+        "name": "Chakinalu",
+        "category": "Snacks",
+        "image": "assets/images/best_chakinalu.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 139,
+            "mrp": 160,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 264,
+            "mrp": 304,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 500,
+            "mrp": 576,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "khara_mixture",
+        "productId": "khara_mixture",
+        "name": "Khara Mixture",
+        "category": "Snacks",
+        "image": "assets/images/best_khara_mixture.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 149,
+            "mrp": 171,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 283,
+            "mrp": 325,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 536,
+            "mrp": 616,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "karam_janthukalu",
+        "productId": "karam_janthukalu",
+        "name": "Karam Janthukalu",
+        "category": "Snacks",
+        "image": "assets/images/cb_karam_janthukalu.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 129,
+            "mrp": 148,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 245,
+            "mrp": 281,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 464,
+            "mrp": 533,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "allu_chips",
+        "productId": "allu_chips",
+        "name": "Allu Chips",
+        "category": "Snacks",
+        "image": "assets/images/cb_allu_chips.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 119,
+            "mrp": 137,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 226,
+            "mrp": 260,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 428,
+            "mrp": 493,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "bundhi",
+        "productId": "bundhi",
+        "name": "Bundhi",
+        "category": "Snacks",
+        "image": "assets/images/cb_bundhi.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 119,
+            "mrp": 137,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 226,
+            "mrp": 260,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 428,
+            "mrp": 493,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "nuvvula_papad",
+        "productId": "nuvvula_papad",
+        "name": "Nuvvula Papad",
+        "category": "Snacks",
+        "image": "assets/images/cb_nuvvula_papad.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 109,
+            "mrp": 125,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 207,
+            "mrp": 238,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 392,
+            "mrp": 450,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "onion_whills",
+        "productId": "onion_whills",
+        "name": "Onion Whills",
+        "category": "Snacks",
+        "image": "assets/images/cb_onion_whills.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 119,
+            "mrp": 137,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 226,
+            "mrp": 260,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 428,
+            "mrp": 493,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "rice_papad",
+        "productId": "rice_papad",
+        "name": "Rice Papad",
+        "category": "Snacks",
+        "image": "assets/images/cb_rice_papad.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 99,
+            "mrp": 114,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 188,
+            "mrp": 217,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 356,
+            "mrp": 410,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "tomato_chilli_papad",
+        "productId": "tomato_chilli_papad",
+        "name": "Tomato Chilli Papad",
+        "category": "Snacks",
+        "image": "assets/images/cb_tomato_chilli_papad.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 109,
+            "mrp": 125,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 207,
+            "mrp": 238,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 392,
+            "mrp": 450,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "sunnunda_laddu",
+        "productId": "sunnunda_laddu",
+        "name": "Sunnunda Laddu",
+        "category": "Sweets",
+        "image": "assets/images/loved_sunnunda_laddu.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 199,
+            "mrp": 229,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 378,
+            "mrp": 435,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 716,
+            "mrp": 824,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "dry_fruits_laddu",
+        "productId": "dry_fruits_laddu",
+        "name": "Dry Fruits Laddu",
+        "category": "Sweets",
+        "image": "assets/images/best_dry_fruits_laddu.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 299,
+            "mrp": 344,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 568,
+            "mrp": 654,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 1076,
+            "mrp": 1238,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "gondh_laddu",
+        "productId": "gondh_laddu",
+        "name": "Gondh Laddu",
+        "category": "Sweets",
+        "image": "assets/images/sweet_gondh_laddu.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 249,
+            "mrp": 286,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 473,
+            "mrp": 543,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 896,
+            "mrp": 1030,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "kova_gulab_jamun",
+        "productId": "kova_gulab_jamun",
+        "name": "Kova Gulab Jamun",
+        "category": "Sweets",
+        "image": "assets/images/sweet_gulab_jamun.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 229,
+            "mrp": 263,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 435,
+            "mrp": 500,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 824,
+            "mrp": 947,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "millets_laddu",
+        "productId": "millets_laddu",
+        "name": "Millets Laddu",
+        "category": "Sweets",
+        "image": "assets/images/cb_millets_laddu.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 219,
+            "mrp": 252,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 416,
+            "mrp": 479,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 788,
+            "mrp": 907,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "palli_patti",
+        "productId": "palli_patti",
+        "name": "Palli Patti",
+        "category": "Sweets",
+        "image": "assets/images/cb_palli_patti.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 149,
+            "mrp": 171,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 283,
+            "mrp": 325,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 536,
+            "mrp": 616,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "sweet_chekki",
+        "productId": "sweet_chekki",
+        "name": "Sweet Chekki",
+        "category": "Sweets",
+        "image": "assets/images/cb_sweet_chekki.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 149,
+            "mrp": 171,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 283,
+            "mrp": 325,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 536,
+            "mrp": 616,
+            "inStock": true
+          }
+        }
+      },
+      {
+        "id": "thill_patti",
+        "productId": "thill_patti",
+        "name": "Thill Patti",
+        "category": "Sweets",
+        "image": "assets/images/cb_thill_patti.png",
+        "enabled": true,
+        "prices": {
+          "250g": {
+            "variantId": "250g",
+            "price": 149,
+            "mrp": 171,
+            "inStock": true
+          },
+          "500g": {
+            "variantId": "500g",
+            "price": 283,
+            "mrp": 325,
+            "inStock": true
+          },
+          "1kg": {
+            "variantId": "1kg",
+            "price": 536,
+            "mrp": 616,
+            "inStock": true
+          }
         }
       }
     ]
   };
 
-  final Map<String, dynamic> s2 = fallbackJson['settings'] as Map<String, dynamic>;
-  final ComboSettings st2 = ComboSettings();
-  st2.enabled = s2['enabled'] != false;
-  String str2(String k, String d) => (s2[k] == null || '${s2[k]}'.isEmpty) ? d : '${s2[k]}';
-  st2.eyebrow = str2('eyebrow', st2.eyebrow);
-  st2.titleStart = str2('titleStart', st2.titleStart);
-  st2.titleAccent = str2('titleAccent', st2.titleAccent);
-  st2.boxLabel = str2('boxLabel', st2.boxLabel);
-  st2.lidText = str2('lidText', st2.lidText).replaceAll('\n', ' ');
-  st2.tagText = str2('tagText', st2.tagText);
-  st2.homeLine = str2('homeLine', st2.homeLine);
-  st2.homeTitle = str2('homeTitle', st2.homeTitle);
-  st2.homeAccent = str2('homeAccent', st2.homeAccent);
-  st2.homeButton = str2('homeButton', st2.homeButton);
-  st2.jars = math.max(2, math.min(4, _n(s2['jars']).toInt() == 0 ? 4 : _n(s2['jars']).toInt()));
-  final List<dynamic> sz2 = (s2['sizes'] as List?) ?? <dynamic>[];
-  if (sz2.isNotEmpty) st2.sizes = sz2.map((dynamic e) => '$e').toList();
-  final List<dynamic> cats2 = (s2['categories'] as List?) ?? <dynamic>[];
-  if (cats2.isNotEmpty) st2.categories = cats2.map((dynamic e) => '$e').toList();
-  final List<dynamic> tr2 = (s2['tiers'] as List?) ?? <dynamic>[];
-  if (tr2.isNotEmpty) {
-    st2.tiers = tr2.map((dynamic e) {
-      final Map<String, dynamic> m = e as Map<String, dynamic>;
-      return ComboTier(_n(m['jars']).toInt(), _n(m['percent']));
-    }).where((ComboTier t) => t.jars > 0 && t.percent > 0).toList()
-      ..sort((ComboTier a, ComboTier b) => a.jars.compareTo(b.jars));
-  }
-  final List<ComboProduct> ps2 = <ComboProduct>[];
-  for (final dynamic raw in (fallbackJson['products'] as List?) ?? <dynamic>[]) {
-    final Map<String, dynamic> m = raw as Map<String, dynamic>;
-    final Map<String, ComboPrice> prices = <String, ComboPrice>{};
-    final Map<String, dynamic> pm = (m['prices'] as Map<String, dynamic>?) ?? <String, dynamic>{};
-    pm.forEach((String k, dynamic v) {
-      final Map<String, dynamic> x = v as Map<String, dynamic>;
-      prices[k] = ComboPrice('${x['variantId'] ?? ''}', _n(x['price']), _n(x['mrp']), x['inStock'] != false);
-    });
-    if (prices.isEmpty) continue;
-    ps2.add(ComboProduct('${m['id']}', '${m['productId'] ?? ''}', '${m['name'] ?? ''}', _abs(apiBase, '${m['image'] ?? ''}'),
-        '${m['category'] ?? ''}', prices));
-  }
-  return ComboData(st2, ps2);
+Future<ComboData?> fetchCombo(String apiBase, Map<String, String>? headers) async {
+  // What the admin "Combo Box" tab saved (version 2) wins; older data is ignored.
+  try {
+    final Map<String, dynamic> d = await ApiService.getAppConfig('combo_box');
+    if ('${d['version'] ?? ''}' == '2') {
+      final ComboData? c = _parseCombo(d, apiBase);
+      if (c != null) return c;
+    }
+  } catch (_) {}
+  return _parseCombo(_comboFallback, apiBase);
 }
 
 Widget comboImage(String url, {double? width, double? height, BoxFit fit = BoxFit.contain}) {

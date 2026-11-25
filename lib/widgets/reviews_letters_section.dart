@@ -26,6 +26,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import '../api_service.dart';
 
 Color _hex(String? s, Color fb) {
   if (s == null || s.isEmpty) return fb;
@@ -49,8 +50,8 @@ class ReviewLetter {
         meta = j['meta'] ?? '',
         photoUrl = j['photoUrl'] ?? '',
         photoCaption = j['photoCaption'] ?? '',
-        stars = (j['stars'] as num?)?.toInt() ?? 5,
-        verified = j['verified'] ?? true,
+        stars = (int.tryParse('${j['stars'] ?? 5}') ?? 5).clamp(1, 5).toInt(),
+        verified = '${j['verified'] ?? true}' != 'false',
         tagBg = _hex(j['tagBg'], const Color(0xFFFDE8EA)),
         tagFg = _hex(j['tagFg'], const Color(0xFFC2273A));
 }
@@ -200,16 +201,30 @@ class _ReviewsLettersSectionState extends State<ReviewsLettersSection> with Tick
   }
 
   Future<void> _load() async {
+    // Letters saved in admin (App Content -> Letters from Home) plus customer
+    // letters the admin approved in Reviews. Only approved letters are in this doc.
     try {
-      final r = await http.get(Uri.parse(widget.apiUrl), headers: widget.headers);
-      if (r.statusCode == 200) {
-        final j = jsonDecode(r.body) as Map<String, dynamic>;
-        if (j['settings']?['enabled'] != false && (j['reviews'] as List? ?? []).isNotEmpty) {
-          _applyData(j);
-        }
+      final Map<String, dynamic> j = await ApiService.getAppConfig('reviews');
+      if (j.isEmpty) return;
+      final Map settings = (j['settings'] is Map) ? j['settings'] as Map : const {};
+      if (settings['enabled']?.toString() == 'false') {
+        if (mounted) setState(() => _hidden = true);
+        return;
       }
+      final List list = (j['reviews'] as List?) ?? const [];
+      final List<Map<String, dynamic>> letters = <Map<String, dynamic>>[
+        for (final e in list)
+          if (e is Map && e['enabled']?.toString() != 'false' && (e['text'] ?? '').toString().trim().isNotEmpty) Map<String, dynamic>.from(e),
+      ];
+      if (letters.isEmpty) return;
+      final Map<String, dynamic> base = _defaultReviewsData;
+      _applyData(<String, dynamic>{
+        'settings': <String, dynamic>{...(base['settings'] as Map<String, dynamic>), ...Map<String, dynamic>.from(settings)},
+        'summary': (j['summary'] is Map) ? j['summary'] : base['summary'],
+        'reviews': letters,
+      });
     } catch (e) {
-      debugPrint('Reviews section network fetch failed, using fallback: $e');
+      debugPrint('Reviews fetch failed, using built-in letters: $e');
     }
   }
 
@@ -339,7 +354,7 @@ class _ReviewsLettersSectionState extends State<ReviewsLettersSection> with Tick
               },
               child: Text('${s.seeAllLabel} ${_fmt(_count)} →', style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w600, color: s.gold))),
           const SizedBox(width: 14),
-          _ShineButton(label: s.writeLabel, shine: _shine, onTap: widget.onWrite),
+          _ShineButton(label: s.writeLabel, shine: _shine, onTap: widget.onWrite ?? () => showWriteToAmmaSheet(context, products: _items.map((ReviewLetter r) => r.productName).toList())),
         ])),
       ]),
     );
@@ -866,7 +881,7 @@ class _ReviewsAllPageState extends State<ReviewsAllPage> with TickerProviderStat
   }
 
   Widget _writeBtn(ReviewsSettings s, {bool big = false}) => GestureDetector(
-        onTap: widget.onWrite,
+        onTap: widget.onWrite ?? () => showWriteToAmmaSheet(context, products: widget.items.map((ReviewLetter r) => r.productName).toList()),
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: big ? 22 : 14, vertical: big ? 12 : 7),
           decoration: BoxDecoration(
@@ -1137,4 +1152,193 @@ class _ToranPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ToranPainter o) => o.t != t;
+}
+
+
+// ───────────────────────────── write to Amma ─────────────────────────────
+// Sends the letter to the admin dashboard. It shows in the app only after the admin approves it.
+const String _kSubmitUrl = 'https://admin.adhvaithafoods.in/api/reviews/submit';
+
+Future<void> showWriteToAmmaSheet(BuildContext context, {List<String> products = const <String>[]}) {
+  HapticFeedback.lightImpact();
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _WriteSheet(products: products.where((String p) => p.trim().isNotEmpty).toSet().toList()),
+  );
+}
+
+class _WriteSheet extends StatefulWidget {
+  final List<String> products;
+  const _WriteSheet({required this.products});
+  @override
+  State<_WriteSheet> createState() => _WriteSheetState();
+}
+
+class _WriteSheetState extends State<_WriteSheet> {
+  final TextEditingController _name = TextEditingController();
+  final TextEditingController _city = TextEditingController();
+  final TextEditingController _text = TextEditingController();
+  String? _product;
+  int _stars = 5;
+  bool _sending = false;
+  bool _sent = false;
+  String? _error;
+
+  static const Color _paper = Color(0xFFFBF3E2);
+  static const Color _ink = Color(0xFF3A2414);
+  static const Color _maroon = Color(0xFF7A1426);
+
+  @override
+  void dispose() {
+    _name.dispose(); _city.dispose(); _text.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final String name = _name.text.trim(), text = _text.text.trim();
+    if (name.length < 2) { setState(() => _error = 'Please write your name'); return; }
+    if (text.length < 10) { setState(() => _error = 'Please write a few more words for Amma'); return; }
+    setState(() { _sending = true; _error = null; });
+    try {
+      final http.Response r = await http
+          .post(Uri.parse(_kSubmitUrl),
+              headers: const <String, String>{'Content-Type': 'application/json'},
+              body: jsonEncode(<String, dynamic>{'name': name, 'city': _city.text.trim(), 'productName': _product ?? '', 'stars': _stars, 'text': text}))
+          .timeout(const Duration(seconds: 15));
+      Map<String, dynamic> j = <String, dynamic>{};
+      try { j = jsonDecode(r.body) as Map<String, dynamic>; } catch (_) {}
+      if (r.statusCode == 200 && j['success'] != false) {
+        if (mounted) setState(() { _sent = true; _sending = false; });
+      } else {
+        if (mounted) setState(() { _error = (j['error'] ?? 'Could not send. Please try again.').toString(); _sending = false; });
+      }
+    } catch (_) {
+      if (mounted) setState(() { _error = 'No internet? Please try again.'; _sending = false; });
+    }
+  }
+
+  InputDecoration _dec(String hint) => InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFFA8957F)),
+        filled: true,
+        fillColor: Colors.white,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE6D6BC))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE6D6BC))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _maroon, width: 1.4)),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final double bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * .9),
+        decoration: const BoxDecoration(color: _paper, borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+            child: _sent ? _thanks() : _form(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _thanks() => Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+        _grip(),
+        const SizedBox(height: 18),
+        const Text('💌', style: TextStyle(fontSize: 46)),
+        const SizedBox(height: 10),
+        Text('Thank you!', style: GoogleFonts.playfairDisplay(fontSize: 24, fontWeight: FontWeight.w700, color: _ink)),
+        const SizedBox(height: 6),
+        Text('Amma will read your letter. Once approved, it will appear in Letters from Home.',
+            textAlign: TextAlign.center, style: GoogleFonts.poppins(fontSize: 13, height: 1.45, color: const Color(0xFF6B5442))),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: ElevatedButton.styleFrom(backgroundColor: _maroon, foregroundColor: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+            child: Text('Done', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700)),
+          ),
+        ),
+      ]);
+
+  Widget _grip() => Center(child: Container(width: 42, height: 4, decoration: BoxDecoration(color: const Color(0xFFD9C6A8), borderRadius: BorderRadius.circular(2))));
+
+  Widget _label(String t) => Padding(
+        padding: const EdgeInsets.only(bottom: 6, top: 14),
+        child: Text(t, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF6B5442))),
+      );
+
+  Widget _form() => Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: <Widget>[
+        _grip(),
+        const SizedBox(height: 14),
+        Text('Dear Amma,', style: GoogleFonts.dancingScript(fontSize: 30, fontWeight: FontWeight.w700, color: _maroon)),
+        Text('Tell us how it tasted at your home', style: GoogleFonts.poppins(fontSize: 12.5, color: const Color(0xFF8A7360))),
+        _label('Your rating'),
+        Row(children: <Widget>[
+          for (int i = 1; i <= 5; i++)
+            GestureDetector(
+              onTap: () { HapticFeedback.selectionClick(); setState(() => _stars = i); },
+              child: Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Icon(i <= _stars ? Icons.star_rounded : Icons.star_outline_rounded, size: 34, color: const Color(0xFFE2A93B)),
+              ),
+            ),
+        ]),
+        if (widget.products.isNotEmpty) ...<Widget>[
+          _label('Which product? (optional)'),
+          Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
+            for (final String p in widget.products)
+              ChoiceChip(
+                label: Text(p, style: GoogleFonts.poppins(fontSize: 11.5, fontWeight: FontWeight.w600, color: _product == p ? Colors.white : _ink)),
+                selected: _product == p,
+                selectedColor: _maroon,
+                backgroundColor: Colors.white,
+                showCheckmark: false,
+                side: BorderSide(color: _product == p ? _maroon : const Color(0xFFE6D6BC)),
+                onSelected: (bool v) => setState(() => _product = v ? p : null),
+              ),
+          ]),
+        ],
+        _label('Your letter'),
+        TextField(controller: _text, maxLines: 5, maxLength: 600, textCapitalization: TextCapitalization.sentences, style: GoogleFonts.poppins(fontSize: 13.5, color: _ink), decoration: _dec('The avakaya reminded me of my grandmother…')),
+        Row(children: <Widget>[
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+            _label('Your name'),
+            TextField(controller: _name, maxLength: 40, textCapitalization: TextCapitalization.words, style: GoogleFonts.poppins(fontSize: 13.5, color: _ink), decoration: _dec('Sujatha').copyWith(counterText: '')),
+          ])),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+            _label('City'),
+            TextField(controller: _city, maxLength: 40, textCapitalization: TextCapitalization.words, style: GoogleFonts.poppins(fontSize: 13.5, color: _ink), decoration: _dec('Hyderabad').copyWith(counterText: '')),
+          ])),
+        ]),
+        if (_error != null) Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Text(_error!, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFB42318))),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: _sending ? null : _send,
+            style: ElevatedButton.styleFrom(backgroundColor: _maroon, disabledBackgroundColor: _maroon.withOpacity(.6), foregroundColor: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+            child: _sending
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white))
+                : Text('Send to Amma 💌', style: GoogleFonts.poppins(fontSize: 14.5, fontWeight: FontWeight.w700)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Center(child: Text('Your letter appears in the app after our team reads it.', style: GoogleFonts.poppins(fontSize: 10.5, color: const Color(0xFF9A8470)))),
+      ]);
 }

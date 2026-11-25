@@ -720,7 +720,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 const SectionTitle(TitleKind.festive),
                 FestivalSection(
                   api: FestivalApi('https://admin.adhvaithafoods.in/api'),
-                  onOpenProducts: (title, link) => AppNavigator.push(context, ProductListingPage(category: title)),
+                  onOpenProducts: (title, link) => AppNavigator.push(context, ProductListingPage(category: '${link['category'] ?? title}')),
                   onAddToCart: (p) {
                     CartManager().addToCart(productFor(p.name, image: p.image, price: p.price.toDouble(), category: 'Festival Specials'));
                   },

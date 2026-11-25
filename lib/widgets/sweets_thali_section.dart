@@ -19,6 +19,8 @@ import '../image_util.dart';
 
 // ============================ MODELS ============================
 
+num _swNum(dynamic v) => v is num ? v : (num.tryParse('$v') ?? 0);
+
 class SwVariant {
   final String id, label;
   final num price, mrp;
@@ -28,10 +30,10 @@ class SwVariant {
 
   factory SwVariant.fromJson(Map j) => SwVariant(
         '${j['id'] ?? ''}',
-        j['label'] ?? '',
-        j['price'] ?? 0,
-        j['mrp'] ?? j['price'] ?? 0,
-        j['inStock'] ?? true,
+        '${j['label'] ?? ''}',
+        _swNum(j['price']),
+        _swNum(j['mrp'] ?? j['price']),
+        j['inStock'] != false,
       );
 }
 
@@ -60,7 +62,7 @@ class SwProduct {
             .map((e) => '$e')
             .take(2)
             .toList(),
-        giftBox: j['giftBox'] ?? false,
+        giftBox: j['giftBox'] == true,
         variants: ((j['variants'] ?? []) as List)
             .map((e) => SwVariant.fromJson(e))
             .toList(),
@@ -186,8 +188,14 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
   void _listenToSweetsConfig() {
     _sub = AppConfigRepository().getSweetsStream().listen((data) {
       if (!mounted) return;
-      if (data.isNotEmpty) {
-        final parsed = SweetsData.fromJson(data);
+      // Only what the admin "Sweets" tab saved (version 2) is used; older saves are ignored
+      // so the built-in sweets show until the admin saves.
+      if (data.isNotEmpty && '${data['version'] ?? ''}' == '2') {
+        final Map<String, dynamic> clean = Map<String, dynamic>.from(data);
+        clean['products'] = ((data['products'] as List?) ?? <dynamic>[])
+            .where((dynamic e) => e is Map && e['enabled'] != false && '${e['name'] ?? ''}'.trim().isNotEmpty && ((e['variants'] as List?) ?? <dynamic>[]).isNotEmpty)
+            .toList();
+        final parsed = SweetsData.fromJson(clean);
         if (parsed.products.isNotEmpty) {
           setState(() {
             _liveData = parsed;
@@ -1046,48 +1054,72 @@ class _SweetsThaliSectionState extends State<SweetsThaliSection>
         id: 'p1',
         name: 'Sunnunda Laddu',
         tagline: 'roasted urad dal & organic jaggery',
-        image: 'assets/images/sunnunda_laddu_roasted_urad_dal_laddu.jpg',
+        image: 'assets/images/sweet_sunnunda_laddu.png',
         tags: ['🧈 Pure Desi Ghee', 'No Sugar'],
         giftBox: true,
         variants: [
-          SwVariant('v1', '250g', 199, 220, true),
-          SwVariant('v2', '500g', 380, 420, true),
+          SwVariant('p1_0', '250g', 199, 220, true),
+          SwVariant('p1_1', '500g', 380, 420, true),
         ],
       ),
       SwProduct(
         id: 'p2',
         name: 'Dry Fruits Laddu',
         tagline: 'almonds, cashews, dates & pistachios',
-        image: 'assets/images/dry_fruits_laddu_premium_dry_fruits_laddu.jpg',
+        image: 'assets/images/sweet_dryfruit_laddu.png',
         tags: ['🥜 Loaded with nuts', 'Energy Rich'],
         giftBox: true,
         variants: [
-          SwVariant('v3', '250g', 240, 275, true),
-          SwVariant('v4', '500g', 460, 520, true),
+          SwVariant('p2_0', '250g', 240, 275, true),
+          SwVariant('p2_1', '500g', 460, 520, true),
         ],
       ),
       SwProduct(
         id: 'p3',
         name: 'Gondh Laddu',
         tagline: 'edible gum, ghee & wholesome dry fruits',
-        image: 'assets/images/gondh_laddu_edible_gum_laddu.jpg',
+        image: 'assets/images/sweet_gondh_laddu.png',
         tags: ['💪 Immunity Boost', 'Winter Special'],
         giftBox: false,
         variants: [
-          SwVariant('v5', '250g', 210, 235, true),
-          SwVariant('v6', '500g', 410, 450, true),
+          SwVariant('p3_0', '250g', 210, 235, true),
+          SwVariant('p3_1', '500g', 410, 450, true),
         ],
       ),
       SwProduct(
         id: 'p4',
         name: 'Gulab Jamun Kova',
         tagline: 'rich khoya gulab jamun in cardamom syrup',
-        image: 'assets/images/kova_gulam_jamun_rich_gulab_jamun_sweet.jpg',
+        image: 'assets/images/sweet_gulab_jamun.png',
         tags: ['🍯 Melt in mouth', 'Khoya Made'],
         giftBox: false,
         variants: [
-          SwVariant('v7', '250g', 180, 200, true),
-          SwVariant('v8', '500g', 340, 380, true),
+          SwVariant('p4_0', '250g', 180, 200, true),
+          SwVariant('p4_1', '500g', 340, 380, true),
+        ],
+      ),
+      SwProduct(
+        id: 'p5',
+        name: 'Kaju Katli',
+        tagline: 'pure cashew diamonds with silver leaf',
+        image: 'assets/images/sweet_kaju_katli.png',
+        tags: ['✨ Silver Varq', 'Festive Favourite'],
+        giftBox: true,
+        variants: [
+          SwVariant('p5_0', '250g', 299, 340, true),
+          SwVariant('p5_1', '500g', 580, 660, true),
+        ],
+      ),
+      SwProduct(
+        id: 'p6',
+        name: 'Ariselu',
+        tagline: 'jaggery rice sweets with sesame',
+        image: 'assets/images/sweet_ariselu.png',
+        tags: ['🌾 Sankranti Special', 'Pure Jaggery'],
+        giftBox: true,
+        variants: [
+          SwVariant('p6_0', '250g', 229, 260, true),
+          SwVariant('p6_1', '500g', 435, 495, true),
         ],
       ),
     ],

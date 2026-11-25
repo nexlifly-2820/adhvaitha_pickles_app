@@ -720,8 +720,8 @@ class _ComboBoxScreenState extends State<ComboBoxScreen> with TickerProviderStat
     }).toList();
 
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.78, crossAxisSpacing: 10, mainAxisSpacing: 10),
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisExtent: 186, crossAxisSpacing: 8, mainAxisSpacing: 8),
       itemCount: list.length,
       itemBuilder: (BuildContext c, int i) => _card(list[i]),
     );
@@ -740,44 +740,101 @@ class _ComboBoxScreenState extends State<ComboBoxScreen> with TickerProviderStat
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: picked ? _maroon : _line, width: picked ? 2 : 1),
-          boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x33603010), blurRadius: 10, offset: Offset(0, 4), spreadRadius: -4)],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: picked ? _green : _line, width: picked ? 1.6 : 1),
+          boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x22603010), blurRadius: 8, offset: Offset(0, 3), spreadRadius: -4)],
         ),
-        child: Stack(children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+            Container(
+              height: 72,
+              width: double.infinity,
+              decoration: BoxDecoration(color: const Color(0xFFFDF7EA), borderRadius: BorderRadius.circular(9)),
+              padding: const EdgeInsets.all(4),
+              child: Center(key: k, child: comboImage(p.image, fit: BoxFit.contain)),
+            ),
+            const SizedBox(height: 5),
+            SizedBox(
+              height: 28,
+              child: Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(fontSize: 10.5, height: 1.3, fontWeight: FontWeight.w600, color: _ink)),
+            ),
+            Text(_sizeLabel, style: GoogleFonts.poppins(fontSize: 9.5, color: _muted)),
+            const Spacer(),
+            Row(crossAxisAlignment: CrossAxisAlignment.center, children: <Widget>[
               Expanded(
-                child: Center(
-                  key: k,
-                  child: comboImage(p.image, fit: BoxFit.contain),
-                ),
+                child: available
+                    ? FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: <Widget>[
+                          Text(comboRs(pr.price), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: _ink)),
+                          if (pr.mrp > pr.price) ...<Widget>[
+                            const SizedBox(width: 3),
+                            Text(comboRs(pr.mrp), style: GoogleFonts.poppins(fontSize: 9, color: _muted, decoration: TextDecoration.lineThrough)),
+                          ],
+                        ]),
+                      )
+                    : Text('Out of stock', maxLines: 1, style: GoogleFonts.poppins(fontSize: 9.5, fontWeight: FontWeight.w600, color: const Color(0xFFB42318))),
               ),
-              const SizedBox(height: 6),
-              Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.playfairDisplay(fontSize: 13.5, fontWeight: FontWeight.w700, color: _ink)),
-              const SizedBox(height: 2),
-              Row(children: <Widget>[
-                if (available) ...<Widget>[
-                  Text(comboRs(pr.price), style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: _maroon)),
-                  if (pr.mrp > pr.price) ...<Widget>[
-                    const SizedBox(width: 5),
-                    Text(comboRs(pr.mrp), style: GoogleFonts.poppins(fontSize: 10, color: _muted, decoration: TextDecoration.lineThrough)),
-                  ],
-                ] else
-                  Text('Out of stock', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFFB42318))),
-                const Spacer(),
-                Container(
-                  width: 26,
-                  height: 26,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: picked ? _maroon : const Color(0xFFF7EADB), shape: BoxShape.circle),
-                  child: Icon(picked ? Icons.check_rounded : Icons.add_rounded, size: 16, color: picked ? Colors.white : _maroon),
+              const SizedBox(width: 4),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 28,
+                height: 24,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: picked ? _green : Colors.white,
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(color: available || picked ? _green : _line, width: 1.4),
                 ),
-              ]),
+                child: Icon(picked ? Icons.check_rounded : Icons.add_rounded, size: 16, color: picked ? Colors.white : (available ? _green : _muted)),
+              ),
             ]),
-          ),
-        ]),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _slotStrip() {
+    return Row(children: <Widget>[
+      for (int k = 0; k < _slots.length; k++) ...<Widget>[
+        if (k > 0) const SizedBox(width: 5),
+        Expanded(child: _slotChip(k)),
+      ],
+    ]);
+  }
+
+  Widget _slotChip(int k) {
+    final String? id = _slots[k];
+    ComboProduct? p;
+    if (id != null) {
+      for (final ComboProduct x in _data!.products) {
+        if (x.productId == id) { p = x; break; }
+      }
+    }
+    final bool filled = p != null;
+    return GestureDetector(
+      onTap: filled ? () => _remove(k) : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: filled ? const Color(0xFFFFF3D6) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFC9A85A), width: 1.2),
+        ),
+        child: filled
+            ? Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
+                Flexible(child: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 9.5, fontWeight: FontWeight.w600, color: const Color(0xFF8A6420)))),
+                const SizedBox(width: 2),
+                const Icon(Icons.close_rounded, size: 11, color: Color(0xFF8A6420)),
+              ])
+            : Text('+ jar ${k + 1}', style: GoogleFonts.poppins(fontSize: 9.5, color: const Color(0xFFB08A3A))),
       ),
     );
   }
@@ -786,9 +843,12 @@ class _ComboBoxScreenState extends State<ComboBoxScreen> with TickerProviderStat
     final List<double> t = _totals();
     final bool full = _count >= _s.jars;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
       decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24)), boxShadow: <BoxShadow>[BoxShadow(color: Color(0x33603010), blurRadius: 20, offset: Offset(0, -6), spreadRadius: -4)]),
-      child: Row(children: <Widget>[
+      child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+        _slotStrip(),
+        const SizedBox(height: 10),
+        Row(children: <Widget>[
         Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: <Widget>[
           Row(crossAxisAlignment: CrossAxisAlignment.end, children: <Widget>[
             Text(comboRs(t[1]), style: GoogleFonts.playfairDisplay(fontSize: 22, fontWeight: FontWeight.w700, color: _ink)),
@@ -818,6 +878,7 @@ class _ComboBoxScreenState extends State<ComboBoxScreen> with TickerProviderStat
                     style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w700, color: full ? Colors.white : _muted)),
           ),
         ),
+      ]),
       ]),
     );
   }
