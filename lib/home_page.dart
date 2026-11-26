@@ -55,6 +55,9 @@ import 'recently_viewed_store.dart';
 import 'product_lookup.dart';
 
 class HomePage extends StatefulWidget {
+  /// set by the home screen: bottom bar → tap Home again → smooth scroll to top
+  static VoidCallback? scrollToTop;
+
   const HomePage({super.key});
 
   @override
@@ -186,6 +189,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     HomeCategoriesStore.load(); // admin-managed category strip
     ProductManager().addListener(_onProductUpdate);
     
+    HomePage.scrollToTop = () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(0, duration: const Duration(milliseconds: 550), curve: Curves.easeOutCubic);
+      }
+    };
     _scrollController.addListener(() {
       _syncStripToScroll();
       final double sb = MediaQuery.of(context).padding.top;

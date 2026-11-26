@@ -1,3 +1,10 @@
+import 'profile_extras.dart' show isActiveOrder;
+import 'models.dart';
+import 'order_manager.dart';
+import 'wishlist_manager.dart';
+import 'api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -105,34 +112,115 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
+/// One tab of the bottom bar (order, name and visibility come from Admin → App Bottom Bar).
+class NavTab {
+  final String id, label;
+  final bool enabled;
+  const NavTab(this.id, this.label, {this.enabled = true});
+}
+
+// pages stay at fixed places so each tab keeps its own history
+const List<String> _kPages = <String>['home', 'shop', 'wishlist', 'orders', 'profile', 'cart'];
+// old tab numbers used around the app: 0 Home · 1 Shop · 2 Wishlist · 3 Orders · 4 Profile
+const List<String> _kLegacy = <String>['home', 'shop', 'wishlist', 'orders', 'profile'];
+const List<NavTab> _kDefaultTabs = <NavTab>[
+  NavTab('home', 'Home'),
+  NavTab('shop', 'Shop'),
+  NavTab('wishlist', 'Wishlist'),
+  NavTab('cart', 'Cart'),
+  NavTab('orders', 'Orders'),
+  NavTab('profile', 'Profile'),
+];
+
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
+  String _selected = 'home';
+  int _pulse = 0; // bubble pop on every tap
+  List<NavTab> _tabs = _kDefaultTabs;
+  String _ordersSeen = '';
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     MainScreen.instance = this;
   }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTabs();
+    SharedPreferences.getInstance().then((SharedPreferences p) {
+      if (mounted) setState(() => _ordersSeen = p.getString('aj_orders_seen') ?? '');
+    }).catchError((_) {});
+  }
+
+  Future<void> _loadTabs() async {
+    try {
+      final Map<String, dynamic> d = await ApiService.getAppConfig('bottom_nav');
+      final List<dynamic> items = d['items'] is List ? d['items'] as List<dynamic> : <dynamic>[];
+      if (items.isEmpty) return;
+      final List<NavTab> list = <NavTab>[];
+      for (final dynamic x in items) {
+        if (x is! Map) continue;
+        final String id = '${x['id'] ?? ''}';
+        if (!_kPages.contains(id) || list.any((NavTab t) => t.id == id)) continue;
+        final String label = '${x['label'] ?? ''}'.trim();
+        list.add(NavTab(id, label.isEmpty ? _kDefaultTabs.firstWhere((NavTab t) => t.id == id).label : label,
+            enabled: id == 'home' || x['enabled'] != false));
+      }
+      final List<NavTab> shown = list.where((NavTab t) => t.enabled).toList();
+      if (shown.length < 3 || !shown.any((NavTab t) => t.id == 'home')) return;
+      if (mounted) {
+        setState(() {
+          _tabs = shown.take(6).toList();
+          if (!_tabs.any((NavTab t) => t.id == _selected)) _selected = 'home';
+        });
+      }
+    } catch (_) {}
+  }
+
   bool _isTransitioning = false;
 
-  final List<GlobalKey<NavigatorState>> _navigatorKeys = [
-    GlobalKey<NavigatorState>(),
-    GlobalKey<NavigatorState>(),
-    GlobalKey<NavigatorState>(),
-    GlobalKey<NavigatorState>(),
-    GlobalKey<NavigatorState>(),
-  ];
+  final Map<String, GlobalKey<NavigatorState>> _navigatorKeys = <String, GlobalKey<NavigatorState>>{
+    for (final String id in _kPages) id: GlobalKey<NavigatorState>(),
+  };
 
+  /// Old API (numbers): 0 Home · 1 Shop · 2 Wishlist · 3 Orders · 4 Profile
   void setIndex(int index) {
-    if (_selectedIndex == index) {
-      _navigatorKeys[index].currentState?.popUntil((route) => route.isFirst);
-    } else {
-      HapticFeedback.lightImpact();
-      setState(() {
-        _selectedIndex = index;
-        _isTransitioning = true;
-      });
+    if (index < 0 || index >= _kLegacy.length) return;
+    selectTab(_kLegacy[index]);
+  }
+
+  void selectTab(String id) {
+    if (!_kPages.contains(id)) return;
+    setState(() => _pulse++);
+    if (_selected == id) {
+      HapticFeedback.selectionClick();
+      final NavigatorState? nav = _navigatorKeys[id]?.currentState;
+      if (nav != null && nav.canPop()) {
+        nav.popUntil((route) => route.isFirst);
+      } else if (id == 'home') {
+        HomePage.scrollToTop?.call(); // tap Home again → back to the top
+      }
+      return;
     }
+    HapticFeedback.lightImpact();
+    setState(() {
+      _selected = id;
+      _isTransitioning = true;
+    });
+    if (id == 'orders') _markOrdersSeen();
+  }
+
+  // ───── green dot on Orders while an order is on its way (until they open Orders) ─────
+  String get _ordersSig {
+    final List<String> parts = OrderManager().orders.where(isActiveOrder).map((Order o) => '${o.id}:${o.status}').toList()..sort();
+    return parts.join(',');
+  }
+
+  void _markOrdersSeen() {
+    final String sig = _ordersSig;
+    _ordersSeen = sig;
+    SharedPreferences.getInstance().then((SharedPreferences p) => p.setString('aj_orders_seen', sig)).catchError((_) => true);
   }
 
   void _onTransitionComplete() {
@@ -141,11 +229,28 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  Widget _buildTab(int index, Widget child) {
+  Widget _pageFor(String id) {
+    switch (id) {
+      case 'shop':
+        return const CategoriesPage();
+      case 'wishlist':
+        return const WishlistPage();
+      case 'orders':
+        return const OrderHistoryPage();
+      case 'profile':
+        return const ProfilePage();
+      case 'cart':
+        return const CartPage();
+      default:
+        return const HomePage();
+    }
+  }
+
+  Widget _buildTab(String id) {
     return Navigator(
-      key: _navigatorKeys[index],
+      key: _navigatorKeys[id],
       onGenerateRoute: (settings) => PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => child,
+        pageBuilder: (context, animation, secondaryAnimation) => _pageFor(id),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -159,12 +264,12 @@ class _MainScreenState extends State<MainScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        final NavigatorState? currentNavigator = _navigatorKeys[_selectedIndex].currentState;
+        final NavigatorState? currentNavigator = _navigatorKeys[_selected]?.currentState;
         if (currentNavigator != null && currentNavigator.canPop()) {
           currentNavigator.pop();
         } else {
-          if (_selectedIndex != 0) {
-            setState(() => _selectedIndex = 0);
+          if (_selected != 'home') {
+            setState(() => _selected = 'home');
           } else {
             SystemNavigator.pop();
           }
@@ -174,14 +279,8 @@ class _MainScreenState extends State<MainScreen> {
         body: Stack(
           children: [
             IndexedStack(
-              index: _selectedIndex,
-              children: [
-                _buildTab(0, const HomePage()),
-                _buildTab(1, const CategoriesPage()),
-                _buildTab(2, const WishlistPage()),
-                _buildTab(3, const OrderHistoryPage()),
-                _buildTab(4, const ProfilePage()),
-              ],
+              index: _kPages.indexOf(_selected),
+              children: [for (final String id in _kPages) _buildTab(id)],
             ),
             TabTransitionVideoOverlay(
               isVisible: _isTransitioning,
@@ -189,9 +288,25 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ],
         ),
-        bottomNavigationBar: CustomBottomNavBar(
-          selectedIndex: _selectedIndex,
-          onTabSelected: setIndex,
+        bottomNavigationBar: ListenableBuilder(
+          listenable: Listenable.merge(<Listenable>[CartManager(), WishlistManager(), OrderManager()]),
+          builder: (BuildContext context, _) {
+            final String sig = _ordersSig;
+            if (_selected == 'orders' && sig != _ordersSeen) {
+              WidgetsBinding.instance.addPostFrameCallback((_) => _markOrdersSeen());
+            }
+            return CustomBottomNavBar(
+              tabs: _tabs,
+              selectedId: _selected,
+              pulse: _pulse,
+              onTabSelected: selectTab,
+              badges: <String, int>{
+                'cart': CartManager().itemCount,
+                'wishlist': WishlistManager().items.length,
+              },
+              dots: <String>{if (sig.isNotEmpty && sig != _ordersSeen && _selected != 'orders') 'orders'},
+            );
+          },
         ),
       ),
     );
@@ -199,30 +314,83 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 class CustomBottomNavBar extends StatelessWidget {
-  final int selectedIndex;
-  final Function(int) onTabSelected;
+  final List<NavTab> tabs;
+  final String selectedId;
+  final int pulse;
+  final ValueChanged<String> onTabSelected;
+  final Map<String, int> badges;
+  final Set<String> dots;
 
   const CustomBottomNavBar({
     super.key,
-    required this.selectedIndex,
+    required this.tabs,
+    required this.selectedId,
     required this.onTabSelected,
+    this.pulse = 0,
+    this.badges = const <String, int>{},
+    this.dots = const <String>{},
   });
+
+  static const Map<String, List<IconData>> _icons = <String, List<IconData>>{
+    'home': <IconData>[Icons.home_outlined, Icons.home_rounded],
+    'shop': <IconData>[Icons.grid_view_outlined, Icons.widgets_rounded],
+    'wishlist': <IconData>[Icons.favorite_border_rounded, Icons.favorite_rounded],
+    'cart': <IconData>[Icons.shopping_cart_outlined, Icons.shopping_cart_rounded],
+    'orders': <IconData>[Icons.local_shipping_outlined, Icons.local_shipping_rounded],
+    'profile': <IconData>[Icons.person_outline_rounded, Icons.person_rounded],
+  };
+
+  Widget _badge(String id, {double top = -6, double right = -10}) {
+    final int n = badges[id] ?? 0;
+    if (n > 0) {
+      return Positioned(
+        top: top,
+        right: right,
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 17),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          decoration: BoxDecoration(
+            color: id == 'wishlist' ? const Color(0xFFC2185B) : const Color(0xFFC62828),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFFFFDF8), width: 1.6),
+          ),
+          child: Text(n > 99 ? '99+' : '$n',
+              textAlign: TextAlign.center, style: GoogleFonts.poppins(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700, height: 1.3)),
+        ),
+      );
+    }
+    if (dots.contains(id)) {
+      return Positioned(
+        top: -2,
+        right: -4,
+        child: Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: const Color(0xFF2E9E5B),
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFFFFFDF8), width: 1.6),
+            boxShadow: <BoxShadow>[BoxShadow(color: const Color(0xFF2E9E5B).withValues(alpha: .45), blurRadius: 6, spreadRadius: 1)],
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final navItems = [
-      {'label': 'Home', 'icon': Icons.home_outlined, 'activeIcon': Icons.home_rounded},
-      {'label': 'Shop', 'icon': Icons.grid_view_outlined, 'activeIcon': Icons.widgets_rounded},
-      {'label': 'Wishlist', 'icon': Icons.favorite_border_rounded, 'activeIcon': Icons.favorite_rounded},
-      {'label': 'Orders', 'icon': Icons.local_shipping_outlined, 'activeIcon': Icons.local_shipping_rounded},
-      {'label': 'Profile', 'icon': Icons.person_outline_rounded, 'activeIcon': Icons.person_rounded},
-    ];
+    final List<NavTab> items = tabs.isEmpty ? _kDefaultTabs : tabs;
+    final int n = items.length;
+    final int selectedIndex = items.indexWhere((NavTab t) => t.id == selectedId).clamp(0, n - 1);
+    final NavTab active = items[selectedIndex];
 
     final screenWidth = MediaQuery.of(context).size.width;
     const horizontalMargin = 16.0;
     final barWidth = screenWidth - (horizontalMargin * 2);
-    final itemWidth = barWidth / 5;
-    const buttonRadius = 37.0; // Button diameter = 74.0
+    final itemWidth = barWidth / n;
+    final double buttonRadius = n >= 6 ? 33.0 : 37.0;
+    final double labelSize = n >= 6 ? 10.0 : 11.0;
     final activeLeft = (itemWidth * selectedIndex) + (itemWidth / 2) - buttonRadius;
 
     return Container(
@@ -237,12 +405,12 @@ class CustomBottomNavBar extends StatelessWidget {
               AnimatedBuilder(
                 animation: globalCartBar,
                 builder: (context, child) {
-                  if (globalCartBar.count == 0) return const SizedBox.shrink();
+                  if (globalCartBar.count == 0 || selectedId == 'cart') return const SizedBox.shrink();
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8.0),
                     child: CartBar(
                       controller: globalCartBar,
-                      onViewCart: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CartPage())),
+                      onViewCart: () => onTabSelected('cart'),
                     ),
                   );
                 },
@@ -315,32 +483,41 @@ class CustomBottomNavBar extends StatelessWidget {
 
                           // Row of Inactive / Tap Items
                           Row(
-                            children: List.generate(5, (index) {
-                              final item = navItems[index];
+                            children: List.generate(n, (index) {
+                              final NavTab item = items[index];
                               final isSelected = index == selectedIndex;
 
                               return Expanded(
                                 child: GestureDetector(
                                   behavior: HitTestBehavior.opaque,
-                                  onTap: () => onTabSelected(index),
+                                  onTap: () => onTabSelected(item.id),
                                   child: AnimatedOpacity(
                                     duration: const Duration(milliseconds: 200),
                                     opacity: isSelected ? 0.0 : 1.0,
                                     child: Column(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        Icon(
-                                          item['icon'] as IconData,
-                                          color: const Color(0xFF18453B),
-                                          size: 24,
+                                        Stack(
+                                          clipBehavior: Clip.none,
+                                          children: [
+                                            Icon(
+                                              (_icons[item.id] ?? _icons['home']!)[0],
+                                              color: const Color(0xFF18453B),
+                                              size: 24,
+                                            ),
+                                            _badge(item.id),
+                                          ],
                                         ),
                                         const SizedBox(height: 3),
                                         Text(
-                                          item['label'] as String,
+                                          item.label,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
                                           style: GoogleFonts.poppins(
                                             color: const Color(0xFF18453B),
                                             fontWeight: FontWeight.w600,
-                                            fontSize: 11,
+                                            fontSize: labelSize,
                                           ),
                                         ),
                                       ],
@@ -361,10 +538,20 @@ class CustomBottomNavBar extends StatelessWidget {
                   duration: const Duration(milliseconds: 320),
                   curve: Curves.easeOutCubic,
                   left: activeLeft,
-                  top: 0, // Pops out above the main bar top!
+                  top: n >= 6 ? 4 : 0, // Pops out above the main bar top!
                   child: GestureDetector(
-                    onTap: () => onTabSelected(selectedIndex),
-                    child: Container(
+                    onTap: () => onTabSelected(active.id),
+                    child: TweenAnimationBuilder<double>(
+                      key: ValueKey<String>('pop-${active.id}-$pulse'),
+                      tween: Tween<double>(begin: 0, end: 1),
+                      duration: const Duration(milliseconds: 360),
+                      curve: Curves.easeOut,
+                      builder: (BuildContext context, double t, Widget? child) =>
+                          Transform.scale(scale: 1 + 0.12 * math.sin(math.pi * t), child: child),
+                      child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                    Container(
                       width: buttonRadius * 2,
                       height: buttonRadius * 2,
                       decoration: BoxDecoration(
@@ -402,17 +589,20 @@ class CustomBottomNavBar extends StatelessWidget {
                           children: [
                             const SizedBox(height: 2),
                             Icon(
-                              navItems[selectedIndex]['activeIcon'] as IconData,
+                              (_icons[active.id] ?? _icons['home']!)[1],
                               color: Colors.white,
-                              size: 24,
+                              size: n >= 6 ? 22 : 24,
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              navItems[selectedIndex]['label'] as String,
+                              active.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.fade,
+                              softWrap: false,
                               style: GoogleFonts.poppins(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 10.5,
+                                fontSize: n >= 6 ? 9.5 : 10.5,
                               ),
                             ),
                             const SizedBox(height: 3),
@@ -434,6 +624,10 @@ class CustomBottomNavBar extends StatelessWidget {
                           ],
                         ),
                       ),
+                    ),
+                    _badge(active.id, top: -2, right: -2),
+                      ],
+                    ),
                     ),
                   ),
                 ),
