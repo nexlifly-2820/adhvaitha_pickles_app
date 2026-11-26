@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'models.dart';
 import 'widgets/cart_bar.dart';
 import 'widgets/offers_section.dart';
+import 'order_manager.dart';
 
 class CartManager extends ChangeNotifier {
   static final CartManager _instance = CartManager._internal();
@@ -47,7 +48,7 @@ class CartManager extends ChangeNotifier {
   /// Returns false when the code doesn't exist or the cart is below its minimum.
   bool applyPromoCode(String code) {
     final HomeOffer? o = HomeOffersStore.find(code);
-    final double? d = o?.discountFor(subtotal, deliveryFee);
+    final double? d = (o == null || promoProblem(code) != null) ? null : o.discountFor(subtotal, deliveryFee);
     if (o == null || d == null) {
       if (_appliedPromoCode.isNotEmpty && _appliedPromoCode == code.trim().toUpperCase()) {
         _discountAmount = 0;
@@ -66,6 +67,16 @@ class CartManager extends ChangeNotifier {
   String? promoProblem(String code) {
     final HomeOffer? o = HomeOffersStore.find(code);
     if (o == null) return 'This coupon code is not valid';
+    final String? d = o.dateProblem();
+    if (d != null) return d;
+    if (o.firstOrderOnly && OrderManager().orders.any((Order x) => !RegExp('fail|cancel|pending', caseSensitive: false).hasMatch(x.status))) {
+      return '${o.code} is only for your first order';
+    }
+    if (o.category.isNotEmpty) {
+      final String c = o.category.toLowerCase().replaceAll(RegExp(r's$'), '');
+      final bool has = _items.any((CartItem i) => '${i.product.category} ${i.product.name}'.toLowerCase().contains(c));
+      if (!has) return '${o.code} is only for ${o.category}';
+    }
     if (subtotal < o.minOrder) return 'Add ₹${(o.minOrder - subtotal).ceil()} more to use ${o.code} (min order ${o.minText})';
     return null;
   }

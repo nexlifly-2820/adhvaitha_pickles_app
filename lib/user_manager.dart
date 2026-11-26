@@ -14,6 +14,12 @@ class UserManager extends ChangeNotifier {
   String _phone = '';
   DateTime? _since;
   bool _loggedIn = false;
+  String _token = ''; // login token from our server (proves who this customer is)
+
+  String get token => _token;
+  bool get hasSession => _loggedIn && _token.isNotEmpty;
+  /// Headers for calls to our server that need the logged-in customer.
+  Map<String, String> get authHeaders => <String, String>{'Content-Type': 'application/json', if (_token.isNotEmpty) 'Authorization': 'Bearer $_token'};
 
   String get userName {
     if (_userName.isNotEmpty) return _userName;
@@ -25,9 +31,10 @@ class UserManager extends ChangeNotifier {
   String get email => _email.isNotEmpty ? _email : (FirebaseAuth.instance.currentUser?.email ?? '');
   String get phone => _phone.isNotEmpty ? _phone : (FirebaseAuth.instance.currentUser?.phoneNumber ?? '').replaceAll('+91', '');
   DateTime? get memberSince => _since ?? FirebaseAuth.instance.currentUser?.metadata.creationTime;
-  bool get isLoggedIn => _loggedIn || FirebaseAuth.instance.currentUser != null;
+  bool get isLoggedIn => hasSession;
 
   String get currentUserId {
+    if (_token.isNotEmpty && _email.trim().isNotEmpty) return 'USER-${_email.trim().toLowerCase().replaceAll('@', '_').replaceAll('.', '_')}';
     final String? firebaseUid = FirebaseAuth.instance.currentUser?.uid;
     if (firebaseUid != null && firebaseUid.isNotEmpty) return firebaseUid;
     final String e = email.trim().toLowerCase();
@@ -45,6 +52,9 @@ class UserManager extends ChangeNotifier {
       final int? s = p.getInt('aj_user_since');
       _since = s == null ? null : DateTime.fromMillisecondsSinceEpoch(s);
       _loggedIn = p.getBool('aj_logged_in') ?? false;
+      _token = p.getString('aj_token') ?? '';
+      // logins from before the secure code check have no token → ask them to log in once more
+      if (_token.isEmpty) _loggedIn = false;
       if (_userName == 'User') _userName = '';
     } catch (_) {}
     notifyListeners();
@@ -57,12 +67,14 @@ class UserManager extends ChangeNotifier {
       await p.setString('aj_user_email', _email);
       await p.setString('aj_user_phone', _phone);
       await p.setBool('aj_logged_in', _loggedIn);
+      await p.setString('aj_token', _token);
       if (_since != null) await p.setInt('aj_user_since', _since!.millisecondsSinceEpoch);
     } catch (_) {}
   }
 
   /// After login, or when the customer edits their profile.
-  Future<void> setUser({required String name, required String email, String? phone}) async {
+  Future<void> setUser({required String name, required String email, String? phone, String? token}) async {
+    if (token != null && token.isNotEmpty) _token = token;
     if (name.trim().isNotEmpty && name.trim() != 'User') _userName = name.trim();
     if (email.trim().isNotEmpty) _email = email.trim();
     if (phone != null) _phone = phone.replaceAll(' ', '').trim();
@@ -89,10 +101,11 @@ class UserManager extends ChangeNotifier {
     _phone = '';
     _since = null;
     _loggedIn = false;
+    _token = '';
     notifyListeners();
     try {
       final SharedPreferences p = await SharedPreferences.getInstance();
-      for (final String k in <String>['aj_user_name', 'aj_user_email', 'aj_user_phone', 'aj_user_since', 'aj_logged_in']) {
+      for (final String k in <String>['aj_user_name', 'aj_user_email', 'aj_user_phone', 'aj_user_since', 'aj_logged_in', 'aj_token']) {
         await p.remove(k);
       }
       await FirebaseAuth.instance.signOut();

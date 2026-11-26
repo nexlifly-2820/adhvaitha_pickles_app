@@ -1,4 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'user_manager.dart';
 import 'models.dart';
 import 'product_repository.dart';
 import 'product_manager.dart';
@@ -11,6 +15,83 @@ class WishlistManager extends ChangeNotifier {
   final List<Product> _wishlist = [];
 
   WishlistManager._internal() {
+    _loadLocal();
+  }
+
+  // ───── saved on the phone + on our server (same on every phone) ─────
+  static const String _api = 'https://admin.adhvaithafoods.in/api/me/wishlist';
+  String get _key => 'wishlist_${UserManager().currentUserId}';
+  String _loadedFor = '';
+
+  List<Map<String, dynamic>> _toJson() => _wishlist
+      .map((Product p) => <String, dynamic>{'name': p.name, 'image': p.image, 'price': p.weightPriceMap.isEmpty ? 0 : p.weightPriceMap.values.first, 'category': p.category})
+      .toList();
+
+  void _fromJson(List<dynamic> items) {
+    _wishlist.clear();
+    for (final dynamic x in items) {
+      if (x is! Map) continue;
+      final String name = '${x['name'] ?? ''}'.trim();
+      if (name.isEmpty || isFavoriteName(name)) continue;
+      _addByName(name, image: '${x['image'] ?? ''}', price: (x['price'] is num) ? (x['price'] as num).toDouble() : 0, category: '${x['category'] ?? 'Specials'}');
+    }
+  }
+
+  Future<void> _loadLocal() async {
+    try {
+      final String uid = UserManager().currentUserId;
+      _loadedFor = uid;
+      final SharedPreferences p = await SharedPreferences.getInstance();
+      final String? raw = p.getString(_key);
+      if (raw != null && raw.isNotEmpty) {
+        _fromJson(jsonDecode(raw) as List<dynamic>);
+        super.notifyListeners();
+      }
+    } catch (_) {}
+    syncFromServer();
+  }
+
+  Future<void> _saveAll() async {
+    try {
+      final SharedPreferences p = await SharedPreferences.getInstance();
+      await p.setString(_key, jsonEncode(_toJson()));
+    } catch (_) {}
+    if (!UserManager().hasSession) return;
+    try {
+      await http.put(Uri.parse(_api), headers: UserManager().authHeaders, body: jsonEncode(<String, dynamic>{'items': _toJson()})).timeout(const Duration(seconds: 15));
+    } catch (_) {}
+  }
+
+  /// Gets the wishlist from our server after login (keeps hearts added on this phone too).
+  Future<void> syncFromServer() async {
+    if (!UserManager().hasSession) return;
+    if (_loadedFor != UserManager().currentUserId) {
+      _loadedFor = UserManager().currentUserId;
+      _wishlist.clear();
+    }
+    try {
+      final http.Response r = await http.get(Uri.parse(_api), headers: UserManager().authHeaders).timeout(const Duration(seconds: 15));
+      if (r.statusCode != 200) return;
+      final dynamic j = jsonDecode(r.body);
+      final List<dynamic> server = (j is Map && j['items'] is List) ? j['items'] as List<dynamic> : <dynamic>[];
+      final List<Map<String, dynamic>> local = _toJson();
+      _fromJson(server);
+      bool added = false;
+      for (final Map<String, dynamic> x in local) {
+        if (!isFavoriteName('${x['name']}')) {
+          _addByName('${x['name']}', image: '${x['image'] ?? ''}', price: (x['price'] as num?)?.toDouble() ?? 0, category: '${x['category'] ?? 'Specials'}');
+          added = true;
+        }
+      }
+      super.notifyListeners();
+      if (added || server.isEmpty) _saveAll();
+    } catch (_) {}
+  }
+
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    _saveAll();
   }
 
   void _seedInitialFavorites() {
@@ -53,6 +134,13 @@ class WishlistManager extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+    _addByName(name, image: image, price: price, category: category);
+    notifyListeners();
+    return true;
+  }
+
+  void _addByName(String name, {String image = '', double price = 0, String category = 'Specials'}) {
+    final String n = _norm(name);
     Product? match = findCatalogProduct(name);
     // keep the photo the customer actually saw if the catalogue one has none
     // and keep the name the customer saw, so the heart stays filled everywhere
@@ -80,7 +168,5 @@ class WishlistManager extends ChangeNotifier {
       secretIngredient: IngredientDetail(name: '', description: '', image: ''),
     );
     _wishlist.add(match);
-    notifyListeners();
-    return true;
   }
 }

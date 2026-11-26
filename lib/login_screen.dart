@@ -157,21 +157,36 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   // ───────── API ─────────
   Future<void> _sendCode() async {
     final email = _email.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
+    if (!_validEmail(email)) {
       setState(() => _sendErr = 'Please enter a valid email address.');
       return;
     }
     FocusScope.of(context).unfocus();
     setState(() { _busy = true; _sendErr = null; });
+    String? err;
     try {
-      await ApiService.sendEmailOtp(email);
-    } catch (e) {
-      debugPrint('Send email OTP error: $e');
+      final r = await http
+          .post(Uri.parse('${widget.apiBase}/auth/otp/send'), headers: const {'Content-Type': 'application/json'}, body: jsonEncode({'email': email}))
+          .timeout(const Duration(seconds: 25));
+      final j = jsonDecode(r.body);
+      if (r.statusCode != 200 || j is! Map || j['success'] != true) err = (j is Map ? j['error'] : null)?.toString() ?? 'Could not send the code. Please try again.';
+    } catch (_) {
+      err = 'No internet? Please check your connection and try again.';
     }
-
     if (!mounted) return;
+    if (err != null) {
+      setState(() { _busy = false; if (_step == _Step.otp) { _otpErr = err; } else { _sendErr = err; } });
+      HapticFeedback.heavyImpact();
+      return;
+    }
     HapticFeedback.selectionClick();
     _otp.clear();
+    if (_step == _Step.otp) {
+      setState(() { _otpErr = null; _busy = false; });
+      _startResend(30);
+      _otpF.requestFocus();
+      return;
+    }
     setState(() { _step = _Step.otp; _otpErr = null; _busy = false; });
     _startResend(30);
     await _flip.forward();
@@ -197,34 +212,38 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     setState(() {
       if (_otpErr != null && v.isNotEmpty) _otpErr = null;
     });
-    if (v.length >= 4) _verify();
+    if (v.length == 6) _verify();
   }
 
   Future<void> _verify() async {
     if (_busy) return;
+    final code = _otp.text.trim();
+    if (code.length != 6) return;
     FocusScope.of(context).unfocus();
     setState(() => _busy = true);
+    String err = 'Wrong code, please try again ✏️';
     try {
-      final verified = await ApiService.verifyEmailOtp(email: _email.text.trim(), otp: _otp.text.trim());
-      if (verified || _otp.text.trim() == '123456' || _otp.text.trim().length >= 4) {
-        await _completeLogin('token_${DateTime.now().millisecondsSinceEpoch}', {
+      final r = await http
+          .post(Uri.parse('${widget.apiBase}/auth/otp/verify'),
+              headers: const {'Content-Type': 'application/json'},
+              body: jsonEncode({'email': _email.text.trim(), 'otp': code, 'name': _name.text.trim()}))
+          .timeout(const Duration(seconds: 20));
+      final j = jsonDecode(r.body);
+      if (r.statusCode == 200 && j is Map && j['success'] == true && '${j['token'] ?? ''}'.isNotEmpty) {
+        await _completeLogin('${j['token']}', {
           'name': _name.text.trim().isEmpty ? 'User' : _name.text.trim(),
-          'email': _email.text.trim()
+          'email': _email.text.trim(),
         });
         return;
-      } else {
-        if (!mounted) return;
-        setState(() { _otpErr = 'Wrong code, please try again ✏️'; _busy = false; });
-        _shakeO.forward(from: 0);
-        HapticFeedback.heavyImpact();
-        return;
       }
-    } catch (_) {}
-
-    await _completeLogin('mock_token_123', {
-      'name': _name.text.trim().isEmpty ? 'User' : _name.text.trim(),
-      'email': _email.text.trim().isEmpty ? 'user@gmail.com' : _email.text.trim()
-    });
+      if (j is Map && j['error'] != null) err = '${j['error']}';
+    } catch (_) {
+      err = 'No internet? Please try again.';
+    }
+    if (!mounted) return;
+    setState(() { _otpErr = err; _busy = false; });
+    _shakeO.forward(from: 0);
+    HapticFeedback.heavyImpact();
   }
 
   Future<void> _completeLogin(String token, Map<String, dynamic> user) async {

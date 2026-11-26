@@ -130,7 +130,7 @@ class _SplashScreenState extends State<SplashScreen> {
     }
 
     Widget nextScreen;
-    if (FirebaseAuth.instance.currentUser != null || UserManager().isLoggedIn) {
+    if (UserManager().hasSession) {
       nextScreen = const MainScreen();
     } else {
       nextScreen = const LoginPage(); // onboarding removed: go straight to login

@@ -5,6 +5,7 @@ import 'user_manager.dart';
 import 'notification_manager.dart';
 import 'address_book.dart';
 import 'order_manager.dart';
+import 'wishlist_manager.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -16,7 +17,9 @@ class LoginPage extends StatelessWidget {
       logoAsset: 'assets/images/AMBHUJAKSHI  logo.png',
       onLoggedIn: (token, user) async {
         // remember who signed in (name, email) — used by profile, orders, addresses and notifications
-        await UserManager().setUser(name: '${user['name'] ?? ''}', email: '${user['email'] ?? ''}');
+        await UserManager().setUser(name: '${user['name'] ?? ''}', email: '${user['email'] ?? ''}', token: token);
+        AddressBook().syncFromServer();
+        WishlistManager().syncFromServer();
         AddressBook().ensureLoaded();
         OrderManager().ensureLoaded();
         NotificationManager().updateToken();
