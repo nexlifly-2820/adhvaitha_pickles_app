@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:video_player/video_player.dart';
 import 'main.dart';
 import 'login_page.dart';
+import 'user_manager.dart';
 import 'api_service.dart';
 import 'app_config_repository.dart';
 import 'app_update_page.dart';
@@ -129,7 +130,7 @@ class _SplashScreenState extends State<SplashScreen> {
     }
 
     Widget nextScreen;
-    if (FirebaseAuth.instance.currentUser != null) {
+    if (FirebaseAuth.instance.currentUser != null || UserManager().isLoggedIn) {
       nextScreen = const MainScreen();
     } else {
       nextScreen = const LoginPage(); // onboarding removed: go straight to login

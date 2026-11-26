@@ -15,6 +15,7 @@ import 'cart_page.dart';
 import 'navigation_util.dart';
 import 'product_manager.dart';
 import 'notification_manager.dart';
+import 'user_manager.dart';
 import 'widgets/tab_transition_video_overlay.dart';
 import 'widgets/cart_bar.dart';
 
@@ -28,6 +29,7 @@ void main() async {
   await Firebase.initializeApp();
   
   // Initialize Managers
+  await UserManager().init(); // who is signed in (saved on the phone)
   NotificationManager().init(); // not awaited: the permission prompt must not hold up the splash screen
   ProductManager().init();
   

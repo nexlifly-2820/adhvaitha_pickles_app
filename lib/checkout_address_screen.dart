@@ -30,6 +30,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
+import 'address_book.dart';
+import 'user_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
@@ -96,7 +98,122 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> with Sing
       c.addListener(_changed);
     }
     _pin.addListener(_pinChanged);
-    _load();
+    _start();
+  }
+
+  // ───────── saved addresses ─────────
+  String? _selectedId; // saved address in use (null = typing a new one)
+  bool _saveAddr = true;
+
+  Future<void> _start() async {
+    await AddressBook().ensureLoaded();
+    if (!mounted) return;
+    final DeliveryAddress? d = AddressBook().defaultAddress;
+    if (d != null) {
+      _useSaved(d, haptic: false);
+    } else {
+      if (_name.text.trim().isEmpty) _name.text = UserManager().userName;
+      if (_phone.text.trim().isEmpty) _phone.text = UserManager().phone;
+      await _load(); // older server copy, only when nothing is saved on the phone
+    }
+  }
+
+  void _useSaved(DeliveryAddress a, {bool haptic = true}) {
+    if (haptic) HapticFeedback.selectionClick();
+    _name.text = a.name;
+    _phone.text = a.phone;
+    _alt.text = a.altPhone;
+    _house.text = a.house;
+    _road.text = a.road;
+    _city.text = a.city;
+    _state.text = a.state;
+    _lastPin = a.pincode;
+    _pin.text = a.pincode;
+    setState(() {
+      _type = a.type;
+      _selectedId = a.id;
+      _bump++;
+    });
+  }
+
+  void _newAddress() {
+    HapticFeedback.selectionClick();
+    for (final TextEditingController c in <TextEditingController>[_alt, _pin, _city, _state, _house, _road]) {
+      c.clear();
+    }
+    _name.text = UserManager().userName;
+    _phone.text = UserManager().phone;
+    _lastPin = '';
+    setState(() {
+      _selectedId = null;
+      _type = 'HOME';
+      _tried = false;
+      _bump++;
+    });
+  }
+
+  Widget _savedPicker() {
+    final List<DeliveryAddress> list = AddressBook().addresses;
+    if (list.isEmpty) return const SizedBox.shrink();
+    Widget card(DeliveryAddress a) {
+      final bool on = _selectedId == a.id;
+      return GestureDetector(
+        onTap: () => _useSaved(a),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 210,
+          margin: const EdgeInsets.only(right: 10),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: on ? const Color(0xFFFFF4EC) : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: on ? const Color(0xFF7A1426) : const Color(0xFFE6D6BC), width: on ? 1.6 : 1),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+            Row(children: <Widget>[
+              Icon(a.type == 'OFFICE' ? Icons.work_rounded : a.type == 'OTHER' ? Icons.place_rounded : Icons.home_rounded, size: 16, color: const Color(0xFF7A1426)),
+              const SizedBox(width: 6),
+              Expanded(child: Text(a.label + (a.isDefault ? ' · Default' : ''), maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF2A1A14)))),
+              if (on) const Icon(Icons.check_circle_rounded, size: 18, color: Color(0xFF1F7A45)),
+            ]),
+            const SizedBox(height: 4),
+            Text(a.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF2A1A14))),
+            Text(a.line, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 10.5, height: 1.3, color: const Color(0xFF8A7464))),
+          ]),
+        ),
+      );
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+      _head('SAVED ADDRESSES'),
+      SizedBox(
+        height: 104,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: <Widget>[
+            for (final DeliveryAddress a in list) card(a),
+            GestureDetector(
+              onTap: _newAddress,
+              child: Container(
+                width: 120,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _selectedId == null ? const Color(0xFFFFF4EC) : Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _selectedId == null ? const Color(0xFF7A1426) : const Color(0xFFE6D6BC)),
+                ),
+                child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                  const Icon(Icons.add_location_alt_rounded, color: Color(0xFF7A1426)),
+                  const SizedBox(height: 4),
+                  Text('Add new', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF7A1426))),
+                ]),
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 14),
+    ]);
   }
 
   @override
@@ -285,6 +402,15 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> with Sing
       'gift': _gift,
       'giftNote': _gift ? _note.text.trim() : '',
     };
+    // keep the address book up to date (edits to a saved one update it; new ones are saved if ticked)
+    if (_selectedId != null || _saveAddr) {
+      try {
+        await AddressBook().save(DeliveryAddress.fromMap(body, id: _selectedId), makeDefault: AddressBook().addresses.isEmpty);
+      } catch (_) {}
+    }
+    if (UserManager().phone.isEmpty && _phoneOk) {
+      UserManager().setUser(name: UserManager().userName.isNotEmpty ? UserManager().userName : _name.text.trim(), email: UserManager().email, phone: _phone.text.replaceAll(' ', ''));
+    }
     try {
       final http.Response r = await http.post(Uri.parse('${widget.apiBase}/checkout/address'), headers: _jsonHeaders, body: jsonEncode(body)).timeout(const Duration(seconds: 4));
       if (r.statusCode == 200) {
@@ -596,7 +722,8 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> with Sing
             padding: EdgeInsets.fromLTRB(18, 22, 18, 100 + mq.padding.bottom),
             children: <Widget>[
               Center(child: Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 8), decoration: BoxDecoration(color: const Color(0xFFDACDB8), borderRadius: BorderRadius.circular(2)))),
-              _head("WHO'S RECEIVING"),
+              _savedPicker(),
+              _head(_selectedId == null && AddressBook().addresses.isNotEmpty ? "NEW ADDRESS · WHO'S RECEIVING" : "WHO'S RECEIVING"),
               _field(_name, 'Full name', ok: _nameOk, caps: TextCapitalization.words, type: TextInputType.name, error: 'Enter your full name'),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -630,6 +757,16 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> with Sing
                   Expanded(child: _typeChip('Other', 'OTHER')),
                 ],
               ),
+              if (_selectedId == null)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  activeColor: const Color(0xFF7A1426),
+                  value: _saveAddr,
+                  onChanged: (bool? v) => setState(() => _saveAddr = v ?? true),
+                  title: Text('Save this address for next time', style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                ),
               const SizedBox(height: 12),
               _giftCard(),
               const SizedBox(height: 16),
