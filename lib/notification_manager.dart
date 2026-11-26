@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'profile_extras.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -133,6 +134,10 @@ class NotificationManager {
     }
 
     if (notification == null) return;
+    await AppPrefs().load();
+    final String type = '${message.data['type'] ?? ''}';
+    if (type == 'order_status' && !AppPrefs().orderUpdates) return;
+    if (type != 'order_status' && message.from == '/topics/marketing' && !AppPrefs().offers) return;
     Future<void> show({required bool styled}) => _localNotifications.show(
           notification.hashCode,
           notification.title,

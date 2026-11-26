@@ -21,6 +21,7 @@
 //   )
 
 import 'dart:async';
+import 'package:share_plus/share_plus.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -235,11 +236,27 @@ class _WishlistPageState extends State<WishlistPage> with TickerProviderStateMix
   }
 
   Future<void> _share() async {
+    HapticFeedback.selectionClick();
+    final StringBuffer b = StringBuffer('My Ambhujakshi favourites 💗\n\n');
+    if (_items.isEmpty) {
+      b.writeln('Homemade pickles, podis & sweets made the traditional way.');
+    } else {
+      for (final WishItem i in _items) {
+        b.writeln('• ${i.name} — ${_rs(i.price)}');
+      }
+    }
+    b.write('\nOrder on the Ambhujakshi app: https://adhvaithafoods.in');
+    final String text = b.toString();
+    if (widget.onShare != null) {
+      widget.onShare!(text);
+      return;
+    }
     try {
-      final r = await http.post(Uri.parse('${widget.apiBase}/wishlist/share'), headers: widget.headers);
-      final link = jsonDecode(r.body)['link'] as String?;
-      if (link != null) widget.onShare?.call(link);
-    } catch (_) {}
+      await Share.share(text, subject: 'My Ambhujakshi favourites');
+    } catch (_) {
+      await Clipboard.setData(ClipboardData(text: text));
+      if (mounted) _toast('List copied — paste it anywhere to share');
+    }
   }
 
   void _toast(String msg) {
@@ -283,20 +300,28 @@ class _WishlistPageState extends State<WishlistPage> with TickerProviderStateMix
             Row(children: [
               _chip(const Icon(Icons.arrow_back_rounded, size: 20, color: _ink), widget.onBack ?? () => Navigator.maybePop(context), square: true),
               const Spacer(),
-              _chip(Text(_s['shareLabel'] ?? '↗ Share my shelf',
-                  style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: _rose)), _share),
+              _chip(Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.share_rounded, size: 14, color: _rose),
+                const SizedBox(width: 6),
+                Text((_s['shareLabel'] ?? 'Share my shelf').replaceAll('↗', '').trim(),
+                    style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: _rose)),
+              ]), _share),
             ]),
             const SizedBox(height: 10),
             Text(_s['eyebrow'] ?? 'MY WISHLIST', style: GoogleFonts.poppins(fontSize: 9, letterSpacing: 2.4, fontWeight: FontWeight.w800, color: _rose)),
             const SizedBox(height: 3),
             Text.rich(TextSpan(children: [
-              TextSpan(text: '${_s['titleStart'] ?? "Amma's"} ', style: GoogleFonts.rozhaOne(fontSize: 30, height: 1, color: _ink)),
-              TextSpan(text: _s['titleAccent'] ?? 'pantry', style: GoogleFonts.yatraOne(fontSize: 30, height: 1, color: _pink)),
-              TextSpan(text: ' ${_s['titleEnd'] ?? 'for you'}', style: GoogleFonts.rozhaOne(fontSize: 30, height: 1, color: _ink)),
+              TextSpan(text: '${_s['titleStart'] ?? "Amma's"} ', style: GoogleFonts.philosopher(fontSize: 28, height: 1.1, fontWeight: FontWeight.w700, color: _ink)),
+              TextSpan(text: _s['titleAccent'] ?? 'pantry', style: GoogleFonts.philosopher(fontSize: 28, height: 1.1, fontWeight: FontWeight.w700, fontStyle: FontStyle.italic, color: _pink)),
+              TextSpan(text: ' ${_s['titleEnd'] ?? 'for you'}', style: GoogleFonts.philosopher(fontSize: 28, height: 1.1, fontWeight: FontWeight.w700, color: _ink)),
             ])),
             const SizedBox(height: 2),
-            Text('${_items.length} favourite${_items.length == 1 ? '' : 's'} waiting on your shelf 💗',
-                style: GoogleFonts.kalam(fontSize: 13.5, fontWeight: FontWeight.w700, color: const Color(0xFF8A4A3A))),
+            Row(children: [
+              Text(_items.isEmpty ? 'Save your favourites here' : '${_items.length} favourite${_items.length == 1 ? '' : 's'} waiting on your shelf',
+                  style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w500, color: const Color(0xFF8A4A3A))),
+              const SizedBox(width: 4),
+              const Icon(Icons.favorite_rounded, size: 13, color: _pink),
+            ]),
           ]),
         )),
         // fairy lights
@@ -420,12 +445,19 @@ class _WishlistPageState extends State<WishlistPage> with TickerProviderStateMix
   Widget _empty(double top) => Padding(
         padding: EdgeInsets.only(top: top + 60, left: 30, right: 30),
         child: Column(children: [
-          const Text('🫙', style: TextStyle(fontSize: 64)),
-          const SizedBox(height: 12),
-          Text('Your shelf is empty', style: GoogleFonts.rozhaOne(fontSize: 22, color: _ink)),
-          const SizedBox(height: 6),
-          Text('Tap the ♥ on any pickle, podi or sweet to keep it here for later.', textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF8A6A4A))),
+          Container(
+            width: 96, height: 96,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: _pink.withOpacity(.10)),
+            child: const Icon(Icons.favorite_border_rounded, size: 46, color: _pink),
+          ),
+          const SizedBox(height: 16),
+          Text('Your shelf is empty', style: GoogleFonts.philosopher(fontSize: 22, fontWeight: FontWeight.w700, color: _ink)),
+          const SizedBox(height: 8),
+          Text.rich(TextSpan(style: GoogleFonts.poppins(fontSize: 12.5, height: 1.5, color: const Color(0xFF8A6A4A)), children: const [
+            TextSpan(text: 'Tap the '),
+            WidgetSpan(alignment: PlaceholderAlignment.middle, child: Icon(Icons.favorite_rounded, size: 14, color: _pink)),
+            TextSpan(text: ' on any pickle, podi or sweet to keep it here for later.'),
+          ]), textAlign: TextAlign.center),
         ]),
       );
 }

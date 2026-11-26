@@ -17,8 +17,10 @@ import 'faq_page.dart';
 import 'privacy_policy_page.dart';
 import 'terms_of_service_page.dart';
 import 'refund_policy_page.dart';
-import 'account_deletion_page.dart';
 import 'coupons_page.dart';
+import 'profile_extras.dart';
+import 'cart_page.dart';
+import 'screens/order_details_screen.dart';
 
 const Color _bg = Color(0xFFFBF6EF), _ink = Color(0xFF2A1A14), _muted = Color(0xFF8A7464), _line = Color(0xFFEADFD2);
 const Color _maroon = Color(0xFF7A1426), _gold = Color(0xFFE9C46A), _green = Color(0xFF1F7A45);
@@ -35,6 +37,7 @@ class _ProfilePageState extends State<ProfilePage> {
     super.initState();
     AddressBook().ensureLoaded();
     OrderManager().ensureLoaded();
+    AppPrefs().load();
   }
 
   String get _initials {
@@ -92,18 +95,33 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Scaffold(
         backgroundColor: _bg,
         body: AnimatedBuilder(
-          animation: Listenable.merge(<Listenable>[UserManager(), AddressBook(), OrderManager(), WishlistManager()]),
+          animation: Listenable.merge(<Listenable>[UserManager(), AddressBook(), OrderManager(), WishlistManager(), AppPrefs()]),
           builder: (BuildContext c, _) => CustomScrollView(
             slivers: <Widget>[
               SliverToBoxAdapter(child: _header()),
               SliverToBoxAdapter(child: _stats()),
+              SliverToBoxAdapter(child: _orderCards()),
               SliverToBoxAdapter(child: _addresses()),
               SliverToBoxAdapter(
                 child: _section('MY ACCOUNT', <Widget>[
                   _row(Icons.receipt_long_rounded, 'My orders', 'Track, view details, reorder', () => _go(3)),
                   _row(Icons.favorite_rounded, 'Wishlist', 'Products you saved', () => _go(2)),
                   _row(Icons.local_offer_rounded, 'Coupons & offers', 'Save more on your next order', () => _open(const CouponsPage())),
+                  _row(Icons.rate_review_rounded, 'My reviews', 'Letters you wrote to Amma', () => _open(const MyReviewsPage())),
                   _row(Icons.person_rounded, 'Edit profile', 'Name, phone and email', _editProfile),
+                ]),
+              ),
+              SliverToBoxAdapter(
+                child: _section('SETTINGS', <Widget>[
+                  _row(Icons.notifications_active_rounded, 'Notifications', 'Order updates, offers, reminders', () => showNotificationSettings(context)),
+                  _row(Icons.translate_rounded, 'Language', AppPrefs().language == 'te' ? 'తెలుగు' : 'English', () => showLanguagePicker(context)),
+                ]),
+              ),
+              SliverToBoxAdapter(
+                child: _section('SPREAD THE LOVE', <Widget>[
+                  _row(Icons.card_giftcard_rounded, 'Refer a friend', 'Share your welcome code', () => shareReferral(context)),
+                  _row(Icons.star_rate_rounded, 'Rate us on Play Store', "Tell others about Amma's kitchen", () => rateApp(context)),
+                  _row(Icons.share_rounded, 'Share the app', 'Send Ambhujakshi to family & friends', shareApp),
                 ]),
               ),
               SliverToBoxAdapter(
@@ -128,71 +146,138 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  String get _displayName {
+    final String n = UserManager().userName.trim();
+    if (n.isEmpty) return 'Welcome';
+    return n.split(RegExp(r'\s+')).map((String w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1).toLowerCase()).join(' ');
+  }
+
+  Widget _chip(IconData icon, String text, {bool gold = false}) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: gold ? _gold : Colors.white.withOpacity(.14), borderRadius: BorderRadius.circular(14)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Icon(icon, size: 12, color: gold ? const Color(0xFF5A1A10) : Colors.white),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(fontSize: 11, fontWeight: gold ? FontWeight.w600 : FontWeight.w500, color: gold ? const Color(0xFF5A1A10) : Colors.white)),
+          ),
+        ]),
+      );
+
   Widget _header() {
     final UserManager u = UserManager();
     final double top = MediaQuery.of(context).padding.top;
-    return Container(
-      padding: EdgeInsets.fromLTRB(20, top + 18, 20, 26),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: <Color>[Color(0xFF8E1B30), Color(0xFF5A0E1C)]),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-      ),
-      child: Row(children: <Widget>[
-        Container(
-          width: 68,
-          height: 68,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFFFF3DC), border: Border.all(color: _gold, width: 2.5)),
-          child: Text(_initials, style: GoogleFonts.playfairDisplay(fontSize: 24, fontWeight: FontWeight.w700, color: _maroon)),
+    final String n = u.userName.trim();
+    return Stack(clipBehavior: Clip.none, children: <Widget>[
+      Container(
+        margin: const EdgeInsets.only(bottom: 44),
+        padding: EdgeInsets.fromLTRB(18, top + 16, 18, 58),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: <Color>[Color(0xFF9E1424), Color(0xFF6A0F1E)]),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
         ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-            Text(u.userName.isNotEmpty ? 'Namaskaram, ${u.userName.split(' ').first} 🙏' : 'Namaskaram 🙏',
-                maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.playfairDisplay(fontSize: 21, fontWeight: FontWeight.w700, color: Colors.white)),
-            const SizedBox(height: 3),
-            if (u.email.isNotEmpty) Text(u.email, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12, color: Colors.white.withOpacity(.85))),
-            if (u.phone.isNotEmpty) Text('+91 ${u.phone}', style: GoogleFonts.poppins(fontSize: 12, color: Colors.white.withOpacity(.85))),
-            if (_since.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text(_since, style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w600, color: _gold))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+          Row(crossAxisAlignment: CrossAxisAlignment.center, children: <Widget>[
+            Container(
+              width: 62,
+              height: 62,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFFFF4E2), border: Border.all(color: _gold, width: 3)),
+              child: n.isEmpty
+                  ? const Icon(Icons.person_rounded, color: _maroon, size: 32)
+                  : Text(n[0].toUpperCase(), style: GoogleFonts.philosopher(fontSize: 28, fontWeight: FontWeight.w700, color: _maroon)),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+                Text(tr('Namaskaram 🙏'), style: GoogleFonts.poppins(fontSize: 12, color: Colors.white.withOpacity(.85))),
+                const SizedBox(height: 2),
+                Text(_displayName, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.philosopher(fontSize: 22, height: 1.15, fontWeight: FontWeight.w700, color: Colors.white)),
+              ]),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _editProfile,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                decoration: BoxDecoration(color: Colors.white.withOpacity(.15), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white.withOpacity(.35))),
+                child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                  const Icon(Icons.edit_rounded, size: 13, color: Colors.white),
+                  const SizedBox(width: 4),
+                  Text(tr('Edit'), style: GoogleFonts.poppins(fontSize: 11.5, fontWeight: FontWeight.w600, color: Colors.white)),
+                ]),
+              ),
+            ),
           ]),
-        ),
-        IconButton(onPressed: _editProfile, icon: const Icon(Icons.edit_rounded, color: Colors.white), tooltip: 'Edit profile'),
-      ]),
-    );
+          const SizedBox(height: 14),
+          Wrap(spacing: 6, runSpacing: 6, children: <Widget>[
+            if (u.email.isNotEmpty) _chip(Icons.mail_outline_rounded, u.email),
+            if (u.phone.isNotEmpty) _chip(Icons.phone_rounded, '+91 ${u.phone}'),
+            if (_since.isNotEmpty) _chip(Icons.star_rounded, _since, gold: true),
+          ]),
+        ]),
+      ),
+      Positioned(left: 16, right: 16, bottom: 0, child: _statsCard()),
+    ]);
   }
 
-  Widget _stats() {
+  Widget _stats() => const SizedBox(height: 4);
+
+  Widget _orderCards() {
+    final List<Order> o = OrderManager().orders;
+    if (o.isEmpty) return const SizedBox.shrink();
+    Order? live;
+    for (final Order x in o) {
+      if (isActiveOrder(x)) {
+        live = x;
+        break;
+      }
+    }
+    final Order last = o.first;
+    return Column(children: <Widget>[
+      if (live != null) LiveOrderCard(order: live, onTrack: () => _open(OrderDetailsScreen(orderId: live!.id))),
+      if (last.items.isNotEmpty) ReorderCard(order: last, onDone: () => _open(const CartPage())),
+    ]);
+  }
+
+  Widget _statsCard() {
     final List<Order> o = OrderManager().orders;
     final int active = o.where((Order x) {
       final String s = x.status.toLowerCase();
       return !s.contains('deliver') && !s.contains('cancel');
     }).length;
-    Widget box(String n, String label, IconData icon, VoidCallback onTap) => Expanded(
-          child: GestureDetector(
+    Widget cell(String n, String label, VoidCallback onTap) => Expanded(
+          child: InkWell(
             onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: _line)),
-              child: Column(children: <Widget>[
-                Icon(icon, size: 20, color: _maroon),
-                const SizedBox(height: 4),
-                Text(n, style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w800, color: _ink)),
-                Text(label, style: GoogleFonts.poppins(fontSize: 10.5, color: _muted)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                Text(n, style: GoogleFonts.poppins(fontSize: 19, fontWeight: FontWeight.w800, color: _ink)),
+                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 10.5, color: _muted)),
               ]),
             ),
           ),
         );
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Row(children: <Widget>[
-        box('${o.length}', active > 0 ? '$active active' : 'Orders', Icons.shopping_bag_rounded, () => _go(3)),
-        const SizedBox(width: 10),
-        box('${WishlistManager().items.length}', 'Wishlist', Icons.favorite_rounded, () => _go(2)),
-        const SizedBox(width: 10),
-        box('${AddressBook().addresses.length}', 'Addresses', Icons.location_on_rounded, () async {
-          await showAddressForm(context);
-        }),
-      ]),
+    Widget sep() => Container(width: 1, height: 34, color: _line);
+    return Material(
+      color: Colors.white,
+      elevation: 0,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), boxShadow: <BoxShadow>[BoxShadow(color: _maroon.withOpacity(.12), blurRadius: 18, offset: const Offset(0, 8))]),
+        child: Row(children: <Widget>[
+          cell('${o.length}', active > 0 ? '${tr('Orders')} · $active ${tr('active')}' : tr('Orders'), () => _go(3)),
+          sep(),
+          cell('${WishlistManager().items.length}', tr('Wishlist'), () => _go(2)),
+          sep(),
+          cell('${AddressBook().addresses.length}', tr('Addresses'), () async {
+            await showAddressForm(context);
+          }),
+        ]),
+      ),
     );
   }
 
@@ -291,7 +376,7 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(title, style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.6, color: _muted)),
+            child: Text(tr(title), style: GoogleFonts.poppins(fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.6, color: _muted)),
           ),
           Container(
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: _line)),
@@ -316,8 +401,8 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-                Text(title, style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600, color: _ink)),
-                if (sub != null) Text(sub, style: GoogleFonts.poppins(fontSize: 11, color: _muted)),
+                Text(tr(title), style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w600, color: _ink)),
+                if (sub != null) Text(tr(sub), style: GoogleFonts.poppins(fontSize: 11, color: _muted)),
               ]),
             ),
             const Icon(Icons.chevron_right_rounded, color: _muted),
@@ -334,16 +419,19 @@ class _ProfilePageState extends State<ProfilePage> {
             child: OutlinedButton.icon(
               onPressed: _logout,
               icon: const Icon(Icons.logout_rounded, color: _maroon),
-              label: Text('Log out', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: _maroon)),
+              label: Text(tr('Log out'), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: _maroon)),
               style: OutlinedButton.styleFrom(side: const BorderSide(color: _maroon), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
             ),
           ),
           TextButton(
-            onPressed: () => _open(const AccountDeletionPage()),
-            child: Text('Delete my account', style: GoogleFonts.poppins(fontSize: 12, color: _muted, decoration: TextDecoration.underline)),
+            onPressed: () => deleteAccountFlow(context, onDeleted: () {
+              if (!mounted) return;
+              Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(MaterialPageRoute<void>(builder: (_) => const LoginPage()), (Route<dynamic> r) => false);
+            }),
+            child: Text(tr('Delete my account'), style: GoogleFonts.poppins(fontSize: 12, color: _muted, decoration: TextDecoration.underline)),
           ),
           const SizedBox(height: 4),
-          Text('Ambhujakshi · Made with love in Andhra', style: GoogleFonts.poppins(fontSize: 10.5, color: _muted)),
+          Text('Ambhujakshi v$kAppVersion · Made with love in Andhra', style: GoogleFonts.poppins(fontSize: 10.5, color: _muted)),
         ]),
       );
 }

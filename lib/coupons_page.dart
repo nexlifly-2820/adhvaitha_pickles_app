@@ -15,18 +15,6 @@ class CouponsPage extends StatelessWidget {
       backgroundColor: const Color(0xFFFAF5E8),
       body: Stack(
         children: [
-          // 1. Full-screen background image matching coupon_bg_screen.png
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/coupon_bg_screen.png',
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-              errorBuilder: (context, error, stackTrace) => Container(
-                color: const Color(0xFFFFF8E8),
-              ),
-            ),
-          ),
-
           // 2. Main Scrollable Content Area inside SafeArea
           SafeArea(
             child: Column(
@@ -143,7 +131,7 @@ class CouponsPage extends StatelessWidget {
 
   Widget _buildHeaderBar(BuildContext context) {
     return SizedBox(
-      height: 56,
+      height: 66,
       child: Stack(
         alignment: Alignment.center,
         children: [

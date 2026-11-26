@@ -27,6 +27,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../api_service.dart';
+import '../user_manager.dart';
 
 Color _hex(String? s, Color fb) {
   if (s == null || s.isEmpty) return fb;
@@ -1205,7 +1206,7 @@ class _WriteSheetState extends State<_WriteSheet> {
       final http.Response r = await http
           .post(Uri.parse(_kSubmitUrl),
               headers: const <String, String>{'Content-Type': 'application/json'},
-              body: jsonEncode(<String, dynamic>{'name': name, 'city': _city.text.trim(), 'productName': _product ?? '', 'stars': _stars, 'text': text}))
+              body: jsonEncode(<String, dynamic>{'userId': UserManager().currentUserId, 'phone': UserManager().phone, 'name': name, 'city': _city.text.trim(), 'productName': _product ?? '', 'stars': _stars, 'text': text}))
           .timeout(const Duration(seconds: 15));
       Map<String, dynamic> j = <String, dynamic>{};
       try { j = jsonDecode(r.body) as Map<String, dynamic>; } catch (_) {}
