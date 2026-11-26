@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'models.dart';
 import 'widgets/cart_bar.dart';
+import 'widgets/offers_section.dart';
 
 class CartManager extends ChangeNotifier {
   static final CartManager _instance = CartManager._internal();
@@ -42,30 +43,31 @@ class CartManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Coupons come from the admin "Home Offers" list (same cards as the home screen).
+  /// Returns false when the code doesn't exist or the cart is below its minimum.
   bool applyPromoCode(String code) {
-    final c = code.toUpperCase();
-    if (c == "FIRST30") {
-      _discountAmount = subtotal * 0.30;
-      _appliedPromoCode = "FIRST30";
-      notifyListeners();
-      return true;
-    } else if (c == "PICKLE100") {
-      _discountAmount = 100;
-      _appliedPromoCode = "PICKLE100";
-      notifyListeners();
-      return true;
-    } else if (c == "FESTIVE20") {
-      _discountAmount = subtotal * 0.20;
-      _appliedPromoCode = "FESTIVE20";
-      notifyListeners();
-      return true;
-    } else if (c == "FREESHIP") {
-      _discountAmount = deliveryFee;
-      _appliedPromoCode = "FREESHIP";
-      notifyListeners();
-      return true;
+    final HomeOffer? o = HomeOffersStore.find(code);
+    final double? d = o?.discountFor(subtotal, deliveryFee);
+    if (o == null || d == null) {
+      if (_appliedPromoCode.isNotEmpty && _appliedPromoCode == code.trim().toUpperCase()) {
+        _discountAmount = 0;
+        _appliedPromoCode = "";
+        notifyListeners();
+      }
+      return false;
     }
-    return false;
+    _discountAmount = d;
+    _appliedPromoCode = o.code;
+    notifyListeners();
+    return true;
+  }
+
+  /// Why a code can't be used right now (null = it can).
+  String? promoProblem(String code) {
+    final HomeOffer? o = HomeOffersStore.find(code);
+    if (o == null) return 'This coupon code is not valid';
+    if (subtotal < o.minOrder) return 'Add ₹${(o.minOrder - subtotal).ceil()} more to use ${o.code} (min order ${o.minText})';
+    return null;
   }
 
   void removePromoCode() {

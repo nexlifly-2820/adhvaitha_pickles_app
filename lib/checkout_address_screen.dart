@@ -187,7 +187,7 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> with Sing
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
       _head('SAVED ADDRESSES'),
       SizedBox(
-        height: 104,
+        height: 118,
         child: ListView(
           scrollDirection: Axis.horizontal,
           children: <Widget>[

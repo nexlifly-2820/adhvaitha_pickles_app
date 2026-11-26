@@ -1,14 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'cloud_function_manager.dart';
+import 'package:http/http.dart' as http;
+import 'user_manager.dart';
 
 class ContactUsPage extends StatefulWidget {
   const ContactUsPage({super.key});
@@ -21,15 +17,18 @@ class _ContactUsPageState extends State<ContactUsPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _messageController = TextEditingController();
   bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      _emailController.text = user.email ?? '';
+    final UserManager u = UserManager();
+    if (u.isLoggedIn) {
+      _nameController.text = u.userName;
+      _emailController.text = u.email;
+      _phoneController.text = u.phone;
     }
   }
 
@@ -37,6 +36,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _messageController.dispose();
     super.dispose();
   }
@@ -47,13 +47,26 @@ class _ContactUsPageState extends State<ContactUsPage> {
     setState(() => _isSending = true);
     HapticFeedback.mediumImpact();
 
-    final success = await CloudFunctionManager().submitInquiry(
-      name: _nameController.text,
-      email: _emailController.text,
-      phone: FirebaseAuth.instance.currentUser?.phoneNumber ?? 'N/A',
-      message: _messageController.text,
-    );
+    bool success = false;
+    String? err;
+    try {
+      final http.Response r = await http
+          .post(Uri.parse('https://admin.adhvaithafoods.in/api/contact/submit'),
+              headers: <String, String>{'Content-Type': 'application/json'},
+              body: jsonEncode(<String, String>{
+                'name': _nameController.text.trim(),
+                'email': _emailController.text.trim(),
+                'phone': _phoneController.text.trim(),
+                'message': _messageController.text.trim(),
+                'userId': UserManager().currentUserId,
+              }))
+          .timeout(const Duration(seconds: 15));
+      final dynamic j = jsonDecode(r.body);
+      success = r.statusCode == 200 && j is Map && j['success'] == true;
+      if (!success && j is Map && j['error'] != null) err = '${j['error']}';
+    } catch (_) {}
 
+    if (!mounted) return;
     setState(() => _isSending = false);
 
     if (success) {
@@ -63,8 +76,8 @@ class _ContactUsPageState extends State<ContactUsPage> {
         backgroundColor: Color(0xFF18453B),
       ));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Failed to send message. Please try again.'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(err ?? 'Failed to send message. Please check your internet and try again.'),
         backgroundColor: Colors.red,
       ));
     }
@@ -125,7 +138,8 @@ class _ContactUsPageState extends State<ContactUsPage> {
                   const Text('SEND US A MESSAGE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 2, color: Colors.grey)),
                   const SizedBox(height: 20),
                   _buildField('Your Name', _nameController, Icons.person_outline),
-                  _buildField('Email Address', _emailController, Icons.email_outlined),
+                  _buildField('Phone Number', _phoneController, Icons.phone_outlined, phone: true),
+                  _buildField('Email Address (optional)', _emailController, Icons.email_outlined, optional: true),
                   _buildField('Message', _messageController, Icons.edit_note_rounded, maxLines: 4),
                   const SizedBox(height: 20),
                   ElevatedButton(
@@ -154,19 +168,27 @@ class _ContactUsPageState extends State<ContactUsPage> {
     );
   }
 
-  Widget _buildField(String label, TextEditingController controller, IconData icon, {int maxLines = 1}) {
+  Widget _buildField(String label, TextEditingController controller, IconData icon, {int maxLines = 1, bool phone = false, bool optional = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
+        keyboardType: phone ? TextInputType.phone : null,
+        inputFormatters: phone ? <TextInputFormatter>[FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]')), LengthLimitingTextInputFormatter(15)] : null,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: const Color(0xFF18453B)),
           filled: true, fillColor: Colors.white,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
         ),
-        validator: (v) => v!.isEmpty ? 'Required' : null,
+        validator: (v) {
+          final String t = (v ?? '').trim();
+          if (optional) return null;
+          if (t.isEmpty) return 'Required';
+          if (phone && t.replaceAll(RegExp(r'\D'), '').length < 10) return 'Enter a valid 10-digit phone number';
+          return null;
+        },
       ),
     );
   }

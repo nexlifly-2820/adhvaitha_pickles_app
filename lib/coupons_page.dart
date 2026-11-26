@@ -3,52 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'cart_manager.dart';
+import 'widgets/offers_section.dart';
 
 class CouponsPage extends StatelessWidget {
   const CouponsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> coupons = [
-      {
-        'code': 'FIRST30',
-        'title': '30% OFF',
-        'badge': 'FIRST ORDER',
-        'sub': 'A Special Welcome Offer',
-        'min': '₹500',
-        'bannerColor': const Color(0xFF0D3823),
-        'color': const Color(0xFF0D3823),
-      },
-      {
-        'code': 'PICKLE100',
-        'title': '₹100 OFF',
-        'badge': 'PICKLE SPECIAL',
-        'sub': 'Flat Discount on All Pickles',
-        'min': '₹999',
-        'bannerColor': const Color(0xFF8B1E1E),
-        'color': const Color(0xFF8B1E1E),
-      },
-      {
-        'code': 'FESTIVE20',
-        'title': '20% OFF',
-        'badge': 'FESTIVE OFFER',
-        'sub': 'Special Festive Season Discount',
-        'min': '₹1500',
-        'bannerColor': const Color(0xFFB8860B),
-        'color': const Color(0xFFB8860B),
-      },
-      {
-        'code': 'FREESHIP',
-        'title': 'FREE DELIVERY',
-        'badge': 'LIMITED TIME',
-        'sub': 'On All Orders (No Minimum)',
-        'min': '₹0',
-        'icon': Icons.local_shipping_outlined,
-        'bannerColor': const Color(0xFF1E513B),
-        'color': const Color(0xFF1E513B),
-      },
-    ];
-
+    HomeOffersStore.load();
     return Scaffold(
       backgroundColor: const Color(0xFFFAF5E8),
       body: Stack(
@@ -82,8 +44,25 @@ class CouponsPage extends StatelessWidget {
                 // Coupons List
                 Expanded(
                   child: ListenableBuilder(
-                    listenable: CartManager(),
+                    listenable: Listenable.merge(<Listenable>[CartManager(), HomeOffersStore.items]),
                     builder: (context, _) {
+                      // same coupons as the home screen "Today's Offers" (admin → Home Offers)
+                      final List<Map<String, dynamic>> coupons = HomeOffersStore.items.value.map((HomeOffer o) {
+                        final Color col = (kOfferThemes[o.theme] ?? kOfferThemes['red']!)[2];
+                        return <String, dynamic>{
+                          'code': o.code,
+                          'title': o.title.toUpperCase(),
+                          'badge': o.label.isEmpty ? 'OFFER' : o.label,
+                          'sub': o.sub,
+                          'min': o.minText,
+                          if (o.type == 'freeship') 'icon': Icons.local_shipping_outlined,
+                          'bannerColor': col,
+                          'color': col,
+                        };
+                      }).toList();
+                      if (coupons.isEmpty) {
+                        return Center(child: Text('No coupons right now', style: GoogleFonts.poppins(color: const Color(0xFF0D3823), fontWeight: FontWeight.w600)));
+                      }
                       final appliedCode = CartManager().appliedPromoCode;
                       return ListView.builder(
                         padding: const EdgeInsets.only(
@@ -121,7 +100,16 @@ class CouponsPage extends StatelessWidget {
                                   ),
                                 );
                               } else {
-                                CartManager().applyPromoCode(code);
+                                final String? why = CartManager().promoProblem(code);
+                                if (why != null || !CartManager().applyPromoCode(code)) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                    content: Text('Code $code copied. ${why ?? 'Add items to your cart to use it.'}',
+                                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                                    backgroundColor: const Color(0xFF8B1E1E),
+                                    behavior: SnackBarBehavior.floating,
+                                  ));
+                                  return;
+                                }
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
