@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'widgets/offscreen_pause.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:video_player/video_player.dart';
@@ -598,9 +599,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         CustomScrollView(
         controller: _scrollController,
         physics: const BouncingScrollPhysics(),
+        cacheExtent: 600,
         slivers: [
           SliverToBoxAdapter(
-            child: ListenableBuilder(
+            child: OffscreenPause(child: ListenableBuilder(
               listenable: CartManager(),
               builder: (context, _) {
                 final String headerVideoUrl = (homeVideoConfig['header_video_enabled'] == false)
@@ -655,12 +657,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ]),
                 );
               },
-            ),
+            )),
           ),
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              // each section pauses its animations while off screen (smooth scrolling)
+              children: <Widget>[
                 if (homeVideoConfig['enabled'] != false && _isHomeVideoInitialized && _homeVideoController != null) const SectionTitle(TitleKind.kitchen),
                 _buildHomeVideoSection(),
                 const SectionTitle(TitleKind.andhra),
@@ -750,7 +753,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 const SizedBox(height: 40),
                 _buildNexliflyFooter(),
                 const SizedBox(height: 60),
-              ],
+              ].map<Widget>((Widget w) => w is SizedBox ? w : OffscreenPause(child: w)).toList(),
             ),
           ),
         ],
