@@ -21,6 +21,9 @@ import '../product_lookup.dart';
 import '../models.dart' as app_models;
 import '../navigation_util.dart';
 import 'order_placed_screen.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../user_manager.dart';
 
 double _n(dynamic v) => (v as num?)?.toDouble() ?? 0;
 String _rs(double v) => '₹${v.toStringAsFixed(v % 1 == 0 ? 0 : 2)}';
@@ -146,11 +149,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     super.dispose();
   }
 
+  /// login token is always sent (cancel / report need it)
+  Map<String, String> get _h => <String, String>{...UserManager().authHeaders, ...?widget.headers};
+
   Future<void> _load({bool silent = false}) async {
     try {
       final r = await http.get(
         Uri.parse('${widget.apiBase}/orders/${widget.orderId}/details'),
-        headers: widget.headers,
+        headers: _h,
       ).timeout(const Duration(seconds: 5));
 
       if (r.statusCode == 200) {
@@ -210,6 +216,35 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
 
     final statusLower = match.status.toLowerCase();
+    final Map<String, dynamic> live = OrderManager().liveInfo(match.id);
+    final bool isCancelled = statusLower.contains('cancel');
+    final bool isDelivered = statusLower.contains('deliver');
+    final bool isShipped = !isCancelled && !isDelivered && statusLower.contains('ship');
+    final bool canCancel = live.containsKey('canCancel')
+        ? live['canCancel'] == true
+        : !isCancelled && !isDelivered && !isShipped;
+    final String refundStatus = '${live['refundStatus'] ?? ''}';
+    final double refundAmount = double.tryParse('${live['refundAmount'] ?? 0}') ?? 0;
+    final bool paidOnline = refundStatus.isNotEmpty && refundStatus != 'none'
+        ? true
+        : !(match.paymentMethod.toLowerCase().contains('cod') || match.paymentMethod.toLowerCase().contains('cash'));
+    final String trackingUrl = '${live['trackingUrl'] ?? ''}'.isNotEmpty
+        ? '${live['trackingUrl']}'
+        : ((match.trackingId ?? '').isNotEmpty ? 'https://shiprocket.co/tracking/${match.trackingId}' : '');
+    final DateTime? deliveredAt = DateTime.tryParse('${live['deliveredAt'] ?? ''}');
+    final bool canReport = isDelivered &&
+        live['issue'] == null &&
+        (deliveredAt == null || DateTime.now().difference(deliveredAt).inHours < 48);
+    final List<Map<String, dynamic>> scans = (live['trackingEvents'] is List)
+        ? List<Map<String, dynamic>>.from((live['trackingEvents'] as List).whereType<Map>().map((m) => Map<String, dynamic>.from(m)))
+        : <Map<String, dynamic>>[];
+    String refundLine() {
+      if (!paidOnline || refundStatus == 'none') return 'No money was taken (Cash on Delivery)';
+      if (refundStatus == 'processed') return 'Refund of ₹${refundAmount.toStringAsFixed(0)} sent to your original payment method';
+      if (refundStatus == 'failed') return 'Our team is processing your refund. We will update you soon';
+      if (refundStatus == 'initiated') return 'Refund of ₹${refundAmount.toStringAsFixed(0)} started. It reaches you in 5–7 working days';
+      return 'Any payment will be refunded to your original payment method';
+    }
 
     final Map<String, dynamic> fallbackJson = {
       "settings": {
@@ -225,17 +260,21 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       },
       "order": {
         "code": match.id,
-        "status": statusLower.contains('cancel')
+        "status": isCancelled
             ? 'cancelled'
-            : statusLower.contains('deliver')
+            : isDelivered
                 ? 'delivered'
-                : 'in_kitchen',
+                : isShipped
+                    ? 'shipped'
+                    : 'in_kitchen',
         "statusLabel": match.status.toUpperCase(),
         "headline": statusLower.contains('deliver')
             ? 'Delivered with <em>love</em> 💛'
-            : statusLower.contains('cancel')
+            : isCancelled
                 ? 'Order <em>cancelled</em>'
-                : 'Amma is <em>cooking</em> 🍲',
+                : isShipped
+                    ? 'On the <em>way</em> 🚚'
+                    : 'Amma is <em>cooking</em> 🍲',
         "etaText": statusLower.contains('deliver')
             ? 'Delivered on ${_dayMonth(match.estimatedDelivery ?? match.date)}'
             : 'Estimated delivery by ${_dayMonth(match.estimatedDelivery ?? match.date.add(const Duration(days: 4)))}',
@@ -285,17 +324,33 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           "txn": match.id
         }
       },
-      "diary": statusLower.contains('cancel')
+      "diary": isCancelled
           ? [
               {
                 "title": "Order Cancelled",
-                "subtitle": "Refund processed to original payment method",
+                "subtitle": refundLine(),
                 "note": "We miss serving you. Come back soon for fresh treats!",
                 "time": "Today",
                 "state": "cancelled"
               }
             ]
           : [
+              for (final Map<String, dynamic> e in scans.reversed)
+                {
+                  "title": '${e['status'] ?? ''}',
+                  "subtitle": '${e['location'] ?? ''}'.isNotEmpty ? '${e['location']}' : '${match.courierName ?? 'Courier'} update',
+                  "note": "",
+                  "time": '${e['at'] ?? ''}'.length >= 16 ? '${e['at']}'.substring(0, 16).replaceAll('T', ' ') : '${e['at'] ?? ''}',
+                  "state": "done"
+                },
+              if (isShipped && scans.isEmpty)
+                {
+                  "title": "Shipped",
+                  "subtitle": (match.trackingId ?? '').isNotEmpty ? '${match.courierName ?? 'Courier'} · AWB ${match.trackingId}' : 'Handed to our courier',
+                  "note": "Tap “Track Parcel” below for live updates.",
+                  "time": "",
+                  "state": "now"
+                },
               {
                 "title": "Order Confirmed",
                 "subtitle": "Order verified by Amma's kitchen",
@@ -311,6 +366,17 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 "state": statusLower.contains('deliver') ? "done" : "now"
               }
             ],
+      if (isCancelled && paidOnline && refundStatus.isNotEmpty && refundStatus != 'none')
+        "refund": {
+          "amount": refundAmount > 0 ? refundAmount : match.total,
+          "method": "original payment",
+          "ref": '${live['refundId'] ?? ''}',
+          "steps": [
+            {"label": "Cancelled", "sub": "Order stopped", "state": "done"},
+            {"label": "Refund started", "sub": refundStatus == 'failed' ? 'Team is on it' : 'Sent to bank', "state": refundStatus == 'failed' ? 'now' : 'done'},
+            {"label": "In your account", "sub": "5–7 working days", "state": refundStatus == 'processed' ? 'done' : (refundStatus == 'failed' ? 'todo' : 'now')},
+          ],
+        },
       "freshness": {
         "percent": 98,
         "headline": "Freshly prepared <em>today</em>",
@@ -320,8 +386,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       "actions": [
         {"key": "invoice", "label": "Download Bill", "icon": "📄", "color": "#EAF3EE"},
         {"key": "chat", "label": "Kitchen Chat", "icon": "💬", "color": "#FFF0E0"},
-        if (!statusLower.contains('cancel') && !statusLower.contains('deliver'))
+        if (trackingUrl.isNotEmpty && !isCancelled)
+          {"key": "track", "label": "Track Parcel", "icon": "🚚", "color": "#EAF0FF"},
+        if (canCancel)
           {"key": "cancel", "label": "Cancel Order", "icon": "❌", "color": "#FDE8EA"},
+        if (canReport)
+          {"key": "report", "label": "Report Damage", "icon": "📷", "color": "#FFF4E0"},
         {"key": "share", "label": "Share Order", "icon": "📤", "color": "#E8F0FF"}
       ]
     };
@@ -342,7 +412,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         title: Text('Cancel this order?',
             style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.w700)),
         content: Text(
-            'Amma may have already started cooking. Your refund goes back to the original payment method.',
+            'You can cancel until the order is shipped. If you paid online, the full amount goes back to your original payment method in 5–7 working days.',
             style: GoogleFonts.poppins(fontSize: 13, color: _muted)),
         actions: [
           TextButton(
@@ -386,20 +456,134 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     try {
       final r = await http.post(
         Uri.parse('${widget.apiBase}/orders/${widget.orderId}/cancel'),
-        headers: {'Content-Type': 'application/json', ...?widget.headers},
+        headers: _h,
         body: jsonEncode({'reason': reason}),
-      );
+      ).timeout(const Duration(seconds: 25));
       if (!mounted) return;
-      if (r.statusCode == 200) {
-        _toast('Order cancelled. Refund started.');
+      Map<String, dynamic> j = <String, dynamic>{};
+      try { j = Map<String, dynamic>.from(jsonDecode(r.body) as Map); } catch (_) {}
+      if (r.statusCode == 200 && j['success'] != false) {
+        _toast('${j['message'] ?? 'Order cancelled'}');
         widget.onCancelled?.call(widget.orderId);
-        _load();
+        await OrderManager().syncStatuses();
+        if (mounted) _load();
+      } else if (r.statusCode == 401) {
+        _toast('Please log in again to cancel this order');
       } else {
-        _toast((jsonDecode(r.body)['error'] ?? 'Could not cancel').toString());
+        _toast('${j['error'] ?? 'Could not cancel. Please try again'}');
       }
     } catch (_) {
-      _toast('Order cancelled successfully.');
-      _loadFromLocalOrderManager();
+      if (mounted) _toast('No internet. Your order is NOT cancelled yet — please try again');
+    }
+  }
+
+  Future<void> _openTracking() async {
+    final Map<String, dynamic> live = OrderManager().liveInfo(widget.orderId);
+    String url = '${live['trackingUrl'] ?? ''}';
+    if (url.isEmpty) {
+      final String awb = '${live['trackingId'] ?? ''}';
+      if (awb.isNotEmpty) url = 'https://shiprocket.co/tracking/$awb';
+    }
+    if (url.isEmpty) {
+      _toast('Tracking will be available once the parcel is shipped');
+      return;
+    }
+    final bool ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    if (!ok && mounted) _toast('Could not open tracking');
+  }
+
+  /// Damaged item → text + photo, within 48 hours of delivery.
+  Future<void> _reportDamage() async {
+    final TextEditingController text = TextEditingController();
+    XFile? photo;
+    bool sending = false;
+    final bool? sent = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (c) => StatefulBuilder(builder: (c, setSheet) {
+        Future<void> pick(ImageSource src) async {
+          final XFile? f = await ImagePicker().pickImage(source: src, maxWidth: 1080, maxHeight: 1080, imageQuality: 60);
+          if (f != null) setSheet(() => photo = f);
+        }
+        Future<void> send() async {
+          if (text.text.trim().length < 5) { _toast('Please tell us what went wrong'); return; }
+          if (photo == null) { _toast('Please add a photo of the damaged item'); return; }
+          setSheet(() => sending = true);
+          try {
+            final List<int> bytes = await photo!.readAsBytes();
+            final String mime = photo!.path.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+            final http.Response r = await http.post(
+              Uri.parse('${widget.apiBase}/orders/${widget.orderId}/report-issue'),
+              headers: _h,
+              body: jsonEncode({'text': text.text.trim(), 'photo': 'data:image/$mime;base64,${base64Encode(bytes)}'}),
+            ).timeout(const Duration(seconds: 40));
+            Map<String, dynamic> j = <String, dynamic>{};
+            try { j = Map<String, dynamic>.from(jsonDecode(r.body) as Map); } catch (_) {}
+            if (r.statusCode == 200 && j['success'] == true) {
+              _toast('${j['message'] ?? 'Thanks, we will contact you soon'}');
+              if (c.mounted) Navigator.pop(c, true);
+              return;
+            }
+            _toast('${j['error'] ?? 'Could not send. Please try again'}');
+          } catch (_) {
+            _toast('No internet. Please try again');
+          }
+          setSheet(() => sending = false);
+        }
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 18, 20, 20 + MediaQuery.of(c).viewInsets.bottom),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Report a damaged item', style: GoogleFonts.playfairDisplay(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text('Please report within 48 hours of delivery with a clear photo.', style: GoogleFonts.poppins(fontSize: 12, color: _muted)),
+            const SizedBox(height: 14),
+            TextField(
+              controller: text,
+              maxLines: 3,
+              maxLength: 800,
+              decoration: InputDecoration(
+                hintText: 'What happened? (e.g. jar broken, leaked)',
+                hintStyle: GoogleFonts.poppins(fontSize: 13),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (photo != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(children: [
+                  const Icon(Icons.check_circle, color: _okGreen, size: 18),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text('Photo added', style: GoogleFonts.poppins(fontSize: 12.5))),
+                  TextButton(onPressed: () => setSheet(() => photo = null), child: const Text('Remove')),
+                ]),
+              ),
+            Row(children: [
+              Expanded(child: OutlinedButton.icon(onPressed: sending ? null : () => pick(ImageSource.camera), icon: const Icon(Icons.photo_camera_outlined), label: const Text('Camera'))),
+              const SizedBox(width: 10),
+              Expanded(child: OutlinedButton.icon(onPressed: sending ? null : () => pick(ImageSource.gallery), icon: const Icon(Icons.photo_library_outlined), label: const Text('Gallery'))),
+            ]),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: _red, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                onPressed: sending ? null : send,
+                child: sending
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Send report'),
+              ),
+            ),
+          ]),
+        );
+      }),
+    );
+    text.dispose();
+    if (sent == true) {
+      await OrderManager().syncStatuses();
+      if (mounted) _load();
     }
   }
 
@@ -606,7 +790,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                           'My AmbhuJakshi order ${d.o['code']}');
                                   break;
                                 case 'report':
-                                  widget.onReport?.call(id);
+                                  if (widget.onReport != null) {
+                                    widget.onReport!(id);
+                                  } else {
+                                    _reportDamage();
+                                  }
+                                  break;
+                                case 'track':
+                                  _openTracking();
                                   break;
                                 case 'gift':
                                   widget.onGift?.call(id);

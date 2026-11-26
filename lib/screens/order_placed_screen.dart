@@ -13,6 +13,7 @@ import '../models/order_result.dart';
 import '../image_util.dart';
 import '../navigation_util.dart';
 import 'order_details_screen.dart';
+import '../order_manager.dart';
 
 Color _hex(String? h, Color fb) {
   final s = (h ?? '').replaceAll('#', '');
@@ -27,9 +28,15 @@ class OrderPlacedScreen extends StatefulWidget {
   final Map<String, String>? headers;
   final ValueChanged<String>? onTrack, onDownloadBill, onShare;
   final VoidCallback? onHome;
+  /// "View bill" from My Orders: only the bill printing, no lotus/logo intro,
+  /// no stamp/petals/tracker, with a back button. Uses the real order.
+  final bool billOnly;
+  final String? orderId;
 
   const OrderPlacedScreen({
     super.key,
+    this.billOnly = false,
+    this.orderId,
     this.receiptUrl,
     this.orderResult,
     this.headers,
@@ -71,7 +78,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
     _t = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 7000));
     _t.addListener(() {
-      if (!_shook && _t.value >= _stamp + .02) {
+      if (!widget.billOnly && !_shook && _t.value >= _stamp + .02) {
         _shook = true;
         HapticFeedback.mediumImpact();
       }
@@ -109,7 +116,36 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
           "durationMs": 7000
         };
 
-        if (widget.orderResult != null) {
+        final String wantId = widget.orderId ?? '';
+        final mine = wantId.isEmpty ? null : OrderManager().orders.where((x) => x.id == wantId).toList();
+        if (mine != null && mine.isNotEmpty) {
+          final m = mine.first;
+          final pm = m.paymentMethod.toLowerCase();
+          final bool cod = pm.contains('cod') || pm.contains('cash');
+          final List<Map<String, dynamic>> lines = m.items.map((i) {
+            final num unit = i.product.getRawPriceForWeight(i.weight);
+            return <String, dynamic>{"name": i.product.name, "variant": i.weight, "qty": i.quantity, "amount": unit * i.quantity};
+          }).toList();
+          final num itemsSum = lines.fold<num>(0, (a, l) => a + (l['amount'] as num));
+          final num sub = m.subtotal > 0 ? m.subtotal : itemsSum;
+          final num extra = m.total - (sub - m.discountAmount + m.deliveryFee);
+          _o = {
+            "id": m.id,
+            "customerName": "Customer",
+            "placedAt": m.date.toIso8601String(),
+            "items": lines,
+            "delivery": m.deliveryFee,
+            "extras": extra > 0.5 ? extra : 0,
+            "discounts": m.discountAmount > 0 ? [{"label": "Discount", "amount": m.discountAmount}] : [],
+            "total": m.total,
+            "totalLabel": m.status.toLowerCase().contains('cancel') ? 'ORDER TOTAL' : (cod ? 'TO PAY' : 'TOTAL PAID'),
+            "paymentMethod": m.paymentMethod.isNotEmpty ? m.paymentMethod : (cod ? 'Cash on Delivery' : 'Paid Online'),
+            "eta": m.status.toLowerCase().contains('cancel') || m.status.toLowerCase().contains('deliver')
+                ? ''
+                : (m.estimatedDelivery != null ? '${m.estimatedDelivery!.day}/${m.estimatedDelivery!.month}/${m.estimatedDelivery!.year}' : ''),
+            "status": "placed"
+          };
+        } else if (widget.orderResult != null) {
           final res = widget.orderResult!;
           _o = {
             "id": res.orderId,
@@ -159,7 +195,8 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
       if (!mounted) return;
       setState(() {});
       HapticFeedback.lightImpact();
-      _t.forward(from: (_s?['enabled'] == false) ? 1.0 : 0.0);
+      // bill only: skip the lotus/logo intro and start at the printer
+      _t.forward(from: (_s?['enabled'] == false) ? 1.0 : (widget.billOnly ? _introEnd + .031 : 0.0));
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
     }
@@ -238,7 +275,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
         child: AnimatedBuilder(
           animation: Listenable.merge([_t, _loop]),
           builder: (_, __) {
-            final shake = _t.value > _stamp + .02 && _t.value < _stamp + .05
+            final shake = !widget.billOnly && _t.value > _stamp + .02 && _t.value < _stamp + .05
                 ? math.sin(_t.value * 900) * 2.5
                 : 0.0;
             return Transform.translate(
@@ -274,7 +311,22 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
                         ),
                         if (_t.value < _introEnd + .03) _intro(box, accent),
                         if (_t.value >= _printer) ..._receipt(box, primary, accent),
-                        if ((_s!['showConfetti'] ?? true) && _t.value >= _petals)
+                        if (widget.billOnly)
+                          Positioned(
+                            left: 8,
+                            top: 0,
+                            child: Material(
+                              color: Colors.white.withOpacity(.85),
+                              shape: const CircleBorder(),
+                              elevation: 2,
+                              child: IconButton(
+                                tooltip: 'Back',
+                                icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF2A1A12)),
+                                onPressed: () => Navigator.of(context).maybePop(),
+                              ),
+                            ),
+                          ),
+                        if (!widget.billOnly && (_s!['showConfetti'] ?? true) && _t.value >= _petals)
                           Positioned.fill(
                             child: IgnorePointer(
                               child: CustomPaint(
@@ -471,7 +523,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
     final printing = _t.value > _print0 && _t.value < _print1;
     final feed = (_seg(_print0, _print1) * 20).floor() / 20;
     final settle = Curves.elasticOut.transform(_seg(_print1, _print1 + .06));
-    final stamp = _seg(_stamp, _stamp + .025);
+    final stamp = widget.billOnly ? 0.0 : _seg(_stamp, _stamp + .025);
     final o = _o!;
 
     return [
@@ -482,7 +534,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
         child: Opacity(
           opacity: _seg(_printer + .03, _printer + .08),
           child: Text(
-            _txt('thanks', 'Thank you! 💛'),
+            widget.billOnly ? 'Your bill' : _txt('thanks', 'Thank you! 💛'),
             textAlign: TextAlign.center,
             style: GoogleFonts.fraunces(
               fontSize: 22,
@@ -610,6 +662,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
           ),
         ),
       ),
+      if (!widget.billOnly)
       Positioned(
         left: 24,
         right: 24,
@@ -632,6 +685,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
             offset: Offset(0, 30 * (1 - _seg(_buttons, _buttons + .05))),
             child: Row(
               children: [
+                if (!widget.billOnly) ...[
                 Expanded(
                   child: _btn(
                     'Track order →',
@@ -641,6 +695,7 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
                   ),
                 ),
                 const SizedBox(width: 10),
+                ],
                 Expanded(
                   child: _btn(
                     '⬇ Bill · Share',
@@ -743,13 +798,15 @@ class _OrderPlacedScreenState extends State<OrderPlacedScreen>
                       _rs(it['amount'] ?? 0)),
                 line('Delivery',
                     (o['delivery'] ?? 0) == 0 ? 'FREE' : _rs(o['delivery'])),
+                if ((o['extras'] ?? 0) > 0)
+                  line('Packing & GST', _rs(o['extras'])),
                 for (final d in discounts)
                   line('${d['label']}', '-${_rs(d['amount'] ?? 0)}',
                       st: mono.copyWith(
                           color: const Color(0xFF2E7D32),
                           fontWeight: FontWeight.w700)),
                 dash(),
-                line('TOTAL PAID', _rs(o['total'] ?? 0),
+                line('${o['totalLabel'] ?? 'TOTAL PAID'}', _rs(o['total'] ?? 0),
                     st: mono.copyWith(
                         fontSize: 18, fontWeight: FontWeight.w700)),
                 line(

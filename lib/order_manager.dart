@@ -188,6 +188,11 @@ class OrderManager extends ChangeNotifier {
   }
 
   /// Pulls the latest status the admin set for orders placed on this phone.
+  /// Live server info per order: refundStatus, refundAmount, trackingUrl, courierStatus,
+  /// trackingEvents, etd, canCancel, deliveredAt, issue …
+  final Map<String, Map<String, dynamic>> _live = <String, Map<String, dynamic>>{};
+  Map<String, dynamic> liveInfo(String id) => _live[id] ?? const <String, dynamic>{};
+
   Future<void> syncStatuses() async {
     await ensureLoaded();
     if (_orders.isEmpty) return;
@@ -206,12 +211,19 @@ class OrderManager extends ChangeNotifier {
         final String st = _appStatus('${j['status'] ?? ''}');
         final String pay = '${j['paymentMethod'] ?? ''}'.trim();
         final Order o = _orders[i];
-        if (st != o.status || (pay.isNotEmpty && pay != o.paymentMethod)) {
+        final Map<String, dynamic> info = Map<String, dynamic>.from(j);
+        if (jsonEncode(info) != jsonEncode(_live[o.id] ?? const <String, dynamic>{})) {
+          _live[o.id] = info;
+          changed = true;
+        }
+        final String awb = '${j['trackingId'] ?? ''}'.trim();
+        final String courier = '${j['courierName'] ?? ''}'.trim();
+        if (st != o.status || (pay.isNotEmpty && pay != o.paymentMethod) || (awb.isNotEmpty && awb != o.trackingId) || (courier.isNotEmpty && courier != o.courierName)) {
           _orders[i] = Order(
             id: o.id, items: o.items, subtotal: o.subtotal, deliveryFee: o.deliveryFee, discountAmount: o.discountAmount, total: o.total,
             date: o.date, status: st, estimatedDelivery: o.estimatedDelivery, shippingAddress: o.shippingAddress,
             paymentMethod: pay.isNotEmpty ? pay : o.paymentMethod, batchId: o.batchId, preparationDate: o.preparationDate,
-            spiceOrigin: o.spiceOrigin, trackingId: o.trackingId, courierName: o.courierName,
+            spiceOrigin: o.spiceOrigin, trackingId: awb.isNotEmpty ? awb : o.trackingId, courierName: courier.isNotEmpty ? courier : o.courierName,
           );
           changed = true;
         }

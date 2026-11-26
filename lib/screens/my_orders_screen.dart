@@ -437,7 +437,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
     AppNavigator.push(
       context,
       OrderPlacedScreen(
-        receiptUrl: 'https://admin.adhvaithafoods.in/api/orders/$orderId/receipt',
+        billOnly: true,
+        orderId: orderId,
         onTrack: (id) => _openOrderDetailsScreen(id),
       ),
     );
