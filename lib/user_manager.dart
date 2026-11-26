@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'cart_manager.dart';
+import 'recently_viewed_store.dart';
 import 'api_service.dart';
 
 /// The signed-in customer (name, email, phone). Saved on the phone so the app remembers them.
@@ -58,6 +60,8 @@ class UserManager extends ChangeNotifier {
       if (_userName == 'User') _userName = '';
     } catch (_) {}
     notifyListeners();
+    // bring back this customer's cart and recently viewed (after the first frame, so start-up stays fast)
+    Future<void>.delayed(const Duration(milliseconds: 300), syncUserData);
   }
 
   Future<void> _persist() async {
@@ -82,6 +86,7 @@ class UserManager extends ChangeNotifier {
     _since ??= DateTime.now();
     notifyListeners();
     await _persist();
+    syncUserData();
 
     // keep the shop's customer list up to date (best effort)
     try {
@@ -95,7 +100,15 @@ class UserManager extends ChangeNotifier {
     }
   }
 
+  /// this customer's own cart + recently viewed (phone + server)
+  void syncUserData() {
+    CartManager().loadForUser();
+    RecentlyViewedStore().loadForUser();
+  }
+
   Future<void> logout() async {
+    CartManager().resetForLogout();
+    RecentlyViewedStore().resetForLogout();
     _userName = '';
     _email = '';
     _phone = '';

@@ -1,4 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'product_lookup.dart';
+import 'shop_catalog.dart';
+import 'user_manager.dart';
 import 'models.dart';
 import 'widgets/cart_bar.dart';
 import 'widgets/offers_section.dart';
@@ -9,9 +16,139 @@ class CartManager extends ChangeNotifier {
   factory CartManager() => _instance;
   CartManager._internal();
 
+  // ───── every customer has their own cart: saved on the phone + on our server (same on every phone) ─────
+  static const String _api = 'https://admin.adhvaithafoods.in/api/me/cart';
+  Timer? _saveTimer;
+  bool _restoring = false;
+  String _owner = '';
+
+  String get _key => 'cart_${UserManager().currentUserId}';
+
+  List<Map<String, dynamic>> _toJson() => _items
+      .map((CartItem i) => <String, dynamic>{
+            'name': i.product.name,
+            'image': i.product.image,
+            'weight': i.weight,
+            'qty': i.quantity,
+            'price': i.product.weightPriceMap[i.weight] ?? (i.product.weightPriceMap.isEmpty ? 0 : i.product.weightPriceMap.values.first),
+            'category': i.product.category,
+            'tempering': i.isTemperingRequested,
+            'note': i.chefNote ?? '',
+          })
+      .toList();
+
+  /// Rebuild a product from what was saved (latest catalogue data first, so prices are current).
+  Product _productFor(Map<dynamic, dynamic> x) {
+    final String name = '${x['name']}';
+    final double price = x['price'] is num ? (x['price'] as num).toDouble() : 0;
+    final String weight = '${x['weight'] ?? ''}';
+    final Product? live = ShopCatalog.product(name) ?? findCatalogProduct(name);
+    if (live != null) {
+      if (weight.isEmpty || live.weightPriceMap.containsKey(weight) || price <= 0) return live;
+      return live.copyWith(weightPriceMap: <String, double>{...live.weightPriceMap, weight: price});
+    }
+    return productFor(name,
+        image: '${x['image'] ?? ''}',
+        price: price,
+        weights: weight.isEmpty || price <= 0 ? const <String, double>{} : <String, double>{weight: price},
+        category: '${x['category'] ?? 'Specials'}');
+  }
+
+  List<CartItem> _fromJson(List<dynamic> list) {
+    final List<CartItem> out = <CartItem>[];
+    for (final dynamic x in list) {
+      if (x is! Map || '${x['name'] ?? ''}'.trim().isEmpty) continue;
+      final int q = x['qty'] is num ? (x['qty'] as num).toInt() : int.tryParse('${x['qty']}') ?? 1;
+      out.add(CartItem(
+        product: _productFor(x),
+        quantity: q.clamp(1, 50),
+        weight: '${x['weight'] ?? '500g'}',
+        isTemperingRequested: x['tempering'] == true,
+        chefNote: '${x['note'] ?? ''}'.isEmpty ? null : '${x['note']}',
+      ));
+    }
+    return out;
+  }
+
+  static String _k(CartItem i) => '${i.product.name.toLowerCase()}|${i.weight}|${i.isTemperingRequested}|${i.chefNote ?? ''}';
+
+  /// Loads this customer's cart: the phone copy + the server copy, merged (nothing is lost).
+  Future<void> loadForUser() async {
+    final String uid = UserManager().currentUserId;
+    _restoring = true;
+    try {
+      await ShopCatalog.load();
+      final SharedPreferences sp = await SharedPreferences.getInstance();
+      final List<CartItem> merged = <CartItem>[];
+      void addAll(List<CartItem> list) {
+        for (final CartItem i in list) {
+          final int at = merged.indexWhere((CartItem m) => _k(m) == _k(i));
+          if (at < 0) {
+            merged.add(i);
+          } else if (i.quantity > merged[at].quantity) {
+            merged[at].quantity = i.quantity;
+          }
+        }
+      }
+      // items added on this phone before logging in (guest cart) are kept
+      if (_owner.isNotEmpty && _owner != uid) _items.clear();
+      addAll(List<CartItem>.from(_items));
+      final String? raw = sp.getString(_key);
+      if (raw != null && raw.isNotEmpty) addAll(_fromJson(jsonDecode(raw) as List<dynamic>));
+      if (UserManager().hasSession) {
+        try {
+          final http.Response r = await http.get(Uri.parse(_api), headers: UserManager().authHeaders).timeout(const Duration(seconds: 15));
+          if (r.statusCode == 200) {
+            final dynamic j = jsonDecode(r.body);
+            if (j is Map && j['items'] is List) addAll(_fromJson(j['items'] as List<dynamic>));
+          }
+        } catch (_) {}
+      }
+      _owner = uid;
+      _items
+        ..clear()
+        ..addAll(merged);
+      if (_appliedPromoCode.isNotEmpty) applyPromoCode(_appliedPromoCode);
+    } catch (_) {}
+    _restoring = false;
+    notifyListeners(); // saves the merged cart to the phone and the server
+  }
+
+  /// On logout: empty this phone's cart (it stays saved on the server for that customer).
+  void resetForLogout() {
+    _saveTimer?.cancel();
+    _restoring = true;
+    _items.clear();
+    _discountAmount = 0;
+    _appliedPromoCode = '';
+    _owner = '';
+    _restoring = false;
+    super.notifyListeners();
+    try {
+      globalCartBar.sync(count: 0, total: 0, images: const <String>[]);
+    } catch (_) {}
+  }
+
+  void _scheduleSave() {
+    if (_restoring) return;
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 700), () async {
+      final List<Map<String, dynamic>> data = _toJson();
+      try {
+        final SharedPreferences sp = await SharedPreferences.getInstance();
+        await sp.setString(_key, jsonEncode(data));
+      } catch (_) {}
+      if (!UserManager().hasSession) return;
+      try {
+        await http.put(Uri.parse(_api), headers: UserManager().authHeaders, body: jsonEncode(<String, dynamic>{'items': data})).timeout(const Duration(seconds: 15));
+      } catch (_) {}
+    });
+  }
+
   @override
   void notifyListeners() {
     super.notifyListeners();
+    _scheduleSave();
     try {
       globalCartBar.sync(
         count: itemCount,
