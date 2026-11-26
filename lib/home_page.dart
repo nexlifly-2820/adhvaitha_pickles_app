@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'widgets/offscreen_pause.dart';
+import 'widgets/heritage_video_section.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:video_player/video_player.dart';
@@ -664,16 +665,38 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               crossAxisAlignment: CrossAxisAlignment.start,
               // each section pauses its animations while off screen (smooth scrolling)
               children: <Widget>[
-                if (homeVideoConfig['enabled'] != false && _isHomeVideoInitialized && _homeVideoController != null) const SectionTitle(TitleKind.kitchen),
-                _buildHomeVideoSection(),
-                const SectionTitle(TitleKind.andhra),
-                _buildHeroBanner(),
                 // Auto banner carousel — images, order and links come from admin → Auto Banner Carousel
                 const AutoBannerCarousel(banners: <BannerItem>[]),
                 const SectionTitle(TitleKind.offers),
                 const OffersSection(),
-                const SectionTitle(TitleKind.pairing),
-                _buildPerfectPairings(),
+                const SectionTitle(TitleKind.recent),
+                const RecentlyViewedSection(),
+                const SectionTitle(TitleKind.bestseller),
+                BestSellersLoader(
+                  apiBase: 'https://admin.adhvaithafoods.in/api',
+                  onOpen: (item) {
+                    final match = _findProduct(item.name, 'Bestselling item', item.price.toDouble(), 'Bestsellers', item.image, {item.variantId.isNotEmpty ? item.variantId : '500g': item.price.toDouble()});
+                    AppNavigator.push(context, ProductDetailPage(product: match, allProducts: allProducts));
+                  },
+                  onAdd: (item) async {
+                    HapticFeedback.lightImpact();
+                    final match = _findProduct(item.name, 'Bestselling item', item.price.toDouble(), 'Bestsellers', item.image, {item.variantId.isNotEmpty ? item.variantId : '500g': item.price.toDouble()});
+                    CartManager().addToCart(match);
+                  },
+                  onSeeAll: (cat) => AppNavigator.push(context, ProductListingPage(category: cat.name)),
+                ),
+                const SectionTitle(TitleKind.mostLoved),
+                MostLovedSection(
+                  onAdd: (product, variant) async {
+                    HapticFeedback.lightImpact();
+                    final match = _findProduct(product.name, product.tagline, variant.price.toDouble(), 'Most Loved', product.image, {variant.label: variant.price.toDouble()});
+                    CartManager().addToCart(match, weight: variant.label);
+                  },
+                  onOpen: (product) {
+                    final match = _findProduct(product.name, product.tagline, product.variants.isNotEmpty ? product.variants.first.price.toDouble() : 199.0, 'Most Loved', product.image, {for (var v in product.variants) v.label: v.price.toDouble()});
+                    AppNavigator.push(context, ProductDetailPage(product: match, allProducts: allProducts));
+                  },
+                ),
                 const SectionTitle(TitleKind.specials),
                 const SpecialsLightSection(items: []),
                 KeyedSubtree(key: _secKeys['pickles'], child: const SectionTitle(TitleKind.pickle)),
@@ -690,36 +713,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   },
                   onViewAll: () => AppNavigator.push(context, const ProductListingPage(category: 'Pickles')),
                 ),
-                const SectionTitle(TitleKind.mostLoved),
-                MostLovedSection(
-                  onAdd: (product, variant) async {
-                    HapticFeedback.lightImpact();
-                    final match = _findProduct(product.name, product.tagline, variant.price.toDouble(), 'Most Loved', product.image, {variant.label: variant.price.toDouble()});
-                    CartManager().addToCart(match, weight: variant.label);
-                  },
-                  onOpen: (product) {
-                    final match = _findProduct(product.name, product.tagline, product.variants.isNotEmpty ? product.variants.first.price.toDouble() : 199.0, 'Most Loved', product.image, {for (var v in product.variants) v.label: v.price.toDouble()});
-                    AppNavigator.push(context, ProductDetailPage(product: match, allProducts: allProducts));
-                  },
-                ),
-                const SectionTitle(TitleKind.bestseller),
-                BestSellersLoader(
-                  apiBase: 'https://admin.adhvaithafoods.in/api',
-                  onOpen: (item) {
-                    final match = _findProduct(item.name, 'Bestselling item', item.price.toDouble(), 'Bestsellers', item.image, {item.variantId.isNotEmpty ? item.variantId : '500g': item.price.toDouble()});
-                    AppNavigator.push(context, ProductDetailPage(product: match, allProducts: allProducts));
-                  },
-                  onAdd: (item) async {
-                    HapticFeedback.lightImpact();
-                    final match = _findProduct(item.name, 'Bestselling item', item.price.toDouble(), 'Bestsellers', item.image, {item.variantId.isNotEmpty ? item.variantId : '500g': item.price.toDouble()});
-                    CartManager().addToCart(match);
-                  },
-                  onSeeAll: (cat) => AppNavigator.push(context, ProductListingPage(category: cat.name)),
-                ),
                 KeyedSubtree(key: _secKeys['snacks'], child: const SectionTitle(TitleKind.snackStory)),
                 const SnacksStoryFlip(items: []),
                 const SectionTitle(TitleKind.kadai),
                 const FreshPicksSection(),
+                KeyedSubtree(key: _secKeys['sweets'], child: const SectionTitle(TitleKind.sweetTooth)),
+                const SweetsThaliSection(),
+                KeyedSubtree(key: _secKeys['podis'], child: const SectionTitle(TitleKind.spice)),
+                const SpiceGrinderSection(),
+                KeyedSubtree(key: _secKeys['combos'], child: const SectionTitle(TitleKind.combo)),
+                ComboHomeSection(apiBase: 'https://admin.adhvaithafoods.in/api', onAdded: () => AppNavigator.push(context, const CartPage())),
+                const SectionTitle(TitleKind.pairing),
+                _buildPerfectPairings(),
                 const SectionTitle(TitleKind.festive),
                 FestivalSection(
                   api: FestivalApi('https://admin.adhvaithafoods.in/api'),
@@ -731,10 +736,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     AppNavigator.push(context, ProductDetailPage(product: productFor(p.name, image: p.image, price: p.price.toDouble(), category: 'Festival Specials'), allProducts: allProducts));
                   },
                 ),
-                KeyedSubtree(key: _secKeys['sweets'], child: const SectionTitle(TitleKind.sweetTooth)),
-                const SweetsThaliSection(),
-                KeyedSubtree(key: _secKeys['combos'], child: const SectionTitle(TitleKind.combo)),
-                ComboHomeSection(apiBase: 'https://admin.adhvaithafoods.in/api', onAdded: () => AppNavigator.push(context, const CartPage())),
+                if (homeVideoConfig['enabled'] != false && _isHomeVideoInitialized && _homeVideoController != null) const SectionTitle(TitleKind.kitchen),
+                _buildHomeVideoSection(),
+                const SectionTitle(TitleKind.andhra),
+                _buildHeroBanner(),
+                // Heritage in Motion video — Admin → Heritage Showcase video
+                const HeritageVideoSection(),
                 const SectionTitle(TitleKind.promise),
                 TrustPromiseSection(
                   apiUrl: 'https://admin.adhvaithafoods.in/api/home/trust',
@@ -742,14 +749,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
                 const SectionTitle(TitleKind.letters),
                 const ReviewsLettersSection(apiUrl: 'https://admin.adhvaithafoods.in/api/home/reviews'),
-                KeyedSubtree(key: _secKeys['podis'], child: const SectionTitle(TitleKind.spice)),
-                const SpiceGrinderSection(),
-                const SectionTitle(TitleKind.heart),
-                _buildSweetsQuoteBanner(),
-                const SectionTitle(TitleKind.recent),
-                const RecentlyViewedSection(),
                 if (allProducts.any((p) => p.reviews.isNotEmpty)) const SectionTitle(TitleKind.families),
                 _buildTestimonials(),
+                const SectionTitle(TitleKind.heart),
+                _buildSweetsQuoteBanner(),
                 const SizedBox(height: 40),
                 _buildNexliflyFooter(),
                 const SizedBox(height: 60),
