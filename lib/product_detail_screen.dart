@@ -98,21 +98,68 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _local = widget.product ?? _findLocal(widget.productId);
-    // remember exactly the product that was opened
+    _local = widget.product ?? _findLocal(widget.productId) ?? ShopCatalog.product(widget.productId);
+    // remember exactly the product that was opened (Recently Viewed)
     if (_local != null) {
       RecentlyViewedStore().record(_local!);
-    } else {
-      RecentlyViewedStore().recordSlug(widget.productId);
+      _recorded = true;
     }
     _applyData(_local != null ? _fromProduct(_local!) : _defaultProduct);
     _load();
     ShopCatalog.load().then((_) {
-      if (mounted && _local != null && ShopCatalog.find(_local!.name) != null) _applyData(_fromProduct(_local!));
+      if (!mounted) return;
+      if (_local == null) {
+        // product only in the admin Shop Catalog → now that it's loaded, use and remember it
+        final Product? p = ShopCatalog.product(widget.productId);
+        if (p != null) {
+          _local = p;
+          if (!_recorded) {
+            RecentlyViewedStore().record(p);
+            _recorded = true;
+          }
+          _applyData(_fromProduct(p));
+          return;
+        }
+      }
+      if (_local != null && ShopCatalog.find(_local!.name) != null) _applyData(_fromProduct(_local!));
     });
   }
 
   Product? _local;
+  bool _recorded = false;
+
+  /// last resort: remember the product from the server data the page shows
+  void _recordFromData(Map<String, dynamic> j) {
+    if (_recorded) return;
+    final String name = '${j['name'] ?? ''}'.trim();
+    if (name.isEmpty) return;
+    final Map<String, double> w = <String, double>{};
+    for (final dynamic v in (j['variants'] as List?) ?? const <dynamic>[]) {
+      if (v is! Map) continue;
+      final double price = v['price'] is num ? (v['price'] as num).toDouble() : double.tryParse('${v['price']}') ?? 0;
+      final String label = '${v['label'] ?? v['name'] ?? v['id'] ?? ''}'.trim();
+      if (price > 0 && label.isNotEmpty) w[label] = price;
+    }
+    String img = '';
+    final List<dynamic> photos = (j['photos'] as List?) ?? const <dynamic>[];
+    if (photos.isNotEmpty) {
+      final dynamic f = photos.first;
+      img = f is Map ? '${f['url'] ?? f['src'] ?? f['image'] ?? ''}' : '$f';
+    }
+    final Product? known = RecentlyViewedStore().findProduct(name);
+    RecentlyViewedStore().record(known ??
+        Product(
+          name: name,
+          description: '${j['description'] ?? j['tagline'] ?? ''}',
+          weightPriceMap: w.isEmpty ? <String, double>{'250g': 0} : w,
+          rating: 4.8,
+          image: img,
+          color: const Color(0xFFB8321E),
+          category: '${j['category'] ?? 'Specials'}',
+          secretIngredient: IngredientDetail(name: 'Made by Amma', description: 'Small-batch, homemade.', image: img),
+        ));
+    _recorded = true;
+  }
 
   static String _norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
 
@@ -290,6 +337,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         final bool same = got.isNotEmpty && (got == want || got.contains(want) || want.contains(got));
         if (j.isNotEmpty && same && ((j['variants'] as List?)?.isNotEmpty ?? false)) {
           _applyData(j);
+          _recordFromData(j);
         }
       }
     } catch (e) {
