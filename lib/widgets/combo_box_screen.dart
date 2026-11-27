@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'combo_shared.dart';
+import '../cart_manager.dart';
 
 const Color _maroon = Color(0xFF7A1426);
 const Color _ink = Color(0xFF2A1A14);
@@ -291,50 +292,28 @@ class _ComboBoxScreenState extends State<ComboBoxScreen> with TickerProviderStat
     return <double>[sum, total, math.max(0.0, mrp - total), mrp];
   }
 
+  /// Puts the finished box into the cart as ONE line ("Amma's Combo Box · 250g") with its jars.
   Future<void> _addToCart() async {
     if (_adding || _count < _s.jars) return;
     setState(() => _adding = true);
     try {
-      final Map<String, String> h = <String, String>{'Content-Type': 'application/json', ...?widget.headers};
-      // fallback add to cart locally via CartManager if remote post fails or is mock
-      try {
-        for (final ComboProduct p in _picked) {
-          final ComboPrice? pr = _price(p);
-          if (pr != null) {
-            // map combo product to main Product if possible
-            // We can also call widget.onAdded or CartManager
-          }
-        }
-      } catch (_) {}
-
-      final http.Response r = await http
-          .post(Uri.parse('${widget.apiBase}/combo-box/cart'), headers: h, body: jsonEncode(<String, dynamic>{'size': _sizeLabel, 'productIds': _slots.whereType<String>().toList()}))
-          .timeout(const Duration(seconds: 15));
-      if (!mounted) return;
-      if (r.statusCode == 200) {
-        HapticFeedback.mediumImpact();
-        _showToast('Box added to cart 🎁');
-        await Future<void>.delayed(const Duration(milliseconds: 700));
-        if (!mounted) return;
-        if (widget.onAdded != null) {
-          widget.onAdded!();
-        } else {
-          Navigator.maybePop(context);
-        }
-      } else {
-        // Fallback local success so app is 100% functional
-        HapticFeedback.mediumImpact();
-        _showToast('Box added to cart 🎁');
-        await Future<void>.delayed(const Duration(milliseconds: 700));
-        if (!mounted) return;
-        if (widget.onAdded != null) {
-          widget.onAdded!();
-        } else {
-          Navigator.maybePop(context);
-        }
+      final List<ComboProduct> picked = List<ComboProduct>.of(_picked)..sort((ComboProduct a, ComboProduct b) => a.productId.compareTo(b.productId));
+      if (picked.length != _s.jars || picked.any((ComboProduct p) => _price(p) == null)) {
+        _showToast('Some jars are not available in $_sizeLabel — pick another');
+        return;
       }
-    } catch (_) {
-      // Local fallback success
+      final double total = _totals()[1];
+      final Map<String, dynamic> spec = <String, dynamic>{
+        'size': _sizeLabel,
+        'ids': picked.map((ComboProduct p) => p.productId).toList(),
+        'jars': picked.map((ComboProduct p) => p.name).toList(),
+      };
+      final String name = '${_s.titleStart} ${_s.titleAccent}'.trim().isEmpty ? "Amma's Combo Box" : '${_s.titleStart} ${_s.titleAccent}'.trim();
+      CartManager().addToCart(
+        comboProduct(name: name, image: picked.first.image, size: _sizeLabel, price: total),
+        weight: _sizeLabel,
+        chefNote: kComboNote + jsonEncode(spec),
+      );
       HapticFeedback.mediumImpact();
       _showToast('Box added to cart 🎁');
       await Future<void>.delayed(const Duration(milliseconds: 700));
@@ -344,8 +323,11 @@ class _ComboBoxScreenState extends State<ComboBoxScreen> with TickerProviderStat
       } else {
         Navigator.maybePop(context);
       }
+    } catch (_) {
+      if (mounted) _showToast('Could not add the box. Please try again.');
+    } finally {
+      if (mounted) setState(() => _adding = false);
     }
-    if (mounted) setState(() => _adding = false);
   }
 
   Rect? _rectOf(GlobalKey? k) {

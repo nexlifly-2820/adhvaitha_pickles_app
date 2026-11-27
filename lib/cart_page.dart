@@ -22,6 +22,7 @@ class CartPage extends StatelessWidget {
         AppNavigator.push(context, const CheckoutPage());
       },
       onOpenProduct: (pid) {
+        if (pid.toLowerCase().contains('combo box')) return; // a combo box has no product page
         try {
           final product = ProductManager().products.firstWhere((p) => p.name.toLowerCase().replaceAll(' ', '-') == pid.toLowerCase());
           AppNavigator.push(context, ProductDetailPage(product: product, allProducts: ProductManager().products));
@@ -54,10 +55,18 @@ class ManagerCartService extends CartService {
     notifyListeners();
   }
 
+  // the cart screen sends variantId = "weight::note" so each line (size / combo) is matched exactly
+  static bool _same(CartItem i, String pid, String vid) {
+    final bool name = i.product.name.toLowerCase() == pid.toLowerCase() || i.product.name.toLowerCase().replaceAll(' ', '-') == pid.toLowerCase();
+    if (!name) return false;
+    if (!vid.contains('::')) return true;
+    return vid == '${i.weight}::${i.chefNote ?? ''}';
+  }
+
   @override
   int qtyOf(String pid, String vid) {
     try {
-      final item = CartManager().items.firstWhere((i) => i.product.name.toLowerCase() == pid.toLowerCase() || i.product.name.toLowerCase().replaceAll(' ', '-') == pid.toLowerCase());
+      final item = CartManager().items.firstWhere((i) => _same(i, pid, vid));
       return item.quantity;
     } catch (_) {
       return 0;
@@ -67,7 +76,7 @@ class ManagerCartService extends CartService {
   @override
   Future<String?> setQty(String pid, String vid, int qty) async {
     try {
-      final item = CartManager().items.firstWhere((i) => i.product.name.toLowerCase() == pid.toLowerCase() || i.product.name.toLowerCase().replaceAll(' ', '-') == pid.toLowerCase());
+      final item = CartManager().items.firstWhere((i) => _same(i, pid, vid));
       if (qty <= 0) {
         CartManager().removeFromCart(item);
       } else {

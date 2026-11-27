@@ -11,6 +11,35 @@ import 'widgets/cart_bar.dart';
 import 'widgets/offers_section.dart';
 import 'order_manager.dart';
 
+// ---------- Amma's Combo Box in the cart ----------
+// A combo box is ONE cart line. Its jars live in chefNote as "COMBO:{size, ids, jars}";
+// the server works out the real price from the Combo Box settings at checkout.
+const String kComboNote = 'COMBO:';
+
+Map<String, dynamic>? comboSpec(CartItem i) {
+  final String n = i.chefNote ?? '';
+  if (!n.startsWith(kComboNote)) return null;
+  try {
+    final dynamic j = jsonDecode(n.substring(kComboNote.length));
+    if (j is Map) return Map<String, dynamic>.from(j);
+  } catch (_) {}
+  return null;
+}
+
+List<String> comboJars(CartItem i) =>
+    ((comboSpec(i)?['jars'] as List?) ?? const <dynamic>[]).map((dynamic e) => '$e').toList();
+
+Product comboProduct({required String name, required String image, required String size, required double price}) => Product(
+      name: name,
+      description: 'Combo box',
+      weightPriceMap: <String, double>{size: price},
+      rating: 5,
+      image: image,
+      color: const Color(0xFF7A1426),
+      category: 'Combo',
+      secretIngredient: IngredientDetail(name: '', description: '', image: ''),
+    );
+
 class CartManager extends ChangeNotifier {
   static final CartManager _instance = CartManager._internal();
   factory CartManager() => _instance;
@@ -34,6 +63,7 @@ class CartManager extends ChangeNotifier {
             'category': i.product.category,
             'tempering': i.isTemperingRequested,
             'note': i.chefNote ?? '',
+            if (comboSpec(i) != null) 'combo': comboSpec(i),
           })
       .toList();
 
@@ -59,8 +89,11 @@ class CartManager extends ChangeNotifier {
     for (final dynamic x in list) {
       if (x is! Map || '${x['name'] ?? ''}'.trim().isEmpty) continue;
       final int q = x['qty'] is num ? (x['qty'] as num).toInt() : int.tryParse('${x['qty']}') ?? 1;
+      final bool isCombo = '${x['note'] ?? ''}'.startsWith(kComboNote);
       out.add(CartItem(
-        product: _productFor(x),
+        product: isCombo
+            ? comboProduct(name: '${x['name']}', image: '${x['image'] ?? ''}', size: '${x['weight'] ?? ''}', price: x['price'] is num ? (x['price'] as num).toDouble() : 0)
+            : _productFor(x),
         quantity: q.clamp(1, 50),
         weight: '${x['weight'] ?? '500g'}',
         isTemperingRequested: x['tempering'] == true,
