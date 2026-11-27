@@ -7,9 +7,7 @@ import 'cart_manager.dart';
 import 'navigation_util.dart';
 import 'order_history_page.dart';
 import 'main.dart';
-import 'order_manager.dart';
-import 'models.dart';
-import 'product_lookup.dart';
+import 'widgets/cart_bar.dart' show HideCartBar;
 
 class CheckoutPage extends StatelessWidget {
   const CheckoutPage({super.key});
@@ -17,7 +15,7 @@ class CheckoutPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const apiBase = 'https://admin.adhvaithafoods.in/api';
-    return CheckoutAddressScreen(
+    return HideCartBar(child: CheckoutAddressScreen(
       apiBase: apiBase,
       amountToPay: CartManager().total,
       logoAsset: 'assets/images/AMBHUJAKSHI  logo.png',
@@ -39,20 +37,8 @@ class CheckoutPage extends StatelessWidget {
                   "name": ci.product.name,
                   "qty": ci.quantity,
                   "price": ci.product.getRawPriceForWeight(ci.weight),
-                  "photo": bestImageFor(ci.product.name, ci.product.image),
+                  "photo": ci.product.image,
                 }).toList();
-                final String orderId = '${order['id'] ?? order['orderId'] ?? 'ORD${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}'}';
-                final CartManager cm = CartManager();
-                OrderManager().recordPlacedOrder(
-                  id: orderId,
-                  items: List<CartItem>.from(cm.items),
-                  subtotal: cm.subtotal,
-                  deliveryFee: cm.deliveryFee,
-                  discount: cm.discountAmount,
-                  total: (bill['total'] is num) ? (bill['total'] as num).toDouble() : cm.total,
-                  address: _addressText(address),
-                  paymentMethod: '${order['paymentMethod'] ?? order['method'] ?? 'Online'}',
-                );
                 CartManager().clearCart();
                 // grab these BEFORE the checkout screens are removed — their context stops working after that
                 final NavigatorState nav = Navigator.of(context);
@@ -60,7 +46,7 @@ class CheckoutPage extends StatelessWidget {
                 nav.pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => OrderPlacedScreen(
                     apiBase: apiBase,
-                    orderId: orderId,
+                    orderId: '${order['id'] ?? 'ORD${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}'}',
                     logoAsset: 'assets/images/AMBHUJAKSHI  logo.png',
                     initialItems: orderedItems,
                     onTrack: (id) {
@@ -83,16 +69,6 @@ class CheckoutPage extends StatelessWidget {
           },
         ));
       },
-    );
+    ));
   }
-}
-
-/// "Name · phone" on the first line, the full address on the second (read back by Order details).
-String _addressText(Map<String, dynamic> a) {
-  String g(String k) => '${a[k] ?? ''}'.trim();
-  final String who = <String>[g('name'), g('phone')].where((String e) => e.isNotEmpty).join(' · ');
-  final String place = <String>[g('house'), g('road'), g('city'), g('state')].where((String e) => e.isNotEmpty).join(', ');
-  final String pin = g('pincode');
-  final String type = g('type');
-  return '${type.isNotEmpty ? '[$type] ' : ''}$who\n$place${pin.isNotEmpty ? ' - $pin' : ''}';
 }

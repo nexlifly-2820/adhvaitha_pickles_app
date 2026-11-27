@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'royal_cart_screen.dart';
 import 'cart_manager.dart';
+import 'models.dart';
 import 'product_manager.dart';
 import 'checkout_page.dart';
 import 'navigation_util.dart';

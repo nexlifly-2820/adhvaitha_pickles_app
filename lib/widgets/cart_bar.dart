@@ -305,3 +305,33 @@ class CartCountBadge extends StatelessWidget {
 }
 
 final globalCartBar = CartBarController();
+
+/// How many cart / checkout screens are open. While > 0 the floating "View cart" bar hides
+/// (those screens have their own checkout button).
+final ValueNotifier<int> cartScreensOpen = ValueNotifier<int>(0);
+
+/// Wrap a cart or checkout screen with this to hide the floating cart bar while it is open.
+class HideCartBar extends StatefulWidget {
+  final Widget child;
+  const HideCartBar({super.key, required this.child});
+  @override
+  State<HideCartBar> createState() => _HideCartBarState();
+}
+
+class _HideCartBarState extends State<HideCartBar> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => cartScreensOpen.value++);
+  }
+
+  @override
+  void dispose() {
+    final int v = cartScreensOpen.value - 1;
+    WidgetsBinding.instance.addPostFrameCallback((_) => cartScreensOpen.value = v < 0 ? 0 : v);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}

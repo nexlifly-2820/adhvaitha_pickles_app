@@ -12,6 +12,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'combo_shared.dart';
 import '../cart_manager.dart';
+import '../models.dart';
 
 const Color _maroon = Color(0xFF7A1426);
 const Color _ink = Color(0xFF2A1A14);
@@ -26,7 +27,12 @@ class ComboBoxScreen extends StatefulWidget {
   final ComboData? initialData;
   final VoidCallback? onAdded;
   final VoidCallback? onBack;
-  const ComboBoxScreen({super.key, required this.apiBase, this.headers, this.initialData, this.onAdded, this.onBack});
+  /// Edit mode (opened from the cart): start with this size + these jars, and replace the cart line
+  /// whose chefNote is [replaceNote] instead of adding a second box.
+  final String? initialSize;
+  final List<String>? initialIds;
+  final String? replaceNote;
+  const ComboBoxScreen({super.key, required this.apiBase, this.headers, this.initialData, this.onAdded, this.onBack, this.initialSize, this.initialIds, this.replaceNote});
   @override
   State<ComboBoxScreen> createState() => _ComboBoxScreenState();
 }
@@ -135,6 +141,19 @@ class _ComboBoxScreenState extends State<ComboBoxScreen> with TickerProviderStat
       _loading = false;
       _error = null;
       _slots = List<String?>.filled(d.settings.jars, null);
+      // edit mode: put the customer's box back exactly as it was
+      final String? sz = widget.initialSize;
+      if (sz != null && d.settings.sizes.contains(sz)) _size = d.settings.sizes.indexOf(sz);
+      final List<String> ids = widget.initialIds ?? const <String>[];
+      int k = 0;
+      for (final String id in ids) {
+        if (k >= _slots.length) break;
+        final Iterable<ComboProduct> m = d.products.where((ComboProduct p) => p.productId == id);
+        if (m.isEmpty) continue;
+        final ComboPrice? pr = m.first.prices[sz ?? (d.settings.sizes.isEmpty ? '' : d.settings.sizes[_size])];
+        if (pr == null || !pr.inStock) continue;
+        _slots[k++] = id;
+      }
     }
 
     if (init) {
@@ -309,13 +328,25 @@ class _ComboBoxScreenState extends State<ComboBoxScreen> with TickerProviderStat
         'jars': picked.map((ComboProduct p) => p.name).toList(),
       };
       final String name = '${_s.titleStart} ${_s.titleAccent}'.trim().isEmpty ? "Amma's Combo Box" : '${_s.titleStart} ${_s.titleAccent}'.trim();
+      // edit mode: take out the old box (keep how many boxes they had)
+      int qty = 1;
+      if (widget.replaceNote != null) {
+        for (final CartItem old in List<CartItem>.of(CartManager().items)) {
+          if (old.chefNote == widget.replaceNote) {
+            qty = old.quantity;
+            CartManager().removeFromCart(old);
+            break;
+          }
+        }
+      }
       CartManager().addToCart(
         comboProduct(name: name, image: picked.first.image, size: _sizeLabel, price: total),
+        quantity: qty,
         weight: _sizeLabel,
         chefNote: kComboNote + jsonEncode(spec),
       );
       HapticFeedback.mediumImpact();
-      _showToast('Box added to cart 🎁');
+      _showToast(widget.replaceNote != null ? 'Box updated 🎁' : 'Box added to cart 🎁');
       await Future<void>.delayed(const Duration(milliseconds: 700));
       if (!mounted) return;
       if (widget.onAdded != null) {
@@ -856,7 +887,7 @@ class _ComboBoxScreenState extends State<ComboBoxScreen> with TickerProviderStat
             ),
             child: _adding
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                : Text(full ? 'Add $_sizeLabel box · ${comboRs(t[1])}' : 'Pick ${_s.jars - _count} more jar${_s.jars - _count > 1 ? 's' : ''}',
+                : Text(full ? '${widget.replaceNote != null ? 'Update' : 'Add'} $_sizeLabel box · ${comboRs(t[1])}' : 'Pick ${_s.jars - _count} more jar${_s.jars - _count > 1 ? 's' : ''}',
                     style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w700, color: full ? Colors.white : _muted)),
           ),
         ),

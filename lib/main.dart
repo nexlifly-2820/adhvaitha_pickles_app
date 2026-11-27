@@ -403,9 +403,9 @@ class CustomBottomNavBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               AnimatedBuilder(
-                animation: globalCartBar,
+                animation: Listenable.merge(<Listenable>[globalCartBar, cartScreensOpen]),
                 builder: (context, child) {
-                  if (globalCartBar.count == 0 || selectedId == 'cart') return const SizedBox.shrink();
+                  if (globalCartBar.count == 0 || selectedId == 'cart' || cartScreensOpen.value > 0) return const SizedBox.shrink();
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8.0),
                     child: CartBar(

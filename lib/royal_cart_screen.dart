@@ -25,6 +25,10 @@ import 'cart_integration.dart';
 import 'cart_manager.dart';
 import 'product_lookup.dart';
 import 'image_util.dart';
+import 'widgets/cart_bar.dart' show cartScreensOpen;
+import 'widgets/bundle_sheet.dart';
+import 'widgets/cart_upsell.dart';
+import 'models.dart';
 
 const _red = Color(0xFF9E1424), _maroon = Color(0xFF6A1220), _ink = Color(0xFF2A1A12), _bg = Color(0xFFFBF6EF);
 const _green = Color(0xFF1E7A46), _muted = Color(0xFF9A8670), _faint = Color(0xFF9A7B58);
@@ -67,6 +71,7 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
   void initState() {
     super.initState();
     _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) => cartScreensOpen.value++); // hide the floating "View cart" bar here
     widget.cart.addListener(_onCartChanged);
     _clock = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
@@ -79,6 +84,8 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
   @override
   void dispose() {
     widget.cart.removeListener(_onCartChanged);
+    final int open = cartScreensOpen.value - 1;
+    WidgetsBinding.instance.addPostFrameCallback((_) => cartScreensOpen.value = open < 0 ? 0 : open);
     _clock?.cancel();
     _confetti.dispose();
     _promo.dispose();
@@ -203,17 +210,19 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
         RefreshIndicator(
           color: _red,
           onRefresh: _load,
-          child: ListView(padding: EdgeInsets.fromLTRB(16, top + 12, 16, 190 + bottom), children: [
+          child: ListView(padding: EdgeInsets.fromLTRB(16, top + 12, 16, 110 + bottom), children: [
             _header(items.length),
             if (items.isEmpty) _empty() else ...[
               const SizedBox(height: 10),
               _thali(items, bill, p['settings']),
               _head('YOUR ITEMS'),
               for (final it in items) _item(it),
-              if ((p['suggestions'] as List).isNotEmpty) ...[_head('ADD MORE FLAVOURS'), _suggestions(p['suggestions'])],
-              _freshness(),
+              const SizedBox(height: 4),
+              _ticket(bill), // promo code, right under the items
+              // free delivery row · goes well with your order · browse by category
+              CartUpsell(freeAt: _d(bill['freeDeliveryAt']) > 0 ? _d(bill['freeDeliveryAt']) : 500),
               const SizedBox(height: 12),
-              _ticket(bill),
+              _freshness(),
               const SizedBox(height: 16),
               _receipt(bill),
             ],
@@ -222,8 +231,14 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
         // confetti over the thali when free delivery unlocks
         Positioned(left: 0, right: 0, top: top + 60, height: 380, child: IgnorePointer(child: AnimatedBuilder(
           animation: _confetti, builder: (_, __) => CustomPaint(painter: _ConfettiPainter(_confetti.value))))),
+        // soft fade so the list slides under the checkout bar
         if (items.isNotEmpty)
-          Positioned(left: 12, right: 12, bottom: 90 + bottom, child: _SlideToCheckout(
+          Positioned(left: 0, right: 0, bottom: 0, height: 96 + bottom, child: IgnorePointer(child: DecoratedBox(
+            decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                colors: [_bg.withOpacity(0), _bg.withOpacity(.92), _bg]))))),
+        // docked just above the bottom bar
+        if (items.isNotEmpty)
+          Positioned(left: 12, right: 12, bottom: 12 + bottom, child: _SlideToCheckout(
             label: 'Slide to checkout · ${_rs(_d(bill['total']))}',
             onDone: () => widget.onCheckout?.call(bill),
           )),
@@ -294,7 +309,7 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
             style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
       ),
       const SizedBox(height: 8),
-      FittedBox(child: SizedBox(
+      SizedBox(height: 230, child: FittedBox(child: SizedBox(
         width: 300, height: 300,
         child: TweenAnimationBuilder<double>(
           tween: Tween(end: progress), duration: const Duration(milliseconds: 1200), curve: Curves.easeOutCubic,
@@ -319,14 +334,14 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
             ]);
           },
         ),
-      )),
+      ))),
     ]);
   }
 
   Widget _bowl(Map it, Offset at) => Positioned(
         left: at.dx - 39, top: at.dy - 39,
         child: GestureDetector(
-          onTap: () => widget.onOpenProduct?.call('${it['productId']}'),
+          onTap: () => _openItem(it),
           child: TweenAnimationBuilder<double>(
             key: ValueKey('${it['productId']}:${it['variantId']}:${it['qty']}'), // replays on add
             tween: Tween(begin: 0, end: 1), duration: const Duration(milliseconds: 700), curve: Curves.easeOutBack,
@@ -348,8 +363,26 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
 
   // ───────── item cards ─────────
   static const _tints = [Color(0xFFFFE9EE), Color(0xFFE3F6F2), Color(0xFFFFF1D6), Color(0xFFECE6FF)];
+  /// the cart line for a combo box / pairing (null for normal products)
+  CartItem? _bundleFor(Map it) {
+    for (final CartItem c in CartManager().items) {
+      if (c.product.name == '${it['name']}' && '${c.weight}::${c.chefNote ?? ''}' == '${it['variantId']}' && isBundle(c)) return c;
+    }
+    return null;
+  }
+
+  void _openItem(Map it) {
+    final CartItem? b = _bundleFor(it);
+    if (b != null) {
+      showBundleSheet(context, b);
+    } else {
+      widget.onOpenProduct?.call('${it['productId']}');
+    }
+  }
+
   Widget _item(Map it) {
     final i = (_p!['items'] as List).indexOf(it), q = it['qty'] as int;
+    final bool bundle = _bundleFor(it) != null;
     return Dismissible(
       key: ValueKey('${it['productId']}:${it['variantId']}'),
       direction: DismissDirection.endToStart,
@@ -364,15 +397,16 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
             boxShadow: [BoxShadow(color: const Color(0xFF501E00).withOpacity(.14), blurRadius: 24, offset: const Offset(0, 14), spreadRadius: -18)]),
         child: Row(children: [
           GestureDetector(
-            onTap: () => widget.onOpenProduct?.call('${it['productId']}'),
+            onTap: () => _openItem(it),
             child: Container(width: 88, height: 88, padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(color: _tints[i % _tints.length], borderRadius: BorderRadius.circular(20)),
                 child: _royalImage(it['imageUrl'] ?? '', fit: BoxFit.contain)),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: bundle ? () => _openItem(it) : null, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(it['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700)),
             Text(it['label'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 11, color: _muted)),
+            if (bundle) Text("See what's inside ›", style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: _red)),
             const SizedBox(height: 4),
             Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
               Text(_rs(_d(it['price']) * q), style: GoogleFonts.rozhaOne(fontSize: 19)),
@@ -381,7 +415,7 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
                 Text(_rs(_d(it['mrp']) * q), style: GoogleFonts.poppins(fontSize: 10.5, color: const Color(0xFFB8A58A), decoration: TextDecoration.lineThrough)),
               ],
             ]),
-          ])),
+          ]))),
           SizedBox(height: 88, child: Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             GestureDetector(onTap: () => _qty(it, 0), child: Container(width: 30, height: 30, alignment: Alignment.center,
                 decoration: BoxDecoration(color: const Color(0xFFFFF0F1), borderRadius: BorderRadius.circular(10)),
