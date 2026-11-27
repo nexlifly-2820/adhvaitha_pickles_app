@@ -26,8 +26,24 @@ Map<String, dynamic>? comboSpec(CartItem i) {
   return null;
 }
 
-List<String> comboJars(CartItem i) =>
-    ((comboSpec(i)?['jars'] as List?) ?? const <dynamic>[]).map((dynamic e) => '$e').toList();
+List<String> comboJars(CartItem i) {
+  final Map<String, dynamic>? p = pairSpec(i);
+  if (p != null) return <String>['${p['a'] ?? ''}', '${p['b'] ?? ''}'];
+  return ((comboSpec(i)?['jars'] as List?) ?? const <dynamic>[]).map((dynamic e) => '$e').toList();
+}
+
+// Art of Pairing couple = ONE line ("A + B", combo price). chefNote = "PAIR:{id, label, a, b}"
+const String kPairNote = 'PAIR:';
+Map<String, dynamic>? pairSpec(CartItem i) {
+  final String n = i.chefNote ?? '';
+  if (!n.startsWith(kPairNote)) return null;
+  try {
+    final dynamic j = jsonDecode(n.substring(kPairNote.length));
+    if (j is Map) return Map<String, dynamic>.from(j);
+  } catch (_) {}
+  return null;
+}
+bool isBundle(CartItem i) => comboSpec(i) != null || pairSpec(i) != null;
 
 Product comboProduct({required String name, required String image, required String size, required double price}) => Product(
       name: name,
@@ -64,6 +80,7 @@ class CartManager extends ChangeNotifier {
             'tempering': i.isTemperingRequested,
             'note': i.chefNote ?? '',
             if (comboSpec(i) != null) 'combo': comboSpec(i),
+            if (pairSpec(i) != null) 'pair': pairSpec(i),
           })
       .toList();
 
@@ -89,7 +106,7 @@ class CartManager extends ChangeNotifier {
     for (final dynamic x in list) {
       if (x is! Map || '${x['name'] ?? ''}'.trim().isEmpty) continue;
       final int q = x['qty'] is num ? (x['qty'] as num).toInt() : int.tryParse('${x['qty']}') ?? 1;
-      final bool isCombo = '${x['note'] ?? ''}'.startsWith(kComboNote);
+      final bool isCombo = '${x['note'] ?? ''}'.startsWith(kComboNote) || '${x['note'] ?? ''}'.startsWith(kPairNote);
       out.add(CartItem(
         product: isCombo
             ? comboProduct(name: '${x['name']}', image: '${x['image'] ?? ''}', size: '${x['weight'] ?? ''}', price: x['price'] is num ? (x['price'] as num).toDouble() : 0)

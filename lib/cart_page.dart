@@ -22,7 +22,7 @@ class CartPage extends StatelessWidget {
         AppNavigator.push(context, const CheckoutPage());
       },
       onOpenProduct: (pid) {
-        if (pid.toLowerCase().contains('combo box')) return; // a combo box has no product page
+        if (pid.toLowerCase().contains('combo box') || pid.contains(' + ')) return; // combo boxes and pairs have no product page
         try {
           final product = ProductManager().products.firstWhere((p) => p.name.toLowerCase().replaceAll(' ', '-') == pid.toLowerCase());
           AppNavigator.push(context, ProductDetailPage(product: product, allProducts: ProductManager().products));

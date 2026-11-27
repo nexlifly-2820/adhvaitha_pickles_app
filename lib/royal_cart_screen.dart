@@ -92,7 +92,7 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
       // unique per line (same product in two sizes, or two different combo boxes)
       "variantId": "${ci.weight}::${ci.chefNote ?? ''}",
       "name": ci.product.name,
-      "label": comboSpec(ci) != null ? "${ci.weight} box · ${comboJars(ci).join(', ')}" : "${ci.weight} · ${ci.product.category}",
+      "label": comboSpec(ci) != null ? "${ci.weight} box · ${comboJars(ci).join(', ')}" : pairSpec(ci) != null ? "Pair · ${ci.weight}" : "${ci.weight} · ${ci.product.category}",
       "imageUrl": <String>[bestImageFor(ci.product.name, ci.product.image), ci.product.image, findCatalogProduct(ci.product.name)?.image ?? ''].join('|'),
       "price": ci.product.getRawPriceForWeight(ci.weight),
       "mrp": ci.product.getRawPriceForWeight(ci.weight) * 1.2,

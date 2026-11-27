@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'widgets/offscreen_pause.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import 'dart:convert';
 import 'package:video_player/video_player.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -82,7 +83,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   // 1 Pickles Paradise · 2 Snacks with Story · 3 Sweet Tooth Club · 4 Spice It Up · 5 Combos
   // section anchors, by the "target" names used in Admin → Home Categories
   final Map<String, GlobalKey> _secKeys = <String, GlobalKey>{
-    for (final String t in const <String>['pickles', 'snacks', 'sweets', 'podis', 'combos']) t: GlobalKey(),
+    for (final String t in const <String>['pickles', 'snacks', 'sweets', 'podis', 'combos', 'offers', 'pairing', 'specials', 'mostloved', 'bestsellers', 'kadai', 'festive', 'recent']) t: GlobalKey(),
   };
   bool _stripScrolling = false;
   bool _stripPinned = false;
@@ -671,11 +672,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 _buildHeroBanner(),
                 // Auto banner carousel — images, order and links come from admin → Auto Banner Carousel
                 const AutoBannerCarousel(banners: <BannerItem>[]),
-                const SectionTitle(TitleKind.offers),
+                KeyedSubtree(key: _secKeys['offers'], child: const SectionTitle(TitleKind.offers)),
                 const OffersSection(),
-                const SectionTitle(TitleKind.pairing),
+                KeyedSubtree(key: _secKeys['pairing'], child: const SectionTitle(TitleKind.pairing)),
                 _buildPerfectPairings(),
-                const SectionTitle(TitleKind.specials),
+                KeyedSubtree(key: _secKeys['specials'], child: const SectionTitle(TitleKind.specials)),
                 const SpecialsLightSection(items: []),
                 KeyedSubtree(key: _secKeys['pickles'], child: const SectionTitle(TitleKind.pickle)),
                 PickleShowcaseSection(
@@ -691,7 +692,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   },
                   onViewAll: () => AppNavigator.push(context, const ProductListingPage(category: 'Pickles')),
                 ),
-                const SectionTitle(TitleKind.mostLoved),
+                KeyedSubtree(key: _secKeys['mostloved'], child: const SectionTitle(TitleKind.mostLoved)),
                 MostLovedSection(
                   onAdd: (product, variant) async {
                     HapticFeedback.lightImpact();
@@ -703,7 +704,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     AppNavigator.push(context, ProductDetailPage(product: match, allProducts: allProducts));
                   },
                 ),
-                const SectionTitle(TitleKind.bestseller),
+                KeyedSubtree(key: _secKeys['bestsellers'], child: const SectionTitle(TitleKind.bestseller)),
                 BestSellersLoader(
                   apiBase: 'https://admin.adhvaithafoods.in/api',
                   onOpen: (item) {
@@ -713,20 +714,23 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   onAdd: (item) async {
                     HapticFeedback.lightImpact();
                     final match = _findProduct(item.name, 'Bestselling item', item.price.toDouble(), 'Bestsellers', item.image, {item.variantId.isNotEmpty ? item.variantId : '500g': item.price.toDouble()});
-                    CartManager().addToCart(match);
+                    CartManager().addToCart(match, weight: item.variantId.isNotEmpty ? item.variantId : '500g');
                   },
                   onSeeAll: (cat) => AppNavigator.push(context, ProductListingPage(category: cat.name)),
                 ),
                 KeyedSubtree(key: _secKeys['snacks'], child: const SectionTitle(TitleKind.snackStory)),
                 const SnacksStoryFlip(items: []),
-                const SectionTitle(TitleKind.kadai),
+                KeyedSubtree(key: _secKeys['kadai'], child: const SectionTitle(TitleKind.kadai)),
                 const FreshPicksSection(),
-                const SectionTitle(TitleKind.festive),
+                KeyedSubtree(key: _secKeys['festive'], child: const SectionTitle(TitleKind.festive)),
                 FestivalSection(
                   api: FestivalApi('https://admin.adhvaithafoods.in/api'),
                   onOpenProducts: (title, link) => AppNavigator.push(context, ProductListingPage(category: '${link['category'] ?? title}')),
                   onAddToCart: (p) {
-                    CartManager().addToCart(productFor(p.name, image: p.image, price: p.price.toDouble(), category: 'Festival Specials'));
+                    HapticFeedback.lightImpact();
+                    final String unit = p.unit.trim().isNotEmpty ? p.unit.trim() : '1 pack';
+                    CartManager().addToCart(productFor(p.name, image: p.image, price: p.price.toDouble(), weights: <String, double>{unit: p.price.toDouble()}, category: 'Festival Specials'), weight: unit);
+                    ScaffoldMessenger.maybeOf(context)?..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text('${p.name} added to cart'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)));
                   },
                   onProductTap: (p) {
                     AppNavigator.push(context, ProductDetailPage(product: productFor(p.name, image: p.image, price: p.price.toDouble(), category: 'Festival Specials'), allProducts: allProducts));
@@ -747,7 +751,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 const SpiceGrinderSection(),
                 const SectionTitle(TitleKind.heart),
                 _buildSweetsQuoteBanner(),
-                const SectionTitle(TitleKind.recent),
+                KeyedSubtree(key: _secKeys['recent'], child: const SectionTitle(TitleKind.recent)),
                 const RecentlyViewedSection(),
                 if (allProducts.any((p) => p.reviews.isNotEmpty)) const SectionTitle(TitleKind.families),
                 _buildTestimonials(),
@@ -3320,13 +3324,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Widget _buildPerfectPairings() {
     return PairingHomeCard(
       apiBase: 'https://admin.adhvaithafoods.in/api',
+      // a couple goes into the cart as ONE line at the couple price (server checks it)
       onAddCouple: (couple, weight, qtyChange) async {
         try {
-          final pA = allProducts.firstWhere((p) => p.name.toLowerCase().contains(couple.a.name.toLowerCase()) || couple.a.name.toLowerCase().contains(p.name.toLowerCase()), orElse: () => productFor(couple.a.name));
-          final pB = allProducts.firstWhere((p) => p.name.toLowerCase().contains(couple.b.name.toLowerCase()) || couple.b.name.toLowerCase().contains(p.name.toLowerCase()), orElse: () => productFor(couple.b.name));
+          final String name = '${couple.a.name} + ${couple.b.name}';
+          final String note = kPairNote + jsonEncode(<String, dynamic>{'id': couple.id, 'label': weight.label, 'a': couple.a.name, 'b': couple.b.name});
           if (qtyChange > 0) {
-            CartManager().addToCart(pA, quantity: qtyChange);
-            CartManager().addToCart(pB, quantity: qtyChange);
+            CartManager().addToCart(
+              comboProduct(name: name, image: couple.a.image, size: weight.label, price: weight.price),
+              quantity: qtyChange,
+              weight: weight.label,
+              chefNote: note,
+            );
+          } else if (qtyChange < 0) {
+            final List<CartItem> hit = CartManager().items.where((CartItem i) => i.product.name == name && i.weight == weight.label && i.chefNote == note).toList();
+            if (hit.isNotEmpty) CartManager().updateQuantity(hit.first, qtyChange);
           }
           return true;
         } catch (_) {
