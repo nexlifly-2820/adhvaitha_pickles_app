@@ -37,6 +37,15 @@ class CartPage extends StatelessWidget {
         }
       },
       onShop: () => MainScreen.of(context)?.setIndex(1),
+      // opened as a page → go back; opened as the Cart tab → go to Home
+      onBack: () {
+        final NavigatorState nav = Navigator.of(context);
+        if (nav.canPop()) {
+          nav.pop();
+        } else {
+          MainScreen.of(context)?.selectTab('home');
+        }
+      },
     );
   }
 }

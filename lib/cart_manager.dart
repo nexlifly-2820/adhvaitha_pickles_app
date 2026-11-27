@@ -268,6 +268,34 @@ class CartManager extends ChangeNotifier {
     return null;
   }
 
+  /// Switch a cart line to another size (merges with an existing line of that size).
+  void changeWeight(CartItem item, String weight) {
+    if (item.weight == weight || !_items.contains(item)) return;
+    final int other = _items.indexWhere((CartItem x) =>
+        !identical(x, item) && x.product.name == item.product.name && x.weight == weight &&
+        x.isTemperingRequested == item.isTemperingRequested && x.chefNote == item.chefNote);
+    if (other != -1) {
+      _items[other].quantity = (_items[other].quantity + item.quantity).clamp(1, 50);
+      _items.remove(item);
+    } else {
+      item.weight = weight;
+    }
+    if (_appliedPromoCode.isNotEmpty) applyPromoCode(_appliedPromoCode);
+    notifyListeners();
+  }
+
+  /// The coupon that saves the most on this cart right now, or null.
+  ({HomeOffer offer, double saving})? bestOffer() {
+    ({HomeOffer offer, double saving})? best;
+    for (final HomeOffer o in HomeOffersStore.items.value) {
+      if (promoProblem(o.code) != null) continue;
+      final double? d = o.discountFor(subtotal, deliveryFee);
+      if (d == null || d <= 0) continue;
+      if (best == null || d > best.saving) best = (offer: o, saving: d);
+    }
+    return best;
+  }
+
   void removePromoCode() {
     _discountAmount = 0;
     _appliedPromoCode = "";

@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import '../cart_manager.dart';
 
 const Color _maroon = Color(0xFF7A1426);
 const Color _rose = Color(0xFFC2185B);
@@ -934,7 +935,29 @@ class _PairingScreenState extends State<PairingScreen> with TickerProviderStateM
           top: 16,
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: <Widget>[
             _roundBtn(Icons.chevron_left_rounded, () => Navigator.maybePop(context)),
-            _roundBtn(Icons.shopping_bag_outlined, widget.onCart),
+            // cart button with the live item count
+            ListenableBuilder(
+              listenable: CartManager(),
+              builder: (BuildContext c, _) {
+                final int n = CartManager().itemCount;
+                return Stack(clipBehavior: Clip.none, children: <Widget>[
+                  _roundBtn(Icons.shopping_bag_outlined, widget.onCart),
+                  if (n > 0)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: IgnorePointer(child: Container(
+                        constraints: const BoxConstraints(minWidth: 18),
+                        height: 18,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(color: const Color(0xFFD62839), borderRadius: BorderRadius.circular(9), border: Border.all(color: Colors.white, width: 1.5)),
+                        child: Text(n > 99 ? '99+' : '$n', style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white, height: 1)),
+                      )),
+                    ),
+                ]);
+              },
+            ),
           ]),
         ),
         // header

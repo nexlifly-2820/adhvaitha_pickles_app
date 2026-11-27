@@ -28,6 +28,9 @@ import 'image_util.dart';
 import 'widgets/cart_bar.dart' show cartScreensOpen;
 import 'widgets/bundle_sheet.dart';
 import 'widgets/cart_upsell.dart';
+import 'widgets/offers_section.dart' show HomeOffersStore, HomeOffer;
+import 'order_manager.dart';
+import 'shop_catalog.dart';
 import 'models.dart';
 
 const _red = Color(0xFF9E1424), _maroon = Color(0xFF6A1220), _ink = Color(0xFF2A1A12), _bg = Color(0xFFFBF6EF);
@@ -51,7 +54,9 @@ class RoyalCartScreen extends StatefulWidget {
   final void Function(Map<String, dynamic> bill)? onCheckout;
   final ValueChanged<String>? onOpenProduct;
   final VoidCallback? onShop;
-  const RoyalCartScreen({super.key, required this.cart, this.onCheckout, this.onOpenProduct, this.onShop});
+  /// back arrow: go back (or to Home when the cart is a bottom-bar tab)
+  final VoidCallback? onBack;
+  const RoyalCartScreen({super.key, required this.cart, this.onCheckout, this.onOpenProduct, this.onShop, this.onBack});
   @override
   State<RoyalCartScreen> createState() => _RoyalCartScreenState();
 }
@@ -71,6 +76,7 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
   void initState() {
     super.initState();
     _load();
+    HomeOffersStore.load().then((_) { if (mounted) _applyLocalCart(); });
     WidgetsBinding.instance.addPostFrameCallback((_) => cartScreensOpen.value++); // hide the floating "View cart" bar here
     widget.cart.addListener(_onCartChanged);
     _clock = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
@@ -122,7 +128,12 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
             "baseDeliveryFee": 40,
             "discount": CartManager().discountAmount,
             "totalSaving": CartManager().discountAmount + (free ? 40 : 0),
-            "total": CartManager().total
+            "total": CartManager().total,
+            if (CartManager().appliedPromoCode.isNotEmpty)
+              "promo": {
+                "code": CartManager().appliedPromoCode,
+                "title": HomeOffersStore.find(CartManager().appliedPromoCode)?.title ?? '',
+              },
           },
           "items": itemsList,
           "suggestions": [
@@ -135,7 +146,13 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
             }
           ],
           "offers": [
-            { "code": "FIRST30", "title": "30% off your first order", "note": "Valid on orders above ₹200", "eligible": true }
+            for (final HomeOffer o in HomeOffersStore.items.value)
+              {
+                "code": o.code,
+                "title": o.title,
+                "note": CartManager().promoProblem(o.code) ?? o.sub,
+                "eligible": CartManager().promoProblem(o.code) == null,
+              }
           ]
         };
       });
@@ -151,7 +168,6 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
         setState(() {
           if (_p != null) {
             if (j['suggestions'] != null) _p!['suggestions'] = j['suggestions'];
-            if (j['offers'] != null) _p!['offers'] = j['offers'];
           }
         });
       }
@@ -168,8 +184,119 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
 
   Future<void> _qty(Map it, int q) async {
     HapticFeedback.selectionClick();
+    // remember the line so "UNDO" can put it back
+    final CartItem? before = q <= 0 ? _lineFor(it) : null;
+    final ({Product product, int qty, String weight, bool tempering, String? note})? saved = before == null
+        ? null
+        : (product: before.product, qty: before.quantity, weight: before.weight, tempering: before.isTemperingRequested, note: before.chefNote);
     final err = await widget.cart.setQty('${it['productId']}', '${it['variantId']}', q);
-    if (err != null && mounted) _snack(err);
+    if (err != null && mounted) return _snack(err);
+    if (saved != null && mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: _ink,
+          duration: const Duration(seconds: 4),
+          content: Text('Removed ${saved.product.name}', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+          action: SnackBarAction(
+            label: 'UNDO',
+            textColor: const Color(0xFFFFD27A),
+            onPressed: () {
+              CartManager().addToCart(saved.product, quantity: saved.qty, weight: saved.weight, isTemperingRequested: saved.tempering, chefNote: saved.note);
+              _applyLocalCart();
+            },
+          ),
+        ));
+    }
+  }
+
+  /// the CartManager line behind a cart card
+  CartItem? _lineFor(Map it) {
+    for (final CartItem c in CartManager().items) {
+      if (c.product.name == '${it['name']}' && '${c.weight}::${c.chefNote ?? ''}' == '${it['variantId']}') return c;
+    }
+    return null;
+  }
+
+  /// "250g ▾" → pick another size for this line
+  void _sizeSheet(CartItem c) {
+    final List<MapEntry<String, double>> sizes = c.product.weightPriceMap.entries.where((MapEntry<String, double> e) => e.value > 0).toList();
+    if (sizes.length < 2) return;
+    HapticFeedback.selectionClick();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (BuildContext sc) => SafeArea(child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: const Color(0xFFE5D8C9), borderRadius: BorderRadius.circular(4)))),
+          const SizedBox(height: 12),
+          Text('Choose size', style: GoogleFonts.rozhaOne(fontSize: 20, color: _maroon)),
+          Text(c.product.name, style: GoogleFonts.poppins(fontSize: 12, color: _muted)),
+          const SizedBox(height: 10),
+          for (final MapEntry<String, double> e in sizes)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () {
+                  Navigator.pop(sc);
+                  CartManager().changeWeight(c, e.key);
+                  _applyLocalCart();
+                  HapticFeedback.mediumImpact();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: e.key == c.weight ? const Color(0xFFFFF3E0) : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: e.key == c.weight ? _red : const Color(0xFFEADCCA), width: e.key == c.weight ? 1.6 : 1),
+                  ),
+                  child: Row(children: [
+                    Icon(e.key == c.weight ? Icons.radio_button_checked : Icons.radio_button_off, size: 18, color: e.key == c.weight ? _red : _muted),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(e.key, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: _ink))),
+                    Text(_rs(e.value), style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: _ink)),
+                  ]),
+                ),
+              ),
+            ),
+        ]),
+      )),
+    );
+  }
+
+  /// best coupon for this cart, with one tap to apply
+  Widget _bestCoupon() {
+    if (CartManager().appliedPromoCode.isNotEmpty) return const SizedBox.shrink();
+    final best = CartManager().bestOffer();
+    if (best == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+        decoration: BoxDecoration(color: const Color(0xFFFFF3D6), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFD9A441), width: 1.3)),
+        child: Row(children: [
+          const Text('💡', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 8),
+          Expanded(child: Text.rich(TextSpan(children: [
+            const TextSpan(text: 'Use '),
+            TextSpan(text: best.offer.code, style: const TextStyle(color: _red, fontWeight: FontWeight.w800)),
+            TextSpan(text: ' to save ${_rs(best.saving.roundToDouble())}'),
+          ]), style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF5A3A00)))),
+          GestureDetector(
+            onTap: () => _applyPromo(best.offer.code),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(color: const Color(0xFF3A0612), borderRadius: BorderRadius.circular(10)),
+              child: Text('APPLY', style: GoogleFonts.poppins(fontSize: 11.5, fontWeight: FontWeight.w800, color: const Color(0xFFFFD27A))),
+            ),
+          ),
+        ]),
+      ),
+    );
   }
 
   Future<void> _addSuggestion(Map s) async {
@@ -180,19 +307,22 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
     widget.cart.bar.added(context, name: s['name'], imageUrl: s['imageUrl'], price: 0, qty: 0);
   }
 
-  Future<void> _applyPromo(String code) async {
-    final r = await http.post(Uri.parse('$_api/cart/promo'), headers: _h, body: jsonEncode({'code': code}));
-    final j = jsonDecode(r.body);
+  // coupons = the admin "Home Offers" (same rules as checkout; the server checks again at payment)
+  Future<void> _applyPromo(String code, {bool fromSheet = false}) async {
+    final String c = code.trim().toUpperCase();
+    if (c.isEmpty) return;
+    final bool ok = CartManager().applyPromoCode(c);
     if (!mounted) return;
-    if (r.statusCode != 200) return _snack(j['error'] ?? 'Invalid code');
+    if (!ok) return _snack(CartManager().promoProblem(c) ?? 'This coupon code is not valid');
     HapticFeedback.mediumImpact();
-    Navigator.of(context).maybePop();
-    _load();
+    if (fromSheet) Navigator.of(context).maybePop();
+    _applyLocalCart();
+    _snack('$c applied 🎉');
   }
 
   Future<void> _removePromo() async {
-    await http.delete(Uri.parse('$_api/cart/promo'), headers: widget.cart.headers);
-    _load();
+    CartManager().removePromoCode();
+    _applyLocalCart();
   }
 
   void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m), behavior: SnackBarBehavior.floating));
@@ -218,6 +348,7 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
               _head('YOUR ITEMS'),
               for (final it in items) _item(it),
               const SizedBox(height: 4),
+              _bestCoupon(),
               _ticket(bill), // promo code, right under the items
               // free delivery row · goes well with your order · browse by category
               CartUpsell(freeAt: _d(bill['freeDeliveryAt']) > 0 ? _d(bill['freeDeliveryAt']) : 500),
@@ -247,12 +378,23 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
   }
 
   Widget _header(int n) => Row(children: [
-        GestureDetector(
-          onTap: () => Navigator.maybePop(context),
-          child: Container(width: 38, height: 38, alignment: Alignment.center,
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(13),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(.3), blurRadius: 10, offset: const Offset(0, 4), spreadRadius: -6)]),
-              child: const Icon(Icons.arrow_back_rounded, size: 19, color: _ink)),
+        Material(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Color(0xFFEAD7C4), width: 1.2)),
+          elevation: 3,
+          shadowColor: Colors.black26,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              if (widget.onBack != null) {
+                widget.onBack!();
+              } else {
+                Navigator.maybePop(context);
+              }
+            },
+            child: const SizedBox(width: 44, height: 44, child: Icon(Icons.arrow_back_rounded, size: 22, color: _maroon)),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -282,6 +424,7 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
           Text('Your thali is empty', style: GoogleFonts.rozhaOne(fontSize: 24, color: _maroon)),
           Text('Fill it with Andhra flavours', style: GoogleFonts.poppins(fontSize: 12, color: _muted)),
           const SizedBox(height: 16),
+          _buyAgain(),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: _red, padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
             onPressed: widget.onShop,
@@ -289,6 +432,63 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
           ),
         ]),
       );
+
+  /// empty cart → their last order, one tap to put it all back
+  Widget _buyAgain() {
+    Order? last;
+    for (final Order o in OrderManager().orders) {
+      if (o.items.isNotEmpty && !RegExp('fail|pending', caseSensitive: false).hasMatch(o.status)) { last = o; break; }
+    }
+    if (last == null) return const SizedBox.shrink();
+    final Order o = last;
+    final String names = o.items.map((CartItem c) => c.product.name).join(', ');
+    final CartItem first = o.items.first;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(padding: const EdgeInsets.only(left: 2, bottom: 8), child: Text('🔁  BUY AGAIN', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 2.2, color: const Color(0xFF9C7A4A)))),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22),
+              boxShadow: [BoxShadow(color: const Color(0xFF501E00).withOpacity(.14), blurRadius: 24, offset: const Offset(0, 14), spreadRadius: -18)]),
+          child: Row(children: [
+            Container(width: 70, height: 70, padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(color: _tints[0], borderRadius: BorderRadius.circular(18)),
+                child: _royalImage(<String>[bestImageFor(first.product.name, first.product.image), first.product.image].join('|'), fit: BoxFit.contain)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Last order · ${o.date.day} ${months[o.date.month - 1]}', style: GoogleFonts.poppins(fontSize: 13.5, fontWeight: FontWeight.w700, color: _ink)),
+              Text(names, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 11, color: _muted)),
+              Text('${o.items.length} item${o.items.length > 1 ? 's' : ''}', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: _faint)),
+            ])),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: _red, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              onPressed: () => _reorder(o),
+              child: Text('Reorder', style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 12.5)),
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  void _reorder(Order o) {
+    HapticFeedback.mediumImpact();
+    int added = 0;
+    for (final CartItem c in o.items) {
+      // today's price for normal products; combo boxes / pairs keep their bundle line
+      Product p = c.product;
+      if (!isBundle(c)) {
+        final Product? live = ShopCatalog.product(c.product.name);
+        if (live != null && live.weightPriceMap.containsKey(c.weight)) p = live;
+      }
+      CartManager().addToCart(p, quantity: c.quantity, weight: c.weight, isTemperingRequested: c.isTemperingRequested, chefNote: c.chefNote);
+      added++;
+    }
+    _applyLocalCart();
+    _snack(added > 0 ? 'Your last order is back in the cart 🫙' : 'Could not add those items');
+  }
 
   // ───────── thali ─────────
   static const _slots = [Offset(150, 58), Offset(230, 108), Offset(230, 192), Offset(150, 242), Offset(70, 192), Offset(70, 108)];
@@ -407,6 +607,21 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
             Text(it['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700)),
             Text(it['label'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 11, color: _muted)),
             if (bundle) Text("See what's inside ›", style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: _red)),
+            if (!bundle) Builder(builder: (_) {
+              final CartItem? line = _lineFor(it);
+              if (line == null || line.product.weightPriceMap.values.where((double v) => v > 0).length < 2) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: GestureDetector(
+                  onTap: () => _sizeSheet(line),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999), border: Border.all(color: const Color(0xFFEADCCA))),
+                    child: Text('${line.weight} ▾', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: _maroon)),
+                  ),
+                ),
+              );
+            }),
             const SizedBox(height: 4),
             Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
               Text(_rs(_d(it['price']) * q), style: GoogleFonts.rozhaOne(fontSize: 19)),
@@ -574,7 +789,7 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
             const SizedBox(width: 8),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: _red, padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-              onPressed: () => _applyPromo(_promo.text.trim()),
+              onPressed: () => _applyPromo(_promo.text.trim(), fromSheet: true),
               child: Text('Apply', style: GoogleFonts.poppins(fontWeight: FontWeight.w800)),
             ),
           ]),
@@ -593,7 +808,7 @@ class _RoyalCartScreenState extends State<RoyalCartScreen> with TickerProviderSt
                   Text(o['title'] ?? '', style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w700)),
                   if ((o['note'] ?? '').toString().isNotEmpty) Text(o['note'], style: GoogleFonts.poppins(fontSize: 10.5, color: _muted)),
                 ])),
-                TextButton(onPressed: o['eligible'] == true ? () => _applyPromo(o['code']) : null,
+                TextButton(onPressed: o['eligible'] == true ? () => _applyPromo('${o['code']}', fromSheet: true) : null,
                     child: Text('APPLY', style: GoogleFonts.poppins(fontWeight: FontWeight.w800, color: o['eligible'] == true ? _red : Colors.grey))),
               ]),
             ),
